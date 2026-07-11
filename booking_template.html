@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<!-- Nhúng font chữ Montserrat thay thế cho TT Commons từ Google Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300;0,400;0,700;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Raleway:wght@200;300;400&display=swap" rel="stylesheet">
+
+<style>
+    @page {
+        size: A4;
+        margin: 0;
+    }
+    *, *::before, *::after {
+        box-sizing: border-box;
+    }
+    body {
+        margin: 0;
+        padding: 0;
+        /* Áp dụng font mới và kéo giãn nhẹ font-stretch để tạo hiệu ứng Expanded giống TT Commons Pro */
+        font-family: 'Montserrat', 'Arial', sans-serif;
+        font-stretch: expanded; 
+        color: #555555;
+        background-color: #ffffff;
+        -webkit-print-color-adjust: exact;
+        font-size: 9pt; /* Giảm nhẹ font để bù trừ khoảng cách Expanded */
+        height: 297mm;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+    .header-banner {
+        background-color: #8c7365;
+        color: #ffffff;
+        text-align: center;
+        padding: 15px 20px;
+    }
+
+    .logo-container {
+        text-align: center;
+        width: 100%;
+        margin-bottom: 5px;
+    }
+
+    .logo-image {
+        height: 75px;
+        width: auto;
+        display: block !important;
+        margin: 0 auto 5px auto !important;
+    }
+    .header-banner h2 {
+        font-family: 'Raleway', sans-serif; /* Áp dụng font chữ mảnh */
+        font-weight: 200; /* Độ mảnh siêu nhỏ (càng nhỏ càng thanh mảnh) */
+        font-size: 14pt; /* Kích thước chữ */
+        letter-spacing: 2px; /* Kéo giãn khoảng cách giữa các chữ để tạo sự sang trọng */
+        margin: 8px 0 0 0;
+        color: #ffffff;
+        text-align: center;
+        text-transform: uppercase; /* Buộc chữ in hoa */
+    }
+
+    .main-container {
+        width: 100%;
+        padding: 0px;
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        flex-grow: 1;
+    }
+    .left-column {
+        float: left;
+        width: 60%;
+        padding: 30px 0px 0px 0px;
+        flex-grow: 1;
+    }
+    .right-column {
+        float: right;
+        width: 40%;
+        padding: 15px 25px 15px 15px;
+        flex-grow: 1;
+    }
+    .info-section {
+        margin-bottom: 12px;
+        line-height: 1.4;
+        padding-left: 30px;
+    }
+    .info-row {
+        margin-bottom: 3px;
+        font-size: 9pt;
+        padding-left: 20px;
+    }
+    .info-label {
+        font-weight: bold;
+        color: #8c7365;
+    }
+    .divider {
+        border-bottom: 1.5px solid #8c7365;
+        padding-left: 20px;
+        margin: 10px 60px 10px 40px;
+    }
+
+    .divider-white-short {
+        border-bottom: 1.5px solid #ffffff;
+        margin: 0px 20px;
+    }
+    
+    .pricing-table-container {
+        margin-top: 30px;
+        padding: 15px 20px 0px 20px;
+        background-color: #c4a493;
+    }
+
+    .pricing-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+        text-align: center;
+    }
+    .pricing-table th {
+        color: white;
+        font-weight: bold;
+        padding: 6px 3px;
+        font-size: 8pt;
+        border-bottom: 1.5px solid #ffffff !important;
+    }
+    .pricing-table td {
+        background-color: #c4a493;
+        padding: 8px 3px;
+        font-size: 8pt;
+        color: white;
+    }
+    
+    .policy-box {
+        background-color: #c4a493;
+        color: #ffffff;
+        padding: 12px 15px;
+        font-size: 7.5pt;
+        line-height: 2;
+    }
+    .policy-box h3 {
+        margin-top: 0;
+        margin-bottom: 6px;
+        font-size: 8pt;
+        text-align: center;
+        font-style: italic;
+        font-weight: bold;
+    }
+    .policy-box p {
+        margin: 0 0 6px 0;
+    }
+    .policy-box ol {
+        margin: 0;
+        padding-left: 12px;
+    }
+    .policy-box li {
+        margin-bottom: 4px;
+    }
+    .policy-box .total-alert {
+        text-align: center;
+        font-weight: bold;
+        font-size: 8pt;
+        margin-bottom: 8px;
+    }
+    
+    .image-container {
+        text-align: center;
+        margin-bottom: 40px;
+    }
+    .arch-image {
+        width: 100%;
+        max-width: 140px;
+        height: 170px;
+        border-top-left-radius: 100px;
+        border-top-right-radius: 100px;
+        object-fit: cover;
+        border: 4px solid #8c7365;
+    }
+
+    .terms-container {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        height: 320px;
+        width: 100%;
+        margin-top: 150px;
+        padding-top: 50px;
+    }
+
+    .terms-section {
+        font-size: 7pt;
+        line-height: 2;
+        color: #8c7365;
+        width: 100%;
+    }
+    .terms-section h3 {
+        font-size: 8pt;
+        color: #8c7365;
+        text-align: center;
+        margin-bottom: 10px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    .terms-section p {
+        margin: 0 0 8px 0;
+    }
+    
+    .footer-wish {
+        text-align: center;
+        font-style: italic;
+        font-weight: bold;
+        color: #7a6356;
+        margin-top: 20px;
+        font-size: 8pt;
+        line-height: 1.4;
+        width: 100%;
+    }
+    
+    .qr-container {
+        text-align: center;
+        margin-top: 15px;
+        width: 100%;
+    }
+    .qr-code {
+        width: 75px;
+        height: 75px;
+    }
+</style>
+</head>
+<body>
+
+    <div class="header-banner">
+        <div class="logo-container">
+            <img class="logo-image" src="logo-cottown.png" alt="Cottown Logo">
+        </div>
+        <h2>XÁC NHẬN ĐẶT PHÒNG</h2>
+    </div>
+
+    <div class="main-container">
+        <!-- LEFT COLUMN -->
+        <div class="left-column">
+            <div class="info-section">
+                <div class="info-row"><span class="info-label">TÊN KHÁCH: {{TEN_KHACH}}</span></div>
+                <div class="info-row"><span class="info-label">SỐ ĐIỆN THOẠI: {{SO_DIEN_THOAI}}</span></div>
+                <div class="info-row"><span class="info-label">SỐ LƯỢNG KHÁCH: {{SO_LUONG_KHACH}}</span></div>
+            </div>
+            
+            <div class="divider"></div>
+            
+            <div class="info-section">
+                <div class="info-row"><span class="info-label">HÌNH THỨC THUÊ: NGUYÊN CĂN 4 PHÒNG</span></div>
+                <div class="info-row"><span class="info-label">CHECK IN: {{CHECK_IN}}</span></div>
+                <div class="info-row"><span class="info-label">CHECK OUT: {{CHECK_OUT}}</span></div>
+            </div>
+            
+            <div class="divider"></div>
+            
+            <div class="info-section">
+                <div class="info-row"><span class="info-label">ĐỊA CHỈ: HẺM 54 HÙNG VƯƠNG, PHƯỜNG 9, TP. ĐÀ LẠT</span></div>
+                <div class="info-row"><span class="info-label">QUẢN GIA LIÊN HỆ NHẬN NHÀ: 0386942888</span></div>
+            </div>
+            
+            <div class="pricing-table-container">
+                <table class="pricing-table">
+                    <thead>
+                        <tr>
+                            <th>GIÁ 1 ĐÊM</th>
+                            <th>SỐ ĐÊM</th>
+                            <th>THÀNH TIỀN</th>
+                            <th>ĐÃ CỌC</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>{{GIA_1_DEM}}</td>
+                            <td>{{SO_DEM}}</td>
+                            <td>{{THANH_TIEN}}</td>
+                            <td>{{DA_COC}}</td>
+                        </tr>
+                        <tr>
+                            <td colspan="4" class="total-alert"><h4>SỐ TIỀN CÒN LẠI {{CON_LAI}} QUÝ KHÁCH THANH TOÁN KHI NHẬN NHÀ</h4></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="divider-white-short"></div>
+            </div>
+            <div class="policy-box">
+                
+                <h3>CHÍNH SÁCH PHỤ THU PHÁT SINH (NẾU CÓ):</h3>
+                <p>1. GIÁ TRÊN KHÔNG BAO GỒM VAT.<br>
+                QUÝ KHÁCH VUI LÒNG ĐI ĐÚNG SỐ NGƯỜI QUY ĐỊNH, PHÁT SINH PHỤ THU 150.000/NGƯỜI/ ĐÊM.</p>
+                <p>2. QUÝ KHÁCH VUI LÒNG TỰ DỌN DẸP KHU VỰC BẾP VÀ SÂN BBQ SAU KHI SỬ DỤNG HOẶC CÓ THỂ THUÊ DỌN DẸP VÀ TRẢ PHÍ 500.000 - 1.000.000/ LẦN ( TUỲ MỨC ĐỘ)</p>
+                
+                <h3 style="margin-top: 10px;">CÁC ĐIỀU KHOẢN VÀ ĐIỀU KIỆN:</h3>
+                <ol>
+                    <li>QUÝ KHÁCH VUI LÒNG MANG THEO CMND/CCCD/PASSPORT ĐỂ LÀM THỦ TỤC ĐĂNG KÝ LƯU TRÚ THEO QUY ĐỊNH.</li>
+                    <li>KHÔNG ỒN ÀO SAU 21H, KHÔNG SỬ DỤNG LOA KÉO & KARAOKE SAU 22H</li>
+                    <li>NGHIÊM CẤM TÀNG TRỮ, SỬ DỤNG "CHẤT GÂY NGHIỆN - CHẤT MA TÚY" TẠI NƠI LƯU TRÚ. NẾU PHÁT HIỆN THÌ CHÚNG TÔI SẼ LẬP TỨC TỪ CHỐI LƯU TRÚ KHÔNG HOÀN TIỀN.</li>
+                    <li>NHẬN VÀ TRẢ PHÒNG ĐÚNG GIỜ QUY ĐỊNH. TRƯỜNG HỢP CHECK IN SỚM HOẶC CHECK OUT TRỄ NẾU HOME CHƯA CÓ KHÁCH ĐẶT, HOME SẼ HỖ TRỢ...</li>
+                    <li>QUÝ KHÁCH VUI LÒNG KIỂM TRA NHÀ KHI NHẬN NHÀ, NẾU CÓ HƯ HỎNG XẢY RA XIN ĐỀN BÙ THEO THIỆT HẠI.</li>
+                    <li>TÀI SẢN TỰ TRANG CÓ GIÁ TRỊ QUÝ KHÁCH VUI LÒNG TỰ BẢO QUẢN</li>
+                    <li>NHÀ KHÔNG NHẬN THÚ CƯNG</li>
+                    <li>KHÔNG HÚT THUỐC TRONG NHÀ</li>
+                    <li>KHÔNG MANG ĐỒ ĂN LÊN GIƯỜNG, CHĂN MẾN DÍNH VẾT Ố KHÔNG GIẶT ĐƯỢC PHỤ THU 1 BỘ MỚI (3TR5), GIẶT ĐƯỢC PHỤ THU 500K.</li>
+                    <li>MẤT CHÌA KHÓA PHÒNG CỦA HOME, PHỤ THU 200K/CHÌA.</li>
+                </ol>
+            </div>
+        </div>
+        
+        <!-- RIGHT COLUMN -->
+        <div class="right-column">
+            <div class="image-container">
+                <img class="arch-image" src="image_header.JPG" alt="Homestay Interior">
+            </div>
+            
+            <div class="terms-container">
+                <div class="terms-section">
+                    <h3>ĐIỀU KHOẢN HUỶ BOOKING:</h3>
+                    <p>1. Áp dụng chính sách không hoàn hủy booking. Trong trường hợp hủy sẽ mất 100% tiền cọc</p>
+                    <p>2. Không hoàn tiền nếu quý khách đặt phòng nhưng không đến hoặc hủy booking sớm hơn thời hạn lưu trú.</p>
+                    <p>3. Hủy booking, Không nhận nhà khi có lí do đột xuất, hãy liên hệ sớm nhất có thể, home sẽ sắp xếp dời lịch cho quý khách.</p>
+                    <p>4. Quý khách vui lòng thanh toán đầy đủ theo thông tin đặt phòng. Số tiền thanh toán sẽ không thay đổi dù có điều chỉnh số ngày lưu trú.</p>
+                </div>
+                
+                <div class="footer-wish">
+                    Xin cảm ơn và hân hạnh được phục vụ quý khách<br>
+                    Chúc quý khách có chuyến nghỉ dưỡng tuyệt vời<br>
+                    Hẹn gặp quý khách tại Đà Lạt
+                </div>
+                
+                <div class="qr-container">
+                    <img class="qr-code" src="image_qr_location.jpg" alt="QR Code">
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
