@@ -9,6 +9,12 @@ services:
       DATABASE_URL: postgres://app_user:${APP_DB_PASSWORD}@db:5432/hmstay
       AUTH_SECRET: ${AUTH_SECRET}
       COOKIE_SECURE: "true"
+      APP_URL: ${APP_URL:?đặt APP_URL trong .env, ví dụ https://hmstay.vn}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-}
     volumes:
       - uploads:/data/uploads
     # Chỉ localhost: nginx/Caddy trên máy chủ proxy vào cổng này

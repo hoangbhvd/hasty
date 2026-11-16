@@ -2,7 +2,9 @@ import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { hash, verify } from "@node-rs/argon2";
+import { createHash, randomBytes } from "node:crypto";
 import { pool } from "./db";
+import { sendMail } from "./mail";
 
 const COOKIE = "hm_session";
 const secret = () => {
@@ -52,4 +54,29 @@ export async function loginUser(email: string, password: string): Promise<string
   const u = r.rows[0];
   if (!u) return null;
   return (await verify(u.password_hash, password)) ? (u.id as string) : null;
+}
+
+const sha256 = (v: string) => createHash("sha256").update(v).digest("hex");
+
+/** Luôn thành công với người gọi (không lộ email nào tồn tại). Email chỉ gửi nếu có tài khoản. */
+export async function requestPasswordReset(email: string) {
+  const token = randomBytes(32).toString("base64url");
+  const r = await pool.query("select * from create_password_reset($1,$2)", [email, sha256(token)]);
+  const u = r.rows[0];
+  if (!u) return;
+  const base = (process.env.APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
+  const link = `${base}/reset?token=${token}`;
+  const name = u.full_name || "bạn";
+  await sendMail(
+    u.email, "Đặt lại mật khẩu HMStay",
+    `Chào ${name},\n\nBấm vào liên kết sau để đặt mật khẩu mới (hiệu lực 1 giờ, dùng một lần):\n${link}\n\nNếu bạn không yêu cầu, hãy bỏ qua email này.`,
+    `<p>Chào ${name.replace(/[<>&]/g, "")},</p><p><a href="${link}">Đặt mật khẩu mới</a> (hiệu lực 1 giờ, dùng một lần).</p><p>Nếu bạn không yêu cầu, hãy bỏ qua email này.</p>`,
+  );
+}
+
+export async function resetPassword(token: string, newPassword: string): Promise<boolean> {
+  if (!token) return false;
+  const h = await hash(newPassword);
+  const r = await pool.query("select consume_password_reset($1,$2) as ok", [sha256(token), h]);
+  return r.rows[0].ok === true;
 }

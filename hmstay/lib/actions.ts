@@ -8,7 +8,7 @@ import { randomUUID } from "node:crypto";
 import sharp from "sharp";
 import { z } from "zod";
 import { withUser } from "./db";
-import { endSession, loginUser, registerUser, requireUser, startSession } from "./auth";
+import { endSession, loginUser, registerUser, requestPasswordReset, requireUser, resetPassword, startSession } from "./auth";
 import { nightsBetween, priceStay, validDate } from "./format";
 
 const UPLOAD_DIR = path.resolve(process.env.UPLOAD_DIR ?? "./uploads");
@@ -55,6 +55,25 @@ export async function loginAction(f: FormData) {
   if (!uid) redirect("/login?e=" + encodeURIComponent("Sai email hoặc mật khẩu."));
   await startSession(uid);
   redirect("/");
+}
+
+export async function forgotPasswordAction(f: FormData) {
+  const email = z.string().email().safeParse(str(f, "email"));
+  if (!email.success) redirect("/forgot?e=" + encodeURIComponent("Nhập email hợp lệ."));
+  // Gửi mail lỗi (SMTP sai...) chỉ ghi log, người dùng luôn thấy cùng một thông báo
+  try { await requestPasswordReset(email.data); } catch (e) { console.error("[forgot]", e); }
+  redirect("/forgot?sent=1");
+}
+
+export async function resetPasswordAction(f: FormData) {
+  const token = str(f, "token");
+  const pw = String(f.get("password") ?? "");
+  const back = `/reset?token=${encodeURIComponent(token)}`;
+  if (pw.length < 8) redirect(back + "&e=" + encodeURIComponent("Mật khẩu tối thiểu 8 ký tự."));
+  if (pw !== String(f.get("password2") ?? "")) redirect(back + "&e=" + encodeURIComponent("Hai mật khẩu không khớp."));
+  const ok = await resetPassword(token, pw);
+  if (!ok) redirect("/forgot?e=" + encodeURIComponent("Liên kết không hợp lệ hoặc đã hết hạn. Hãy yêu cầu liên kết mới."));
+  redirect("/login?ok=" + encodeURIComponent("Đã đổi mật khẩu. Hãy đăng nhập bằng mật khẩu mới."));
 }
 
 export async function logoutAction() {
