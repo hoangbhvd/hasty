@@ -29,6 +29,7 @@ create table users (
   id uuid primary key default gen_random_uuid(),
   email text not null unique,
   password_hash text not null,
+  password_changed_at timestamptz not null default now(),  -- phiên cấp trước mốc này bị vô hiệu
   created_at timestamptz not null default now()
 );
 
@@ -395,10 +396,19 @@ begin
   select * into r from password_resets
    where token_hash = p_token_hash and used_at is null and expires_at > now() for update;
   if not found then return false; end if;
-  update users set password_hash = p_new_password_hash where id = r.user_id;
+  update users set password_hash = p_new_password_hash, password_changed_at = now() where id = r.user_id;
   update password_resets set used_at = now() where user_id = r.user_id and used_at is null;
   return true;
 end $$;
 
 revoke all on function create_password_reset, consume_password_reset from public;
 grant execute on function create_password_reset, consume_password_reset to app_user;
+
+-- Phiên (JWT) còn hiệu lực nếu user còn tồn tại và được cấp (iat, tính bằng giây) không trước lần đổi mật khẩu gần nhất.
+create function session_valid(p_uid uuid, p_iat bigint) returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (select 1 from users
+                 where id = p_uid and date_trunc('second', password_changed_at) <= to_timestamp(p_iat));
+$$;
+revoke all on function session_valid from public;
+grant execute on function session_valid to app_user;

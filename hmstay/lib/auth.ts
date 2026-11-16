@@ -29,12 +29,17 @@ export async function endSession() {
 export async function currentUserId(): Promise<string | null> {
   const t = (await cookies()).get(COOKIE)?.value;
   if (!t) return null;
+  let sub: string | undefined, iat: number | undefined;
   try {
     const { payload } = await jwtVerify(t, secret());
-    return payload.sub ?? null;
+    sub = payload.sub; iat = payload.iat;
   } catch {
     return null;
   }
+  if (!sub || !iat) return null;
+  // Phiên cấp trước lần đổi mật khẩu gần nhất (hoặc user đã bị xoá) coi như hết hiệu lực
+  const r = await pool.query("select session_valid($1,$2) as ok", [sub, iat]);
+  return r.rows[0]?.ok === true ? sub : null;
 }
 
 export async function requireUser(): Promise<string> {
