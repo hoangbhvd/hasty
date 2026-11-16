@@ -11,8 +11,14 @@ services:
       COOKIE_SECURE: "true"
     volumes:
       - uploads:/data/uploads
+    # Chỉ localhost: nginx/Caddy trên máy chủ proxy vào cổng này
+    ports:
+      - "127.0.0.1:${WEB_PORT:-3100}:3000"
 
+  # Chỉ dùng khi VPS CHƯA có web server nào chiếm 80/443:
+  #   docker compose --profile caddy up -d --build
   caddy:
+    profiles: ["caddy"]
     image: caddy:2-alpine
     restart: unless-stopped
     depends_on: [web]
@@ -55,7 +61,7 @@ services:
       - pgdata:/var/lib/postgresql/data
       - ./db/init:/docker-entrypoint-initdb.d:ro
     ports:
-      - "127.0.0.1:5432:5432"      # chỉ localhost; không mở ra internet
+      - "127.0.0.1:5433:5432"      # chỉ localhost; 5433 để không đụng Postgres sẵn có của VPS
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U hmstay_admin -d hmstay"]
       interval: 10s
