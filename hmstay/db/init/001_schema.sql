@@ -276,7 +276,7 @@ $$;
 
 -- ───────────── Chuyển trạng thái booking ─────────────
 -- broker: quoted -> holding -> deposit_reported (hoặc cancelled)
--- chủ   : holding/deposit_reported -> confirmed | cancelled ; quoted -> cancelled
+-- chủ   : holding/deposit_reported -> confirmed | cancelled ; quoted, confirmed -> cancelled
 create function advance_booking(p_booking uuid, p_to booking_status, p_note text default null)
 returns bookings
 language plpgsql security definer set search_path = public as $$
@@ -304,7 +304,7 @@ begin
     (is_broker and ((old_status = 'quoted'  and p_to in ('holding', 'cancelled'))
                  or (old_status = 'holding' and p_to in ('deposit_reported', 'cancelled'))))
     or (is_owner and old_status in ('holding', 'deposit_reported') and p_to in ('confirmed', 'cancelled'))
-    or (is_owner and old_status = 'quoted' and p_to = 'cancelled')
+    or (is_owner and old_status in ('quoted', 'confirmed') and p_to = 'cancelled')
   ) then
     raise exception 'transition % -> % not allowed', old_status, p_to;
   end if;
@@ -323,7 +323,8 @@ begin
   if notify_uid is not null and notify_uid <> app_uid() then
     insert into notifications (user_id, booking_id, message)
     values (notify_uid, p_booking,
-            format('Booking %s (nhận phòng %s): %s -> %s', b.guest_name, b.check_in, old_status, p_to));
+            format('Booking %s (nhận phòng %s): %s -> %s%s', b.guest_name, b.check_in, old_status, p_to,
+                   coalesce(' – ' || nullif(p_note, ''), '')));
   end if;
 
   return b;

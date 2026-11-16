@@ -24,6 +24,25 @@ function Btn({ id, to, label, back, danger }: { id: string; to: string; label: s
   );
 }
 
+// Huỷ booking đã chốt: bắt nhập lý do (gửi kèm thông báo cho broker). Không cần JS.
+function CancelConfirmed({ id, back, isBlock }: { id: string; back: string; isBlock: boolean }) {
+  return (
+    <details className="w-full">
+      <summary className="btn-danger w-fit cursor-pointer list-none">{isBlock ? "Bỏ khoá lịch" : "Huỷ booking đã chốt"}</summary>
+      <form action={advanceBookingAction} className="mt-2 flex flex-wrap items-end gap-2 rounded-lg border border-red-200 bg-red-50 p-3">
+        <input type="hidden" name="booking_id" value={id} /><input type="hidden" name="to" value="cancelled" />
+        <input type="hidden" name="back" value={back} />
+        <div className="min-w-48 flex-1">
+          <label className="label">{isBlock ? "Ghi chú (tuỳ chọn)" : "Lý do huỷ (broker sẽ nhận được)"}</label>
+          <input className="input" name="note" required={!isBlock} placeholder={isBlock ? "" : "VD: Khách đổi lịch, phòng hỏng..."} />
+        </div>
+        <button className="btn-danger">{isBlock ? "Xác nhận bỏ khoá" : "Xác nhận huỷ"}</button>
+      </form>
+      {!isBlock && <p className="mt-1 text-xs text-slate-500">Phòng được mở lại cho các ngày này. Hoàn cọc cho khách là việc bạn và broker tự xử lý.</p>}
+    </details>
+  );
+}
+
 export function BookingList({ rows, role, back }: { rows: BookingRow[]; role: "owner" | "broker"; back: string }) {
   if (!rows.length) return <p className="text-sm text-slate-500">Chưa có booking.</p>;
   return (
@@ -53,6 +72,7 @@ export function BookingList({ rows, role, back }: { rows: BookingRow[]; role: "o
             {role === "broker" && ["quoted", "holding"].includes(b.status) && <Btn id={b.id} to="cancelled" label="Huỷ" back={back} danger />}
             {role === "owner" && ["holding", "deposit_reported"].includes(b.status) && <Btn id={b.id} to="confirmed" label="Chốt phòng" back={back} />}
             {role === "owner" && ["quoted", "holding", "deposit_reported"].includes(b.status) && <Btn id={b.id} to="cancelled" label="Từ chối / Huỷ" back={back} danger />}
+            {role === "owner" && b.status === "confirmed" && <CancelConfirmed id={b.id} back={back} isBlock={!b.broker_name} />}
           </div>
         </li>
       ))}
