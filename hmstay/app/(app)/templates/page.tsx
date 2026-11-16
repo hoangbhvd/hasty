@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { withUser } from "@/lib/db";
-import { createTemplateAction, deleteTemplateAction } from "@/lib/actions";
+import { createTemplateAction, deleteTemplateAction, importTemplateAction } from "@/lib/actions";
 import { ErrorBanner } from "@/components/ErrorBanner";
 
 export default async function Templates({ searchParams }: { searchParams: Promise<{ e?: string }> }) {
@@ -20,6 +20,13 @@ export default async function Templates({ searchParams }: { searchParams: Promis
         <div className="min-w-56 flex-1"><label className="label">Tên mẫu mới</label><input className="input" name="name" placeholder="VD: Mẫu Cottown" required /></div>
         <button className="btn">Tạo mẫu</button>
         <p className="w-full text-xs text-slate-500">Mẫu mới bắt đầu từ bố cục cơ bản, bạn kéo thả để chỉnh lại.</p>
+      </form>
+      <form action={importTemplateAction} className="card flex flex-wrap items-end gap-3">
+        <div className="w-full"><p className="text-sm font-medium">Đã có mẫu HTML riêng? Nhập vào rồi chỉnh tiếp bằng kéo thả</p></div>
+        <div className="min-w-56 flex-1"><label className="label">Tên mẫu (tuỳ chọn)</label><input className="input" name="name" /></div>
+        <div><label className="label">File .html</label><input className="text-sm" type="file" name="file" accept=".html,.htm,text/html" required /></div>
+        <button className="btn-ghost">Nhập mẫu</button>
+        <p className="w-full text-xs text-slate-500">Script bị loại bỏ. Ảnh nên nhúng sẵn (data URL) vì ảnh chỉ tên file sẽ không hiện. Biến đặt dạng {"{{TEN_KHACH}}"}; thêm {"{{TEN_KHACH|upper}}"} để in hoa.</p>
       </form>
       {rows.length === 0 ? <p className="text-sm text-slate-500">Chưa có mẫu nào. Khi chưa có mẫu, hệ thống dùng một mẫu cơ bản mặc định.</p> : (
         <ul className="space-y-2">

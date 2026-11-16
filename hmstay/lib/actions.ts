@@ -12,7 +12,7 @@ import { withUser } from "./db";
 import { flushNotificationEmails } from "./notify";
 import { endSession, loginUser, registerUser, requestPasswordReset, requireUser, resetPassword, startSession } from "./auth";
 import { nightsBetween, priceStay, validDate } from "./format";
-import { STARTER_CSS, STARTER_HTML } from "./confirmation";
+import { importHtml, STARTER_CSS, STARTER_HTML } from "./confirmation";
 
 const UPLOAD_DIR = path.resolve(process.env.UPLOAD_DIR ?? "./uploads");
 
@@ -282,6 +282,23 @@ export async function createTemplateAction(f: FormData) {
     id = await withUser(uid, async (q) => (await q<{ id: string }>(
       "insert into booking_templates(owner_id,name,html,css) values ($1,$2,$3,$4) returning id",
       [uid, name.slice(0, 120), STARTER_HTML, STARTER_CSS]))[0].id);
+  });
+  redirect(`/templates/${id}`);
+}
+
+export async function importTemplateAction(f: FormData) {
+  const uid = await requireUser();
+  let id = "";
+  await run("/templates", async () => {
+    const file = f.get("file");
+    if (!(file instanceof File) || file.size === 0) throw new Error("Chọn một file .html.");
+    if (file.size > 2.5 * 1024 * 1024) throw new Error("File quá lớn (tối đa 2,5MB). Hãy dùng ảnh nhỏ hơn hoặc nhúng ảnh nén.");
+    const { html, css } = importHtml(await file.text());
+    if (!html) throw new Error("Không đọc được nội dung trang trong file.");
+    const name = str(f, "name") || file.name.replace(/\.html?$/i, "");
+    id = await withUser(uid, async (q) => (await q<{ id: string }>(
+      "insert into booking_templates(owner_id,name,html,css) values ($1,$2,$3,$4) returning id",
+      [uid, name.slice(0, 120), html, css]))[0].id);
   });
   redirect(`/templates/${id}`);
 }

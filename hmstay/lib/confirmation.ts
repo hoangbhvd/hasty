@@ -102,10 +102,13 @@ export async function loadConfirmationVars(uid: string, bookingId: string): Prom
  */
 export function renderConfirmation(html: string, css: string, vars: Record<string, string>) {
   const nonce = randomBytes(16).toString("base64");
-  const body = html.replace(/\{\{([A-Z0-9_]+)\}\}/g, (m, k: string) => (k in vars ? esc(vars[k]) : m));
+  // {{KEY}} hoặc {{KEY|upper}} (in hoa, như mẫu Cottown cũ); biến lạ giữ nguyên để người dùng thấy lỗi gõ
+  const body = html.replace(/\{\{([A-Z0-9_]+)(\|upper)?\}\}/g, (m, k: string, up?: string) =>
+    k in vars ? esc(up ? vars[k].toLocaleUpperCase("vi-VN") : vars[k]) : m);
   const doc = `<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Xác nhận booking</title>
-<style>@page{size:A4;margin:10mm}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}${css.replace(/<\/style/gi, "")}</style>
+<style>@page{size:A4;margin:10mm}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}</style>
+<style>${css.replace(/<\/style/gi, "")}</style>
 <style>#hm-print{position:fixed;top:12px;right:12px;z-index:99999;font:600 13px Arial;padding:10px 14px;border:0;border-radius:8px;background:#0f766e;color:#fff;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.25)}@media print{#hm-print{display:none}}</style>
 </head><body>${body}<button id="hm-print" type="button">In / Lưu PDF</button>
 <script nonce="${nonce}">document.getElementById("hm-print").addEventListener("click",function(){window.print()})</script></body></html>`;
@@ -121,4 +124,20 @@ export function renderConfirmation(html: string, css: string, vars: Record<strin
       "X-Content-Type-Options": "nosniff",
     },
   };
+}
+
+/** Tách HTML+CSS từ một file HTML hoàn chỉnh (như booking_template.html) để dùng làm mẫu. */
+export function importHtml(raw: string): { html: string; css: string } {
+  // Font Google: <link> không giữ được trong mẫu, đổi thành @import (phải đứng đầu CSS)
+  const imports = [...raw.matchAll(/<link\b[^>]*\bhref=["'](https:\/\/fonts\.googleapis\.com\/[^"']+)["'][^>]*>/gi)]
+    .map((m) => `@import url("${m[1]}");`);
+  const styles = [...raw.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/gi)].map((m) => m[1].trim());
+  const body = /<body\b[^>]*>([\s\S]*?)<\/body>/i.exec(raw);
+  let html = body ? body[1] : raw.replace(/<head\b[\s\S]*?<\/head>/i, "").replace(/<\/?(html|body)\b[^>]*>/gi, "");
+  html = html.replace(/<script\b[\s\S]*?<\/script>/gi, "").replace(/<!--[\s\S]*?-->/g, "").trim();
+  // @import cũ trong <style> cũng phải lên đầu
+  const css = styles.join("\n");
+  const innerImports = [...css.matchAll(/@import[^;]+;/gi)].map((m) => m[0]);
+  const rest = css.replace(/@import[^;]+;/gi, "");
+  return { html, css: [...new Set([...imports, ...innerImports])].join("\n") + "\n" + rest };
 }
