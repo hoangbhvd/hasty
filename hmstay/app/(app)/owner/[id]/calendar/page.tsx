@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { withUser } from "@/lib/db";
@@ -41,10 +40,7 @@ export default async function OwnerCalendar({ params, searchParams }: { params: 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold">Lịch: {data.p.name}</h1>
-          <Link href={`/owner/${id}`} className="text-sm text-teal-700 underline">← Về trang cơ sở</Link>
-        </div>
+        <h2 className="text-lg font-semibold">Lịch phòng</h2>
         <CalendarNav base={base} m={m} />
       </div>
       <Legend items={[["confirmed", "Đã chốt"], ["deposit", "Đã báo cọc, chờ chốt"], ["holding", "Đang giữ chỗ"], ["block", "Chủ khoá / khách trực tiếp"]]} />

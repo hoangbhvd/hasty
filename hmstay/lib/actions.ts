@@ -11,7 +11,8 @@ import { z } from "zod";
 import { withUser } from "./db";
 import { flushNotificationEmails } from "./notify";
 import { endSession, loginUser, registerUser, requestPasswordReset, requireUser, resetPassword, startSession } from "./auth";
-import { nightsBetween, priceStay, validDate } from "./format";
+import { nightsBetween, priceStayWithSeasons, validDate } from "./format";
+import { AMENITIES } from "./property";
 import { importHtml, STARTER_CSS, STARTER_HTML } from "./confirmation";
 
 const UPLOAD_DIR = path.resolve(process.env.UPLOAD_DIR ?? "./uploads");
@@ -105,20 +106,94 @@ export async function createPropertyAction(f: FormData) {
   redirect(`/owner/${id}`);
 }
 
+export async function updatePropertyAction(f: FormData) {
+  const uid = await requireUser();
+  const pid = str(f, "property_id");
+  await run(`/owner/${pid}/info`, async () => {
+    const name = str(f, "name");
+    if (!name) throw new Error("Nhập tên cơ sở.");
+    const time = (k: string, d: string) => (/^\d{2}:\d{2}$/.test(str(f, k)) ? str(f, k) : d);
+    const known = new Set(AMENITIES.map((x) => x.key));
+    const amenities = f.getAll("amenities").map(String).filter((k) => known.has(k));
+    await withUser(uid, (q) => q(
+      `update properties set name=$2, type=$3, address=$4, area=$5, description=$6, amenities=$7,
+              checkin_time=$8, checkout_time=$9, cancel_policy=$10, house_rules=$11
+       where id=$1`,
+      [pid, name, str(f, "type") === "hotel" ? "hotel" : "homestay", str(f, "address") || null, str(f, "area") || null,
+       str(f, "description") || null, amenities, time("checkin_time", "14:00"), time("checkout_time", "12:00"),
+       str(f, "cancel_policy") || null, str(f, "house_rules") || null]));
+  });
+  redirect(`/owner/${pid}/info?saved=1`);
+}
+
 export async function addUnitAction(f: FormData) {
   const uid = await requireUser();
   const pid = str(f, "property_id");
-  await run(`/owner/${pid}`, async () => {
+  await run(`/owner/${pid}/rooms`, async () => {
     const name = str(f, "name");
     if (!name) throw new Error("Nhập tên phòng.");
-    await withUser(uid, (q) => q("insert into units(property_id,name,capacity) values ($1,$2,$3)", [pid, name, num(f, "capacity") || 2]));
+    await withUser(uid, (q) => q("insert into units(property_id,name,capacity,description,min_nights) values ($1,$2,$3,$4,$5)",
+      [pid, name, num(f, "capacity") || 2, str(f, "description") || null, Math.min(60, num(f, "min_nights") || 1)]));
   });
+}
+
+export async function updateUnitAction(f: FormData) {
+  const uid = await requireUser();
+  const pid = str(f, "property_id");
+  await run(`/owner/${pid}/rooms`, async () => {
+    const name = str(f, "name");
+    if (!name) throw new Error("Nhập tên phòng.");
+    await withUser(uid, (q) => q(
+      "update units set name=$2, capacity=$3, description=$4, min_nights=$5, active=$6 where id=$1",
+      [str(f, "unit_id"), name, num(f, "capacity") || 2, str(f, "description") || null, Math.min(60, num(f, "min_nights") || 1), f.get("active") === "on"]));
+  });
+}
+
+export async function deleteUnitAction(f: FormData) {
+  const uid = await requireUser();
+  const pid = str(f, "property_id");
+  await run(`/owner/${pid}/rooms`, async () => {
+    try {
+      await withUser(uid, (q) => q("delete from units where id=$1", [str(f, "unit_id")]));
+    } catch (e) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if ((e as any)?.code === "23503") throw new Error("Phòng đã có booking nên không xoá được. Hãy tắt “Đang bán” để ẩn phòng.");
+      throw e;
+    }
+  });
+}
+
+export async function saveSeasonAction(f: FormData) {
+  const uid = await requireUser();
+  const pid = str(f, "property_id");
+  await run(`/owner/${pid}/pricing`, async () => {
+    const a = str(f, "start_date"), b = str(f, "end_date");
+    if (!validDate(a) || !validDate(b) || b < a) throw new Error("Khoảng ngày không hợp lệ.");
+    const wd = num(f, "weekday"), we = num(f, "weekend");
+    if (!wd) throw new Error("Nhập giá net ngày thường.");
+    // "all" = áp dụng cho mọi phòng của cơ sở
+    const target = str(f, "unit_id");
+    await withUser(uid, async (q) => {
+      const units = target === "all"
+        ? await q<{ id: string }>("select id from units where property_id=$1", [pid])
+        : [{ id: target }];
+      for (const u of units) await q(
+        "insert into rate_seasons(unit_id,name,start_date,end_date,weekday_price,weekend_price) values ($1,$2,$3,$4,$5,$6)",
+        [u.id, str(f, "name").slice(0, 80), a, b, wd, we || wd]);
+    });
+  });
+}
+
+export async function deleteSeasonAction(f: FormData) {
+  const uid = await requireUser();
+  const pid = str(f, "property_id");
+  await run(`/owner/${pid}/pricing`, () => withUser(uid, (q) => q("delete from rate_seasons where id=$1", [str(f, "season_id")])).then(() => undefined));
 }
 
 export async function saveRateAction(f: FormData) {
   const uid = await requireUser();
   const pid = str(f, "property_id");
-  await run(`/owner/${pid}`, async () => {
+  await run(`/owner/${pid}/pricing`, async () => {
     const wd = num(f, "weekday"), we = num(f, "weekend");
     if (!wd) throw new Error("Nhập giá net ngày thường.");
     await withUser(uid, (q) => q(
@@ -133,7 +208,7 @@ export async function saveRateAction(f: FormData) {
 export async function setLinkStatusAction(f: FormData) {
   const uid = await requireUser();
   const pid = str(f, "property_id");
-  await run(`/owner/${pid}`, async () => {
+  await run(`/owner/${pid}/brokers`, async () => {
     const status = str(f, "status");
     if (!["active", "rejected", "revoked"].includes(status)) throw new Error("Trạng thái không hợp lệ.");
     await withUser(uid, (q) => q("update broker_links set status=$1, commission_note=coalesce(nullif($2,''),commission_note) where id=$3",
@@ -157,7 +232,7 @@ export async function blockDatesAction(f: FormData) {
 export async function uploadImageAction(f: FormData) {
   const uid = await requireUser();
   const pid = str(f, "property_id");
-  await run(`/owner/${pid}`, async () => {
+  await run(`/owner/${pid}/photos`, async () => {
     const files = f.getAll("images").filter((x): x is File => x instanceof File && x.size > 0);
     if (!files.length) throw new Error("Chọn ít nhất một ảnh.");
     for (const file of files) {
@@ -181,17 +256,36 @@ export async function uploadImageAction(f: FormData) {
 export async function deleteImageAction(f: FormData) {
   const uid = await requireUser();
   const pid = str(f, "property_id");
-  await run(`/owner/${pid}`, async () => {
+  await run(`/owner/${pid}/photos`, async () => {
     const rows = await withUser(uid, (q) => q<{ storage_key: string }>(
       "delete from property_images where id=$1 returning storage_key", [str(f, "image_id")]));
     for (const r of rows) await fs.rm(path.join(UPLOAD_DIR, r.storage_key), { force: true });
   });
 }
 
+/** Đổi thứ tự ảnh: dir = up|down, hoặc cover = đưa lên đầu (ảnh bìa). */
+export async function moveImageAction(f: FormData) {
+  const uid = await requireUser();
+  const pid = str(f, "property_id");
+  await run(`/owner/${pid}/photos`, async () => {
+    const id = str(f, "image_id"), dir = str(f, "dir");
+    await withUser(uid, async (q) => {
+      const rows = await q<{ id: string }>("select id from property_images where property_id=$1 order by sort_order, created_at", [pid]);
+      const ids = rows.map((r) => r.id);
+      const i = ids.indexOf(id);
+      if (i < 0) return;
+      ids.splice(i, 1);
+      const to = dir === "cover" ? 0 : dir === "up" ? Math.max(0, i - 1) : Math.min(ids.length, i + 1);
+      ids.splice(to, 0, id);
+      for (let k = 0; k < ids.length; k++) await q("update property_images set sort_order=$2 where id=$1", [ids[k], k]);
+    });
+  });
+}
+
 // ───────── Broker ─────────
 export async function requestLinkAction(f: FormData) {
   const uid = await requireUser();
-  await run("/broker", async () => {
+  await run("/broker/properties", async () => {
     await withUser(uid, (q) => q("insert into broker_links(property_id,broker_id) values ($1,$2)", [str(f, "property_id"), uid]));
   });
 }
@@ -208,14 +302,18 @@ export async function createQuoteAction(f: FormData) {
     const unit = str(f, "unit_id");
     await withUser(uid, async (q) => {
       // Ưu tiên giá riêng của broker, không có thì giá mặc định
+      const [unitRow] = await q<{ min_nights: number }>("select min_nights from units where id=$1", [unit]);
       const [rate] = await q<{ weekday_price: number; weekend_price: number; min_sell_price: number | null }>(
         `select weekday_price, weekend_price, min_sell_price from net_rates
           where unit_id=$1 and (broker_id=$2 or broker_id is null)
           order by broker_id nulls last limit 1`, [unit, uid]);
       if (!rate) throw new Error("Chủ chưa đặt giá net cho phòng này.");
-      const net = priceStay(a, b, rate.weekday_price, rate.weekend_price);
-      const sell = num(f, "sell_total");
+      const seasons = await q<{ start_date: string; end_date: string; weekday_price: number; weekend_price: number }>(
+        "select start_date, end_date, weekday_price, weekend_price from rate_seasons where unit_id=$1 order by created_at", [unit]);
       const nights = nightsBetween(a, b);
+      if (unitRow && nights < unitRow.min_nights) throw new Error(`Phòng này yêu cầu tối thiểu ${unitRow.min_nights} đêm.`);
+      const net = priceStayWithSeasons(a, b, rate, seasons);
+      const sell = num(f, "sell_total");
       if (rate.min_sell_price && sell < rate.min_sell_price * nights)
         throw new Error("Giá bán thấp hơn giá sàn chủ yêu cầu.");
       await q(

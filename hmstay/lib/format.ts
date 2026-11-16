@@ -18,6 +18,25 @@ export function priceStay(checkIn: string, checkOut: string, weekday: number, we
   return total;
 }
 
+export type Season = { start_date: string; end_date: string; weekday_price: number; weekend_price: number };
+type Base = { weekday_price: number; weekend_price: number };
+
+/** Giá net của một đêm: mùa nào chứa đêm đó thì dùng (mùa đứng sau trong mảng thắng), không thì giá mặc định. */
+export function nightPrice(date: string, base: Base, seasons: Season[] = []): number {
+  let price = { weekday: base.weekday_price, weekend: base.weekend_price };
+  for (const s of seasons) if (s.start_date <= date && date <= s.end_date) price = { weekday: s.weekday_price, weekend: s.weekend_price };
+  const w = parse(date).getUTCDay();
+  return w === 5 || w === 6 ? price.weekend : price.weekday;
+}
+
+/** Tổng giá net cả kỳ có tính giá theo mùa. `seasons` sắp theo thời điểm tạo tăng dần. */
+export function priceStayWithSeasons(checkIn: string, checkOut: string, base: Base, seasons: Season[] = []) {
+  let total = 0;
+  const n = nightsBetween(checkIn, checkOut);
+  for (let i = 0; i < n; i++) total += nightPrice(addDays(checkIn, i), base, seasons);
+  return total;
+}
+
 export const validDate = (s: unknown): s is string =>
   typeof s === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s) && !isNaN(parse(s).getTime());
 
