@@ -25,3 +25,6 @@ export const STATUS_LABEL: Record<string, string> = {
   quoted: "Báo giá", holding: "Đang giữ chỗ", deposit_reported: "Đã báo cọc",
   confirmed: "Đã chốt", cancelled: "Đã huỷ", expired: "Hết hạn giữ",
 };
+
+/** Thứ trong tuần của "YYYY-MM-DD" (0 = CN). */
+export const dow = (d: string) => new Date(d + "T00:00:00Z").getUTCDay();

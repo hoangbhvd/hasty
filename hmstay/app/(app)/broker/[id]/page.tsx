@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { withUser } from "@/lib/db";
@@ -42,6 +43,7 @@ export default async function BrokerProperty({ params, searchParams }: {
       <div>
         <h1 className="text-xl font-bold">{p.name}</h1>
         <p className="text-sm text-slate-600">{p.address}</p>
+        <Link href={`/broker/${id}/calendar`} className="btn-ghost mt-2">Xem lịch trống theo tháng</Link>
         {p.commission_note && <p className="mt-1 text-sm text-teal-800">Thoả thuận với chủ: {p.commission_note}</p>}
         {p.description && <p className="mt-2 text-sm text-slate-700">{p.description}</p>}
       </div>

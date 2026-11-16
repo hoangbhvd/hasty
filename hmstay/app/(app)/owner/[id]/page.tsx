@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { withUser } from "@/lib/db";
@@ -47,6 +48,7 @@ export default async function OwnerProperty({ params, searchParams }: { params: 
       <div>
         <h1 className="text-xl font-bold">{p.name}</h1>
         <p className="text-sm text-slate-600">{p.address} · {p.rental_mode === "whole" ? "Bán nguyên căn" : "Bán theo phòng"}</p>
+        <Link href={`/owner/${id}/calendar`} className="btn-ghost mt-2">Xem lịch theo tháng</Link>
       </div>
       <ErrorBanner e={e} />
 
