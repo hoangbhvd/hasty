@@ -48,9 +48,35 @@ export default async function OwnerProperty({ params, searchParams }: { params: 
       <div>
         <h1 className="text-xl font-bold">{p.name}</h1>
         <p className="text-sm text-slate-600">{p.address} · {p.rental_mode === "whole" ? "Bán nguyên căn" : "Bán theo phòng"}</p>
-        <Link href={`/owner/${id}/calendar`} className="btn-ghost mt-2">Xem lịch theo tháng</Link>
+        <div className="mt-2 flex flex-wrap gap-2">
+          <a href="#tao-booking" className="btn">+ Tạo booking cho khách của tôi</a>
+          <Link href={`/owner/${id}/calendar`} className="btn-ghost">Xem lịch theo tháng</Link>
+        </div>
       </div>
       <ErrorBanner e={e} />
+
+      <section id="tao-booking" className="card scroll-mt-4">
+        <h2 className="mb-1 font-semibold">Tạo booking cho khách của tôi</h2>
+        <p className="mb-3 text-xs text-slate-500">Booking vào thẳng trạng thái Đã chốt và giữ phòng cho các đêm đã chọn. Sau khi tạo, bạn được chuyển sang trang xác nhận để lưu PDF.</p>
+        {units.length === 0 ? (
+          <p className="text-sm text-amber-700">Cơ sở chưa có phòng. Hãy thêm phòng ở mục “Phòng &amp; giá net” bên dưới trước.</p>
+        ) : (
+          <form action={createDirectBookingAction} className="grid items-end gap-2 sm:grid-cols-6">
+            <input type="hidden" name="property_id" value={id} />
+            <div className="sm:col-span-3"><label className="label">Phòng</label>
+              <select className="input" name="unit_id" required>{units.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</select></div>
+            <div><label className="label">Nhận phòng</label><input className="input" type="date" name="check_in" required /></div>
+            <div><label className="label">Trả phòng</label><input className="input" type="date" name="check_out" required /></div>
+            <div><label className="label">Số khách</label><input className="input" name="guests" type="number" min={1} /></div>
+            <div className="sm:col-span-3"><label className="label">Tên khách</label><input className="input" name="guest_name" required /></div>
+            <div className="sm:col-span-3"><label className="label">SĐT khách</label><input className="input" name="guest_phone" /></div>
+            <div className="sm:col-span-3"><label className="label">Tổng tiền (VND)</label><input className="input" name="price" inputMode="numeric" required /></div>
+            <div className="sm:col-span-3"><label className="label">Đã cọc (VND)</label><input className="input" name="deposit" inputMode="numeric" /></div>
+            <div className="sm:col-span-6"><label className="label">Ghi chú (hiện trong xác nhận)</label><input className="input" name="note" /></div>
+            <button className="btn sm:col-span-6 sm:w-fit">Tạo booking &amp; xem xác nhận</button>
+          </form>
+        )}
+      </section>
 
       <section>
         <h2 className="mb-3 font-semibold">Broker hợp tác</h2>
@@ -101,22 +127,6 @@ export default async function OwnerProperty({ params, searchParams }: { params: 
                   <div><label className="label">Sàn/đêm (tuỳ chọn)</label><input className="input" name="min_sell" inputMode="numeric" /></div>
                   <button className="btn">Lưu giá</button>
                 </form>
-                <details className="mt-3">
-                  <summary className="cursor-pointer text-sm font-medium text-teal-800">Tạo booking cho khách của tôi</summary>
-                  <form action={createDirectBookingAction} className="mt-2 grid items-end gap-2 sm:grid-cols-6">
-                    <input type="hidden" name="property_id" value={id} /><input type="hidden" name="unit_id" value={u.id} />
-                    <div className="sm:col-span-2"><label className="label">Tên khách</label><input className="input" name="guest_name" required /></div>
-                    <div className="sm:col-span-2"><label className="label">SĐT khách</label><input className="input" name="guest_phone" /></div>
-                    <div><label className="label">Số khách</label><input className="input" name="guests" type="number" min={1} /></div>
-                    <div><label className="label">Nhận phòng</label><input className="input" type="date" name="check_in" required /></div>
-                    <div><label className="label">Trả phòng</label><input className="input" type="date" name="check_out" required /></div>
-                    <div className="sm:col-span-2"><label className="label">Tổng tiền (VND)</label><input className="input" name="price" inputMode="numeric" required /></div>
-                    <div className="sm:col-span-2"><label className="label">Đã cọc (VND)</label><input className="input" name="deposit" inputMode="numeric" /></div>
-                    <div className="sm:col-span-6"><label className="label">Ghi chú (hiện trong xác nhận)</label><input className="input" name="note" /></div>
-                    <button className="btn sm:col-span-6 sm:w-fit">Tạo booking &amp; xem xác nhận</button>
-                    <p className="text-xs text-slate-500 sm:col-span-6">Booking vào thẳng trạng thái Đã chốt và giữ phòng cho các đêm này.</p>
-                  </form>
-                </details>
                 <details className="mt-3">
                   <summary className="cursor-pointer text-sm text-slate-600">Khoá lịch (khách trực tiếp / bảo trì)</summary>
                   <form action={blockDatesAction} className="mt-2 grid items-end gap-2 sm:grid-cols-5">
