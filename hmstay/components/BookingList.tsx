@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { advanceBookingAction } from "@/lib/actions";
 import { STATUS_LABEL, vnd } from "@/lib/format";
 
@@ -67,6 +68,9 @@ export function BookingList({ rows, role, back }: { rows: BookingRow[]; role: "o
           )}
           {b.note && <p className="mt-1 text-xs text-slate-500">Ghi chú: {b.note}</p>}
           <div className="mt-3 flex flex-wrap gap-2">
+            {["holding", "deposit_reported", "confirmed"].includes(b.status) && (role === "broker" || !b.broker_name) && (
+              <Link href={`/confirmation/${b.id}`} className="btn-ghost">Xác nhận booking (PDF)</Link>
+            )}
             {role === "broker" && b.status === "quoted" && <Btn id={b.id} to="holding" label="Khách đồng ý cọc – Báo chủ chốt" back={back} />}
             {role === "broker" && b.status === "holding" && <Btn id={b.id} to="deposit_reported" label="Đã nhận cọc – Báo chủ" back={back} />}
             {role === "broker" && ["quoted", "holding"].includes(b.status) && <Btn id={b.id} to="cancelled" label="Huỷ" back={back} danger />}

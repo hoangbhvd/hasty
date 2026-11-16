@@ -18,6 +18,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <Link href="/owner" className="font-bold text-teal-800">HMStay</Link>
           <NavLinks />
           <div className="ml-auto flex items-center gap-3 text-sm">
+            <Link href="/templates" className="text-slate-600 hover:text-slate-900">Mẫu xác nhận</Link>
             <Link href="/notifications" className="relative text-slate-600 hover:text-slate-900">
               Thông báo{unread > 0 && <span className="ml-1 rounded-full bg-red-600 px-1.5 py-0.5 text-xs text-white">{unread}</span>}
             </Link>

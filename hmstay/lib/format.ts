@@ -28,3 +28,8 @@ export const STATUS_LABEL: Record<string, string> = {
 
 /** Thứ trong tuần của "YYYY-MM-DD" (0 = CN). */
 export const dow = (d: string) => new Date(d + "T00:00:00Z").getUTCDay();
+
+/** "2026-12-04" -> "04/12/2026" */
+export const dmy = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}/${d.slice(0, 4)}`;
+/** 1000000 -> "1.000.000" (không kèm đơn vị) */
+export const money = (n: number) => new Intl.NumberFormat("vi-VN").format(Math.round(n));
