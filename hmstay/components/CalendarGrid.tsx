@@ -25,48 +25,43 @@ export function CalendarNav({ base, m }: { base: string; m: Month }) {
 export function CalendarGrid({ units, m, blocks }: { units: CalUnit[]; m: Month; blocks: CalBlock[] }) {
   const today = todayStr();
   const last = m.days[m.days.length - 1];
+  // Ngày chạy theo chiều dọc, mỗi phòng một cột; booking nhiều đêm gộp ô theo chiều dọc (rowSpan)
+  const skip: Record<string, number> = {};
   return (
-    <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+    <div className="max-h-[75vh] overflow-auto rounded-xl border border-slate-200 bg-white">
       <table className="w-full border-collapse text-xs">
         <thead>
           <tr>
-            <th className="sticky left-0 z-10 min-w-28 border-b border-r border-slate-200 bg-white px-2 py-2 text-left">Phòng</th>
-            {m.days.map((d) => {
-              const w = dow(d);
-              return (
-                <th key={d} className={`min-w-9 border-b border-slate-200 px-0.5 py-1 font-medium ${w === 5 || w === 6 ? "bg-slate-50 text-slate-500" : ""} ${d === today ? "bg-teal-100 text-teal-900" : ""}`}>
-                  <div>{Number(d.slice(8))}</div><div className="text-[10px] font-normal">{WD[w]}</div>
-                </th>
-              );
-            })}
+            <th className="sticky left-0 top-0 z-20 w-14 border-b border-r border-slate-200 bg-white px-1 py-2 text-left">Ngày</th>
+            {units.map((u) => (
+              <th key={u.id} className="sticky top-0 z-10 min-w-24 border-b border-l border-slate-200 bg-white px-2 py-2 text-left font-medium">{u.name}</th>
+            ))}
           </tr>
         </thead>
         <tbody>
-          {units.map((u) => {
-            const mine = blocks.filter((b) => b.unit_id === u.id);
-            const cells: React.ReactNode[] = [];
-            for (let i = 0; i < m.days.length; ) {
-              const d = m.days[i];
-              const b = mine.find((x) => x.check_in <= d && d < x.check_out);
-              if (b) {
-                // Chiếm các đêm check_in .. check_out-1; cắt ở cuối tháng
-                const span = (b.check_out > last ? m.days.length : m.days.indexOf(b.check_out)) - i;
-                cells.push(
-                  <td key={d} colSpan={span} className="border-b border-slate-100 p-0.5" title={b.title}>
-                    <div className={`truncate rounded px-1.5 py-1 ${TONE[b.tone]}`}>{b.label}</div>
-                  </td>,
-                );
-                i += span;
-              } else {
-                const w = dow(d);
-                cells.push(<td key={d} className={`h-8 border-b border-l border-slate-100 ${w === 5 || w === 6 ? "bg-slate-50" : ""} ${d === today ? "bg-teal-50" : ""}`} />);
-                i += 1;
-              }
-            }
+          {m.days.map((d, i) => {
+            const w = dow(d);
+            const wk = w === 5 || w === 6;
             return (
-              <tr key={u.id}>
-                <th className="sticky left-0 z-10 border-b border-r border-slate-200 bg-white px-2 py-1 text-left font-medium">{u.name}</th>
-                {cells}
+              <tr key={d}>
+                <th className={`sticky left-0 z-10 border-b border-r border-slate-200 px-1 py-1 text-left font-medium ${d === today ? "bg-teal-100 text-teal-900" : wk ? "bg-slate-50 text-slate-500" : "bg-white"}`}>
+                  <span className="text-sm">{Number(d.slice(8))}</span> <span className="text-[10px] font-normal">{WD[w]}</span>
+                </th>
+                {units.map((u) => {
+                  if (skip[u.id] > 0) { skip[u.id]--; return null; }
+                  const b = blocks.find((x) => x.unit_id === u.id && x.check_in <= d && d < x.check_out);
+                  if (b) {
+                    // Chiếm các đêm check_in .. check_out-1; cắt ở cuối tháng
+                    const span = (b.check_out > last ? m.days.length : m.days.indexOf(b.check_out)) - i;
+                    skip[u.id] = span - 1;
+                    return (
+                      <td key={u.id} rowSpan={span} className="border-b border-l border-slate-100 p-0.5 align-top" title={b.title}>
+                        <div className={`h-full min-h-7 rounded px-1.5 py-1 ${TONE[b.tone]}`}>{b.label}</div>
+                      </td>
+                    );
+                  }
+                  return <td key={u.id} className={`h-9 border-b border-l border-slate-100 ${wk ? "bg-slate-50" : ""} ${d === today ? "bg-teal-50" : ""}`} />;
+                })}
               </tr>
             );
           })}

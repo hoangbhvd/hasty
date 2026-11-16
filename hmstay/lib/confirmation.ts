@@ -26,38 +26,38 @@ export const VARIABLES: { key: string; label: string; sample: string }[] = [
 
 export const SAMPLE_VARS: Record<string, string> = Object.fromEntries(VARIABLES.map((v) => [v.key, v.sample]));
 
-/** Mẫu mặc định khi người dùng chưa tạo mẫu nào (cũng là điểm bắt đầu khi tạo mẫu mới). */
-export const STARTER_HTML = `
-<div class="page">
-  <div class="head"><h1>XÁC NHẬN ĐẶT PHÒNG</h1><p>{{TEN_CO_SO}} · {{DIA_CHI}}</p></div>
-  <p class="code">Mã booking: <b>{{MA_BOOKING}}</b> · Ngày lập: {{NGAY_TAO}}</p>
-  <table class="info">
-    <tr><td class="k">Khách hàng</td><td>{{TEN_KHACH}}</td></tr>
-    <tr><td class="k">Số điện thoại</td><td>{{SO_DIEN_THOAI}}</td></tr>
-    <tr><td class="k">Số khách</td><td>{{SO_LUONG_KHACH}}</td></tr>
-    <tr><td class="k">Phòng</td><td>{{TEN_PHONG}}</td></tr>
-    <tr><td class="k">Nhận phòng</td><td>{{CHECK_IN}}</td></tr>
-    <tr><td class="k">Trả phòng</td><td>{{CHECK_OUT}} ({{SO_DEM}} đêm)</td></tr>
-    <tr><td class="k">Thành tiền</td><td><b>{{THANH_TIEN}} VND</b></td></tr>
-    <tr><td class="k">Đã đặt cọc</td><td>{{DA_COC}} VND</td></tr>
-    <tr><td class="k">Còn lại</td><td><b>{{CON_LAI}} VND</b></td></tr>
-  </table>
-  <p class="note">Ghi chú: {{GHI_CHU}}</p>
-  <p class="foot">Người lập: {{NGUOI_BAN}} · {{SDT_NGUOI_BAN}}<br>Cảm ơn quý khách đã lựa chọn chúng tôi.</p>
+/**
+ * Mẫu mặc định: một trang A4 (794×1123px) với các phần tử đặt vị trí tự do, kéo/đổi cỡ bằng chuột trong trình soạn.
+ * Cũng là điểm bắt đầu khi tạo mẫu mới.
+ */
+const rows: [string, string][] = [
+  ["Khách hàng", "{{TEN_KHACH}}"], ["Số điện thoại", "{{SO_DIEN_THOAI}}"], ["Số khách", "{{SO_LUONG_KHACH}}"],
+  ["Phòng", "{{TEN_PHONG}}"], ["Nhận phòng", "{{CHECK_IN}}"], ["Trả phòng", "{{CHECK_OUT}} ({{SO_DEM}} đêm)"],
+  ["Thành tiền", "<b>{{THANH_TIEN}} VND</b>"], ["Đã đặt cọc", "{{DA_COC}} VND"], ["Còn lại", "<b>{{CON_LAI}} VND</b>"],
+];
+export const STARTER_HTML = `<div class="hm-page">
+<div id="s-band"></div>
+<div id="s-title">XÁC NHẬN ĐẶT PHÒNG</div>
+<div id="s-sub">{{TEN_CO_SO}} · {{DIA_CHI}}</div>
+<div id="s-code">Mã booking: <b>{{MA_BOOKING}}</b> · Ngày lập: {{NGAY_TAO}}</div>
+${rows.map(([k, v], i) => `<div id="k${i}" class="lbl">${k}</div><div id="v${i}" class="val">${v}</div><div id="l${i}" class="ln"></div>`).join("\n")}
+<div id="s-note">Ghi chú: {{GHI_CHU}}</div>
+<div id="s-foot">Người lập: {{NGUOI_BAN}} · {{SDT_NGUOI_BAN}}<br>Cảm ơn quý khách đã lựa chọn chúng tôi.</div>
 </div>`;
 
-export const STARTER_CSS = `
-body{margin:0;font-family:Arial,Helvetica,sans-serif;color:#333;font-size:14px}
-.page{padding:32px 40px}
-.head{background:#0f766e;color:#fff;text-align:center;padding:20px;border-radius:6px}
-.head h1{margin:0 0 6px;font-size:22px;letter-spacing:1px}
-.head p{margin:0;font-size:13px;opacity:.9}
-.code{text-align:center;color:#64748b;margin:14px 0}
-.info{width:100%;border-collapse:collapse;margin-top:8px}
-.info td{padding:10px 12px;border-bottom:1px solid #e2e8f0}
-.info td.k{width:35%;color:#64748b}
-.note{margin-top:18px}
-.foot{margin-top:28px;text-align:center;color:#64748b;font-size:13px}`;
+export const STARTER_CSS = `body{margin:0;font-family:Arial,Helvetica,sans-serif;color:#333;font-size:15px}
+.hm-page{position:relative;width:794px;height:1123px;margin:0 auto;background:#fff;overflow:hidden}
+.hm-page div{position:absolute;box-sizing:border-box}
+#s-band{left:0;top:0;width:794px;height:120px;background:#0f766e}
+#s-title{left:40px;top:34px;width:714px;text-align:center;color:#fff;font-size:28px;font-weight:bold;letter-spacing:1px}
+#s-sub{left:40px;top:78px;width:714px;text-align:center;color:#fff;font-size:14px}
+#s-code{left:40px;top:142px;width:714px;text-align:center;color:#64748b}
+.lbl{left:50px;width:200px;color:#64748b}
+.val{left:260px;width:480px}
+.ln{left:40px;width:714px;height:1px;background:#e2e8f0}
+${rows.map((_, i) => `#k${i},#v${i}{top:${196 + i * 44}px}#l${i}{top:${196 + i * 44 + 30}px}`).join("\n")}
+#s-note{left:50px;top:620px;width:690px}
+#s-foot{left:40px;top:700px;width:714px;text-align:center;color:#64748b;font-size:14px;line-height:1.6}`;
 
 const esc = (v: string) => v.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 
@@ -107,7 +107,7 @@ export function renderConfirmation(html: string, css: string, vars: Record<strin
     k in vars ? esc(up ? vars[k].toLocaleUpperCase("vi-VN") : vars[k]) : m);
   const doc = `<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Xác nhận booking</title>
-<style>@page{size:A4;margin:10mm}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}</style>
+<style>@page{size:A4;margin:${html.includes("hm-page") ? "0" : "10mm"}}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}@media screen{body{background:#e2e8f0}.hm-page{margin:16px auto;box-shadow:0 2px 12px rgba(0,0,0,.15)}}</style>
 <style>${css.replace(/<\/style/gi, "")}</style>
 <style>#hm-print{position:fixed;top:12px;right:12px;z-index:99999;font:600 13px Arial;padding:10px 14px;border:0;border-radius:8px;background:#0f766e;color:#fff;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.25)}@media print{#hm-print{display:none}}</style>
 </head><body>${body}<button id="hm-print" type="button">In / Lưu PDF</button>
