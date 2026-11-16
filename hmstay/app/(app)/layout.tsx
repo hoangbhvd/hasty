@@ -21,7 +21,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <Link href="/notifications" className="relative text-slate-600 hover:text-slate-900">
               Thông báo{unread > 0 && <span className="ml-1 rounded-full bg-red-600 px-1.5 py-0.5 text-xs text-white">{unread}</span>}
             </Link>
-            <span className="hidden text-slate-500 sm:inline">{name}</span>
+            <Link href="/settings" className="hidden text-slate-500 hover:text-slate-900 sm:inline">{name || "Cài đặt"}</Link>
             <form action={logoutAction}><button className="text-slate-600 underline">Thoát</button></form>
           </div>
         </div>

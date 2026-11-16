@@ -1,12 +1,11 @@
 import nodemailer from "nodemailer";
 
-/** Gửi email qua SMTP. Chưa cấu hình SMTP: dev thì in ra console, production thì báo lỗi vào log. */
+/** Gửi email qua SMTP. Chưa cấu hình SMTP: dev thì in ra console, production thì ném lỗi (để bên gọi xử lý/thử lại). */
 export async function sendMail(to: string, subject: string, text: string, html: string) {
   const host = process.env.SMTP_HOST;
   if (!host) {
     if (process.env.NODE_ENV === "production") {
-      console.error("[mail] SMTP_HOST chưa cấu hình, không gửi được email tới", to);
-      return;
+      throw new Error("SMTP_HOST chưa cấu hình, không gửi được email");
     }
     console.log(`\n[mail:dev] To: ${to}\nSubject: ${subject}\n${text}\n`);
     return;

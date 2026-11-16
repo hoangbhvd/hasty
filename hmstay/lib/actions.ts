@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { revalidatePath } from "next/cache";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -8,6 +9,7 @@ import { randomUUID } from "node:crypto";
 import sharp from "sharp";
 import { z } from "zod";
 import { withUser } from "./db";
+import { flushNotificationEmails } from "./notify";
 import { endSession, loginUser, registerUser, requestPasswordReset, requireUser, resetPassword, startSession } from "./auth";
 import { nightsBetween, priceStay, validDate } from "./format";
 
@@ -232,6 +234,14 @@ export async function advanceBookingAction(f: FormData) {
     const to = str(f, "to");
     await withUser(uid, (q) => q("select advance_booking($1,$2::booking_status,$3)", [str(f, "booking_id"), to, str(f, "note") || null]));
   });
+  // Gửi email thông báo sau khi đã trả lời người dùng; lỗi chỉ ghi log, thông báo trong app vẫn có
+  after(() => flushNotificationEmails().catch((e) => console.error("[notify]", e)));
+}
+
+export async function saveSettingsAction(f: FormData) {
+  const uid = await requireUser();
+  await withUser(uid, (q) => q("select set_email_notifications($1)", [f.get("email_notifications") === "on"]));
+  redirect("/settings?saved=1");
 }
 
 export async function markNotificationsReadAction() {

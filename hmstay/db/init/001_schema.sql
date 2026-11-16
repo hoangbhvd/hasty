@@ -30,6 +30,7 @@ create table users (
   email text not null unique,
   password_hash text not null,
   password_changed_at timestamptz not null default now(),  -- phiên cấp trước mốc này bị vô hiệu
+  email_notifications boolean not null default true,
   created_at timestamptz not null default now()
 );
 
@@ -153,6 +154,8 @@ create table notifications (
   booking_id uuid references bookings(id) on delete cascade,
   message text not null,
   read_at timestamptz,
+  emailed_at timestamptz,          -- đã (đang) gửi email
+  email_attempts int not null default 0,
   created_at timestamptz not null default now()
 );
 create index on notifications (user_id, read_at);
@@ -275,6 +278,14 @@ language sql stable security definer set search_path = public as $$
     and (is_property_owner(unit_property(p_unit)) or is_active_broker(unit_property(p_unit)));
 $$;
 
+-- Nhãn trạng thái tiếng Việt cho thông báo
+create function status_label(s booking_status) returns text
+language sql immutable as $$
+  select case s when 'quoted' then 'Báo giá' when 'holding' then 'Đang giữ chỗ'
+                when 'deposit_reported' then 'Đã báo cọc' when 'confirmed' then 'Đã chốt'
+                when 'cancelled' then 'Đã huỷ' else 'Hết hạn giữ' end;
+$$;
+
 -- ───────────── Chuyển trạng thái booking ─────────────
 -- broker: quoted -> holding -> deposit_reported (hoặc cancelled)
 -- chủ   : holding/deposit_reported -> confirmed | cancelled ; quoted, confirmed -> cancelled
@@ -289,6 +300,7 @@ declare
   prop uuid;
   owner_uid uuid;
   notify_uid uuid;
+  ctx text;
 begin
   if app_uid() is null then raise exception 'not authenticated'; end if;
 
@@ -322,9 +334,12 @@ begin
 
   notify_uid := case when is_owner then b.broker_id else owner_uid end;
   if notify_uid is not null and notify_uid <> app_uid() then
+    select p.name || ' – ' || u.name into ctx
+      from units u join properties p on p.id = u.property_id where u.id = b.unit_id;
     insert into notifications (user_id, booking_id, message)
     values (notify_uid, p_booking,
-            format('Booking %s (nhận phòng %s): %s -> %s%s', b.guest_name, b.check_in, old_status, p_to,
+            format('%s (%s), nhận phòng %s: %s → %s%s', b.guest_name, ctx, b.check_in,
+                   status_label(old_status), status_label(p_to),
                    coalesce(' – ' || nullif(p_note, ''), '')));
   end if;
 
@@ -412,3 +427,42 @@ language sql stable security definer set search_path = public as $$
 $$;
 revoke all on function session_valid from public;
 grant execute on function session_valid to app_user;
+
+-- ───────────── Thông báo qua email ─────────────
+-- App gọi claim_notification_emails() sau mỗi thay đổi booking: "nhận" tối đa p_limit thông báo
+-- chưa gửi (trong 2 ngày, tối đa 3 lần thử, user bật email) và trả về địa chỉ + nội dung.
+-- Gửi lỗi thì release_notification_email() trả lại để lần sau thử tiếp.
+create function claim_notification_emails(p_limit int default 20)
+returns table (id bigint, email text, full_name text, message text, link_role text)
+language sql security definer set search_path = public as $$
+  with picked as (
+    select n.id from notifications n join users u on u.id = n.user_id
+     where n.emailed_at is null and n.email_attempts < 3
+       and n.created_at > now() - interval '2 days' and u.email_notifications
+     order by n.id limit p_limit for update of n skip locked
+  ), upd as (
+    update notifications n set emailed_at = now(), email_attempts = n.email_attempts + 1
+      from picked where n.id = picked.id
+    returning n.id, n.user_id, n.message, n.booking_id
+  )
+  select upd.id, u.email, p.full_name, upd.message,
+         case when exists (select 1 from bookings b
+                             join units un on un.id = b.unit_id
+                             join properties pr on pr.id = un.property_id
+                            where b.id = upd.booking_id and pr.owner_id = upd.user_id)
+              then 'owner' else 'broker' end
+    from upd join users u on u.id = upd.user_id join profiles p on p.id = upd.user_id;
+$$;
+
+create function release_notification_email(p_id bigint) returns void
+language sql security definer set search_path = public as $$
+  update notifications set emailed_at = null where id = p_id;
+$$;
+
+create function set_email_notifications(p_on boolean) returns void
+language sql security definer set search_path = public as $$
+  update users set email_notifications = p_on where id = app_uid();
+$$;
+
+revoke all on function claim_notification_emails, release_notification_email, set_email_notifications from public;
+grant execute on function claim_notification_emails, release_notification_email, set_email_notifications to app_user;
