@@ -1,0 +1,101 @@
+services:
+  web:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://app_user:${APP_DB_PASSWORD}@db:5432/hmstay
+      AUTH_SECRET: ${AUTH_SECRET}
+      COOKIE_SECURE: "true"
+    volumes:
+      - uploads:/data/uploads
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on: [web]
+    environment:
+      DOMAIN: ${DOMAIN}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+
+  # Nén ảnh hằng ngày vào ./backups/uploads, giữ 7 ngày gần nhất
+  backup-uploads:
+    image: alpine:3
+    restart: unless-stopped
+    volumes:
+      - uploads:/data/uploads:ro
+      - ./backups:/backups
+    command:
+      - sh
+      - -c
+      - |
+        while true; do
+          mkdir -p /backups/uploads
+          tar czf /backups/uploads/uploads-$$(date +%F).tgz -C /data uploads
+          find /backups/uploads -name '*.tgz' -mtime +7 -delete
+          sleep 86400
+        done
+
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: hmstay_admin
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: hmstay
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "127.0.0.1:5432:5432"      # chỉ localhost; không mở ra internet
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hmstay_admin -d hmstay"]
+      interval: 10s
+      retries: 5
+
+  # Backup hằng ngày, giữ 7 ngày + 4 tuần + 3 tháng. Nhớ rsync thư mục ./backups sang máy/nơi khác.
+  backup:
+    image: prodrigestivill/postgres-backup-local:16
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_DB: hmstay
+      POSTGRES_USER: hmstay_admin
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      SCHEDULE: "@daily"
+      BACKUP_KEEP_DAYS: 7
+      BACKUP_KEEP_WEEKS: 4
+      BACKUP_KEEP_MONTHS: 3
+    volumes:
+      - ./backups:/backups
+
+  # Hết hạn giữ chỗ mỗi 5 phút (thay pg_cron)
+  expirer:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGHOST: db
+      PGDATABASE: hmstay
+      PGUSER: hmstay_admin
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["while true; do psql -tAc 'select expire_holds()'; sleep 300; done"]
+
+volumes:
+  pgdata:
+  uploads:
+  caddy_data:

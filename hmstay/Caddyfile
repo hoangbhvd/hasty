@@ -1,0 +1,9 @@
+# {$DOMAIN} lấy từ .env. Caddy tự xin và gia hạn chứng chỉ HTTPS (Let's Encrypt).
+# DOMAIN phải trỏ DNS về IP VPS và mở cổng 80/443.
+{$DOMAIN} {
+	encode zstd gzip
+	request_body {
+		max_size 60MB
+	}
+	reverse_proxy web:3000
+}
