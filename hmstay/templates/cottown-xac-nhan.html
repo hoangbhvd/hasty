@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Xác nhận đặt phòng – Cottown</title>
+<style>
+@import url("https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300;0,400;0,600;0,700;1,600;1,700&family=Cormorant+Garamond:wght@300;400&display=swap");
+body{margin:0;font-family:'Montserrat',Arial,sans-serif;color:#8c7365}
+.hm-page{position:relative;width:794px;height:1123px;margin:0 auto;background:#fff;overflow:hidden}
+.hm-page div{position:absolute;box-sizing:border-box}
+
+/* Dải đầu trang */
+#band{left:0;top:0;width:794px;height:143px;background:#8c7365}
+#logo{left:0;top:22px;width:794px;text-align:center;color:#fff;font-family:'Cormorant Garamond',Georgia,serif;font-weight:300;font-size:58px;line-height:70px}
+#title{left:0;top:92px;width:794px;text-align:center;color:#fff;font-weight:300;font-size:26px;letter-spacing:1px;line-height:32px}
+
+/* Thông tin khách / lưu trú */
+.info{left:45px;width:400px;font-weight:700;font-size:13.5px;line-height:18px;text-transform:uppercase}
+#i1{top:178px}
+#i2{top:268px}
+#i3{top:358px}
+.sep{left:45px;width:352px;height:1px;background:#8c7365}
+#s1{top:249px}
+#s2{top:344px}
+
+/* Ảnh cơ sở (thay bằng ảnh thật: chọn khung, đổi ảnh nền trong ô Style) */
+#photo{left:522px;top:167px;width:198px;height:240px;border:5px solid #c4998a;border-bottom:0;border-radius:99px 99px 0 0;background:#e9dcd5;color:#8c7365;font-size:12px;text-align:center;line-height:230px}
+
+/* Khung bảng giá + điều khoản phụ thu */
+#box{left:0;top:437px;width:460px;height:686px;background:#c4998a}
+.th,.td{width:100px;text-align:center;color:#fff;font-weight:600}
+.th{top:456px;font-size:12.5px;line-height:16px;text-transform:uppercase}
+.td{top:482px;font-size:13px;line-height:18px;font-weight:700}
+#th1,#td1{left:9px}#th2,#td2{left:121px}#th3,#td3{left:234px}#th4,#td4{left:346px}
+#hl{left:11px;top:473px;width:430px;height:1px;background:#fff}
+#remain{left:0;top:521px;width:460px;text-align:center;color:#fff;font-weight:700;font-size:12px;line-height:16px;text-transform:uppercase}
+#hl2{left:61px;top:551px;width:320px;height:1px;background:#fff}
+#policy{left:19px;top:574px;width:425px;height:540px;color:#fff;font-size:9.6px;line-height:16px;text-transform:uppercase;overflow:hidden}
+#policy b{display:block;text-align:center;font-style:italic;font-weight:700;margin:2px 0}
+#policy p{margin:0 0 3px}
+
+/* Điều khoản huỷ (cột phải) */
+#cancel-h{left:474px;top:519px;width:304px;text-align:center;font-weight:700;font-size:12.5px;line-height:18px;text-transform:uppercase}
+#cancel{left:474px;top:545px;width:304px;height:300px;font-size:11px;line-height:27px;font-weight:300}
+#cancel p{margin:0}
+#thanks{left:474px;top:893px;width:304px;text-align:center;font-style:italic;font-weight:700;font-size:11px;line-height:14.5px}
+
+/* Mã QR / bản đồ (thay bằng ảnh thật) */
+#pin{left:542px;top:1040px;width:34px;text-align:center;font-size:26px;line-height:38px}
+#qr{left:584px;top:974px;width:107px;height:107px;border:1px dashed #8c7365;background:#f6f1ee;text-align:center;font-size:12px;line-height:105px}
+</style>
+</head>
+<body>
+<div class="hm-page">
+  <div id="band"></div>
+  <div id="logo">Cottown</div>
+  <div id="title">XÁC NHẬN ĐẶT PHÒNG</div>
+
+  <div id="i1" class="info">Tên khách: {{TEN_KHACH}}<br>Số điện thoại: {{SO_DIEN_THOAI}}<br>Số lượng khách: {{SO_LUONG_KHACH}} người</div>
+  <div id="s1" class="sep"></div>
+  <div id="i2" class="info">Hình thức thuê: {{TEN_PHONG}}<br>Check in: 14H {{CHECK_IN}}<br>Check out: 12H {{CHECK_OUT}}</div>
+  <div id="s2" class="sep"></div>
+  <div id="i3" class="info">Địa chỉ: {{DIA_CHI}}<br>Quản gia liên hệ nhận nhà: {{SDT_NGUOI_BAN}}</div>
+
+  <div id="photo">Ảnh cơ sở</div>
+
+  <div id="box"></div>
+  <div id="th1" class="th">Giá 1 đêm</div>
+  <div id="th2" class="th">Số đêm</div>
+  <div id="th3" class="th">Thành tiền</div>
+  <div id="th4" class="th">Đã cọc</div>
+  <div id="hl"></div>
+  <div id="td1" class="td">{{GIA_1_DEM}}</div>
+  <div id="td2" class="td">{{SO_DEM}}</div>
+  <div id="td3" class="td">{{THANH_TIEN}}</div>
+  <div id="td4" class="td">{{DA_COC}}</div>
+  <div id="remain">Số tiền còn lại {{CON_LAI}} quý khách thanh toán khi nhận nhà</div>
+  <div id="hl2"></div>
+
+  <div id="policy">
+    <b>Chính sách phụ thu phát sinh (nếu có):</b>
+    <p>1. Giá trên không bao gồm VAT. Quý khách vui lòng đi đúng số người quy định, phát sinh phụ thu 150.000/người/đêm.</p>
+    <p>2. Quý khách vui lòng tự dọn dẹp khu vực bếp và sân BBQ sau khi sử dụng hoặc có thể thuê dọn dẹp và trả phí 500.000 – 1.000.000/lần (tuỳ mức độ).</p>
+    <b>Các điều khoản và điều kiện:</b>
+    <p>1. Quý khách vui lòng mang theo CMND/CCCD/Passport để làm thủ tục đăng ký lưu trú theo quy định.</p>
+    <p>2. Không ồn ào sau 21h. Không sử dụng loa kéo &amp; karaoke sau 22h.</p>
+    <p>3. Nghiêm cấm tàng trữ, sử dụng "chất gây nghiện – chất ma tuý" tại nơi lưu trú. Nếu phát hiện thì chúng tôi sẽ lập tức từ chối lưu trú không hoàn tiền.</p>
+    <p>4. Nhận và trả phòng đúng giờ quy định. Trường hợp check in sớm hoặc check out trễ nếu home chưa có khách đặt, home sẽ hỗ trợ quý khách nhận sớm hoặc trả muộn từ 1 – 3h (tuỳ tình trạng nhà).</p>
+    <p>5. Quý khách vui lòng kiểm tra nhà khi nhận nhà, nếu có hư hỏng xảy ra trong quá trình lưu trú xin đền bù theo thiệt hại.</p>
+    <p>6. Tài sản tư trang có giá trị quý khách vui lòng tự bảo quản.</p>
+    <p>7. Nhà không nhận thú cưng.</p>
+    <p>8. Không hút thuốc trong nhà, không đem đồ ăn có mùi vào phòng.</p>
+    <p>9. Không được mang đồ ăn lên giường, chăn mền nếu dính vết ố hoặc dơ không giặt được thì phụ thu 1 bộ mới (giá 3tr5). Còn nếu vết dơ giặt được thì phụ thu giặt 500k/bộ.</p>
+    <p>10. Mất chìa khoá phòng của home, phụ thu 200k/chìa.</p>
+  </div>
+
+  <div id="cancel-h">Điều khoản huỷ booking:</div>
+  <div id="cancel">
+    <p>1. Áp dụng chính sách không hoàn huỷ booking. Trong trường hợp huỷ sẽ mất 100% tiền cọc</p>
+    <p>2. Không hoàn tiền nếu quý khách đặt phòng nhưng không đến hoặc huỷ booking sớm hơn thời hạn lưu trú.</p>
+    <p>3. Huỷ booking, không nhận nhà khi có lí do đột xuất, hãy liên hệ sớm nhất có thể, home sẽ sắp xếp dời lịch cho quý khách.</p>
+    <p>4. Quý khách vui lòng thanh toán đầy đủ theo thông tin đặt phòng. Số tiền thanh toán sẽ không thay đổi dù có điều chỉnh số ngày lưu trú.</p>
+  </div>
+  <div id="thanks">Xin cảm ơn và hân hạnh được phục vụ quý khách<br>Chúc quý khách có chuyến nghỉ dưỡng tuyệt vời<br>Hẹn gặp quý khách tại Đà Lạt</div>
+
+  <div id="pin">📍</div>
+  <div id="qr">Mã QR</div>
+</div>
+</body>
+</html>
