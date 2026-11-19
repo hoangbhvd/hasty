@@ -1,0 +1,103 @@
+# Triển khai production:  docker compose -f docker-compose.prod.yml --env-file .env up -d --build
+# Mọi container dùng múi giờ Asia/Ho_Chi_Minh (bắt buộc theo spec).
+name: dalat-prod
+
+x-app: &app
+  build:
+    context: .
+    args:
+      NEXT_PUBLIC_APP_URL: ${APP_URL:?Đặt APP_URL trong .env, ví dụ https://dalat.example.com}
+      NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${NEXT_PUBLIC_VAPID_PUBLIC_KEY:-}
+  image: dalat-app:latest
+  restart: unless-stopped
+  env_file: ${ENV_FILE:-.env}
+  environment:
+    TZ: Asia/Ho_Chi_Minh
+    NODE_ENV: production
+    DATABASE_URL: postgresql://dalat:${POSTGRES_PASSWORD:?Đặt POSTGRES_PASSWORD trong .env}@db:5432/dalat?schema=public
+    REDIS_URL: redis://redis:6379
+    BETTER_AUTH_URL: ${APP_URL}
+    NEXT_PUBLIC_APP_URL: ${APP_URL}
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      TZ: Asia/Ho_Chi_Minh
+      PGTZ: Asia/Ho_Chi_Minh
+      POSTGRES_USER: dalat
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: dalat
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dalat -d dalat"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    environment:
+      TZ: Asia/Ho_Chi_Minh
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  web:
+    <<: *app
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    # Chạy migration chưa áp dụng rồi mới khởi động server (an toàn khi chạy lại)
+    command: ["sh", "-c", "node_modules/.bin/prisma migrate deploy && exec node_modules/.bin/tsx server.ts"]
+    # Chỉ localhost: nginx/Caddy trên máy chủ proxy vào cổng này
+    ports:
+      - "127.0.0.1:${WEB_PORT:-3200}:3000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/api/health >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+
+  # BullMQ: nhả phòng sau 30 phút, nhắc check-in 24h, đóng yêu cầu tìm gấp hết hạn
+  worker:
+    <<: *app
+    depends_on:
+      web: { condition: service_healthy }
+    command: ["node_modules/.bin/tsx", "worker/index.ts"]
+
+  # Sao lưu DB hằng ngày vào ./backups, giữ 7 ngày gần nhất
+  backup-db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    depends_on:
+      db: { condition: service_healthy }
+    environment:
+      TZ: Asia/Ho_Chi_Minh
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - ./backups:/backups
+    command:
+      - sh
+      - -c
+      - |
+        while true; do
+          # -Fc: định dạng nén sẵn của pg_dump; mã thoát phản ánh đúng pg_dump (khôi phục: pg_restore -d dalat <file>)
+          f=/backups/dalat-$$(date +%Y%m%d-%H%M).dump
+          if pg_dump -h db -U dalat -Fc -f "$$f" dalat; then echo "backup ok: $$f"; else echo "backup FAILED"; fi
+          find /backups -name 'dalat-*.dump' -mtime +7 -delete
+          sleep 86400
+        done
+
+volumes:
+  pgdata:
+  redisdata:
