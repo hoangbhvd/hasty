@@ -26,14 +26,13 @@ npx web-push generate-vapid-keys   # VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY (và N
 
 ## HTTPS (nginx + certbot)
 ```bash
-sudo cp deploy/nginx-dalat.conf /etc/nginx/sites-available/dalat   # sửa server_name
-sudo ln -s /etc/nginx/sites-available/dalat /etc/nginx/sites-enabled/
-# nếu chưa có, thêm ở cấp http {}:  map $http_upgrade $connection_upgrade { default upgrade; '' close; }
+sudo cp deploy/nginx-dalat.conf /etc/nginx/sites-available/dalat   # sửa server_name thành domain của bạn
+sudo ln -s ../sites-available/dalat /etc/nginx/sites-enabled/
 sudo nginx -t && sudo systemctl reload nginx
-sudo certbot --nginx -d dalat.example.com
+sudo certbot --nginx -d dalat.tenmiencuaban.com
 ```
-Bắt buộc có đoạn `Upgrade/Connection` (đã có trong file mẫu) — thiếu thì chat real-time không chạy.
-Cookie đăng nhập chỉ an toàn khi `APP_URL` là `https://…`.
+File mẫu tự đủ (không cần khai báo `map` ở cấp `http {}`). Khối `location /socket.io/` là bắt buộc — thiếu thì chat real-time không chạy.
+Cookie đăng nhập chỉ an toàn khi `APP_URL` là `https://…` (đặt đúng domain trước khi build).
 
 ## Telegram
 ```bash
