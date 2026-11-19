@@ -1,0 +1,71 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { prisma } from "@/lib/db";
+import { getConversation, getMessages, listConversations, markRead, type ChatRole } from "@/lib/chat";
+import { ChatView, type HoldOption } from "@/components/chat-view";
+import { formatDateTimeVi } from "@/lib/format";
+
+const base = (r: ChatRole) => (r === "HOST" ? "/host" : "/broker");
+const PREVIEW: Record<string, string> = { ACTION_HOLD_REQ: "⏱ Yêu cầu giữ phòng", ACTION_BILL_UPLOAD: "💸 Bill chuyển khoản", ACTION_MEDIA_PACK: "🖼 Bộ ảnh", IMAGE: "🖼 Ảnh" };
+
+export async function ChatListPage({ userId, viewer }: { userId: string; viewer: ChatRole }) {
+  const all = await listConversations(userId);
+  const convs = all.filter((c) => c.role === viewer);
+  return (
+    <div className="max-w-2xl space-y-4">
+      <h1 className="text-2xl font-bold">Chat</h1>
+      {convs.length === 0 ? (
+        <p className="text-muted-foreground">
+          Chưa có cuộc trò chuyện. {viewer === "HOST" ? "Mở “Đối tác” và bấm “Nhắn tin” ở CTV đã duyệt." : "Mở chi tiết homestay của chủ nhà đã duyệt để nhắn tin."}
+        </p>
+      ) : (
+        <ul className="divide-y divide-black rounded border border-black bg-white shadow-brutal-sm md:brutal-card">
+          {convs.map((c) => (
+            <li key={c.id}>
+              <Link href={`${base(viewer)}/chat/${c.id}`} className="flex items-center justify-between gap-3 p-3 hover:bg-muted">
+                <div className="min-w-0">
+                  <div className="font-semibold">{c.title}{c.bookingCode && <span className="font-mono text-xs font-normal text-muted-foreground"> · {c.bookingCode}</span>}</div>
+                  <div className="truncate text-sm text-muted-foreground">{c.last ? (c.last.msgType === "TEXT" ? c.last.content : PREVIEW[c.last.msgType]) : "Chưa có tin nhắn"}</div>
+                </div>
+                <div className="flex shrink-0 flex-col items-end gap-1">
+                  {c.last && <span className="money-num text-[11px] text-muted-foreground">{formatDateTimeVi(c.last.createdAt)}</span>}
+                  {c.unread > 0 && <span aria-label={`${c.unread} tin chưa đọc`} className="grid min-w-5 place-items-center rounded-full border border-black bg-primary px-1 text-xs font-bold">{c.unread}</span>}
+                </div>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+export async function ChatConversationPage({ userId, id, viewer }: { userId: string; id: string; viewer: ChatRole }) {
+  if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
+  const c = await getConversation(userId, id);
+  if (!c || c.role !== viewer) notFound();
+  await markRead(userId, id);
+  const messages = await getMessages(userId, id);
+
+  const props = viewer === "BROKER" || viewer === "HOST"
+    ? await prisma.property.findMany({ where: { sourceType: "HOST_MANAGED", hostId: c.conv.hostId }, orderBy: { name: "asc" }, include: { rooms: { orderBy: { name: "asc" } } } })
+    : [];
+  const holdOptions: HoldOption[] = viewer === "BROKER"
+    ? props.map((p) => ({ id: p.id, name: p.name, allowWhole: p.allowWholeUnit, allowRooms: p.allowIndividualRooms, rooms: p.rooms.map((r) => ({ id: r.id, name: r.name, maxGuests: r.maxGuests })) }))
+    : [];
+  const mediaOptions = viewer === "HOST" ? props.map((p) => ({ id: p.id, name: p.name })) : [];
+
+  return (
+    <div className="max-w-2xl space-y-3">
+      <div>
+        <Link href={`${base(viewer)}/chat`} className="text-sm text-muted-foreground">← Chat</Link>
+        <h1 className="text-xl font-bold">{c.other.fullName}</h1>
+        {c.conv.booking && <p className="font-mono text-xs text-muted-foreground">Booking {c.conv.booking.bookingCode} · {c.conv.booking.guestName}</p>}
+      </div>
+      <ChatView
+        conversationId={id} role={viewer} myId={userId} initial={messages} holdOptions={holdOptions} mediaOptions={mediaOptions}
+        bookingPath={c.conv.bookingId ? `${base(viewer)}/bookings/${c.conv.bookingId}` : null}
+      />
+    </div>
+  );
+}

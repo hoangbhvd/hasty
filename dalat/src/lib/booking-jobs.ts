@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { postSystemMessage } from "@/lib/booking-chat";
 import { notifyUsers } from "@/lib/notify";
+import { emitToUsers } from "@/lib/realtime";
 
 /** Nhả phòng nếu booking vẫn HOLDING và đã quá hạn. Trả về true nếu đã huỷ. */
 export async function expireHold(bookingId: string, now = new Date()): Promise<boolean> {
@@ -17,6 +18,8 @@ export async function expireHold(bookingId: string, now = new Date()): Promise<b
   if (cancelled) {
     const b = await prisma.booking.findUnique({ where: { id: bookingId }, select: { hostId: true, brokerId: true, bookingCode: true } });
     await notifyUsers([b?.hostId, b?.brokerId], `Booking ${b?.bookingCode} hết hạn giữ phòng và đã được huỷ.`, `/host/calendar`);
+    await emitToUsers([b?.hostId, b?.brokerId], "booking:update", { bookingId });
+    await emitToUsers([b?.hostId, b?.brokerId], "chat:update", { bookingId });
   }
   return cancelled;
 }

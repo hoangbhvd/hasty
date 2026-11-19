@@ -8,6 +8,7 @@ import { CopyButton } from "@/components/copy-button";
 import { AddonForm, DeleteAddonButton, ExtraFeeForm, TransactionForm, TxDecision } from "@/components/booking-finance-forms";
 import { formatDateTimeVi, formatDateVi, formatVnd } from "@/lib/format";
 import { r2Configured } from "@/lib/r2";
+import { openBookingChatAction } from "@/app/(app)/chat-actions";
 
 const TYPE_LABEL = { DEPOSIT: "Cọc", BALANCE: "Thanh toán", COMMISSION_SETTLEMENT: "Quyết toán hoa hồng", REFUND: "Hoàn tiền" } as const;
 const DIR_LABEL = { "GUEST>BROKER": "Khách → CTV", "GUEST>HOST": "Khách → Chủ nhà", "BROKER>HOST": "CTV → Chủ nhà", "HOST>BROKER": "Chủ nhà → CTV" } as const;
@@ -70,7 +71,14 @@ export async function BookingDetail({ userId, bookingId, viewer }: { userId: str
           {b.holdExpiresAt && b.status === "HOLDING" && <Row k="Giữ đến" v={formatDateTimeVi(b.holdExpiresAt)} />}
           {b.guestNote && <Row k="Ghi chú" v={b.guestNote} />}
         </dl>
-        <BookingActions id={b.id} status={b.status} />
+        <div className="flex flex-wrap items-center gap-2">
+          <BookingActions id={b.id} status={b.status} />
+          {hasBoth && (
+            <form action={openBookingChatAction.bind(null, b.id, viewer)}>
+              <button type="submit" className="brutal-btn inline-flex h-9 items-center bg-white px-3 text-sm text-black">💬 Chat về booking</button>
+            </form>
+          )}
+        </div>
       </section>
 
       <section className="space-y-2 rounded border border-black bg-white p-4 shadow-brutal-sm md:brutal-card">

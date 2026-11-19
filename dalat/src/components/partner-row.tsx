@@ -6,11 +6,12 @@ import { ActionButton } from "@/components/action-button";
 import { Badge, LINK_TONE } from "@/components/ui/badge";
 import { LINK_STATUS_LABEL, TIER_LABEL, enumOptions } from "@/lib/labels";
 import { setLinkStatusAction, setLinkTierAction } from "@/app/(app)/host/partners/actions";
+import { openChatAction } from "@/app/(app)/chat-actions";
 
 export function PartnerRow({
   link,
 }: {
-  link: { id: string; name: string; phone: string | null; tier: keyof typeof TIER_LABEL; status: keyof typeof LINK_STATUS_LABEL };
+  link: { id: string; brokerId: string; name: string; phone: string | null; tier: keyof typeof TIER_LABEL; status: keyof typeof LINK_STATUS_LABEL };
 }) {
   const [pending, start] = useTransition();
   const router = useRouter();
@@ -33,6 +34,11 @@ export function PartnerRow({
         >
           {enumOptions(TIER_LABEL).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
+        {link.status === "APPROVED" && (
+          <form action={openChatAction.bind(null, link.brokerId, "HOST")}>
+            <button type="submit" className="brutal-btn inline-flex h-9 items-center bg-white px-3 text-sm text-black">💬 Nhắn tin</button>
+          </form>
+        )}
         {link.status !== "APPROVED" && (
           <ActionButton action={() => setLinkStatusAction(link.id, "APPROVED")}>Duyệt</ActionButton>
         )}

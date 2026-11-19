@@ -11,6 +11,7 @@ import { r2Configured } from "@/lib/r2";
 import { VoucherConfigForm } from "@/components/voucher-config-form";
 import { parseVoucherConfig } from "@/lib/voucher-config";
 import { deleteExternalPropertyAction } from "../actions";
+import { openChatAction } from "@/app/(app)/chat-actions";
 
 type Amen = { bbQ?: boolean; ac?: boolean; pet_friendly?: boolean; karaoke?: boolean; views?: string[] };
 
@@ -41,6 +42,12 @@ export default async function BrokerPropertyPage({ params }: { params: Promise<{
           {external ? ` · Chủ: ${p.externalHostName ?? "—"} ${p.externalHostPhone ?? ""}` : ` · Chủ: ${p.host?.fullName ?? ""}`}
         </p>
       </div>
+
+      {!external && p.hostId && (
+        <form action={openChatAction.bind(null, p.hostId, "BROKER")}>
+          <button type="submit" className="brutal-btn inline-flex h-11 items-center bg-white px-4 text-sm text-black">💬 Nhắn chủ nhà</button>
+        </form>
+      )}
 
       <dl className="grid gap-3 rounded border border-black bg-white shadow-brutal-sm md:brutal-card p-4 text-sm sm:grid-cols-2">
         <div><dt className="text-muted-foreground">Net CN–T5</dt><dd className="font-medium">{formatVnd(p.baseWeekdayNet)}</dd></div>

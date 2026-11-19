@@ -3,32 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTransition } from "react";
-import {
-  Building2, CalendarDays, Handshake, LayoutDashboard, LogOut, Search, UserCircle, Wallet, ClipboardList, MessageCircle,
-} from "lucide-react";
+import { LogOut, MoreHorizontal, UserCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { switchModeAction } from "@/app/(app)/actions";
 import { logoutAction } from "@/app/(auth)/actions";
-
-type Mode = "host" | "broker";
-type NavItem = { href: string; label: string; icon: React.ComponentType<{ className?: string }>; ready: boolean };
-
-const NAV: Record<Mode, NavItem[]> = {
-  host: [
-    { href: "/host", label: "Tổng quan", icon: LayoutDashboard, ready: true },
-    { href: "/host/properties", label: "Căn của tôi", icon: Building2, ready: true },
-    { href: "/host/calendar", label: "Lịch", icon: CalendarDays, ready: true },
-    { href: "/host/partners", label: "Đối tác", icon: Handshake, ready: true },
-    { href: "/host/finance", label: "Tài chính", icon: Wallet, ready: true },
-  ],
-  broker: [
-    { href: "/broker/search", label: "Tìm phòng", icon: Search, ready: true },
-    { href: "/broker/properties", label: "Homestay", icon: Building2, ready: true },
-    { href: "/broker/bookings", label: "Booking", icon: ClipboardList, ready: true },
-    { href: "/broker/requests", label: "Tìm gấp", icon: MessageCircle, ready: false },
-    { href: "/broker/finance", label: "Hoa hồng", icon: Wallet, ready: true },
-  ],
-};
+import { NAV, type Mode, type NavItem } from "@/lib/nav";
+import { RealtimeProvider, useUnread } from "@/components/realtime-provider";
 
 export function RoleSwitcher({ mode, canHost, canBroker, dark = false }: { mode: Mode; canHost: boolean; canBroker: boolean; dark?: boolean }) {
   const [pending, start] = useTransition();
@@ -60,7 +40,7 @@ export function RoleSwitcher({ mode, canHost, canBroker, dark = false }: { mode:
 }
 
 function isActive(pathname: string, href: string) {
-  return href === "/host" || href === "/broker" ? pathname === href : pathname.startsWith(href);
+  return href === "/host" || href === "/broker" ? pathname === href : pathname === href || pathname.startsWith(href + "/");
 }
 
 export function AppShell({
@@ -74,8 +54,10 @@ export function AppShell({
   // URL là nguồn sự thật cho chế độ đang xem; cookie chỉ dùng để nhớ lần cuối.
   const mode: Mode = pathname.startsWith("/broker") ? "broker" : pathname.startsWith("/host") ? "host" : cookieMode;
   const items = NAV[mode];
+  const bottom = items.filter((i) => i.bottom).sort((a, b) => a.bottom! - b.bottom!);
 
   return (
+    <RealtimeProvider>
     <div data-mode={mode} className="min-h-dvh md:grid md:grid-cols-[16rem_1fr]">
       {/* Desktop sidebar */}
       <aside className="sticky top-0 hidden h-dvh flex-col gap-4 border-r border-black bg-sidebar p-4 text-sidebar-foreground md:flex">
@@ -118,21 +100,33 @@ export function AppShell({
           aria-label="Chính"
           className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-5 border-t border-black bg-white pb-[env(safe-area-inset-bottom)] md:hidden"
         >
-          {items.map((it) => (
+          {bottom.map((it) => (
             <NavLink key={it.href} item={it} active={isActive(pathname, it.href)} layout="bottom" />
           ))}
+          <NavLink
+            item={{ href: `/more?mode=${mode}`, label: "Thêm", icon: MoreHorizontal, ready: true }}
+            active={pathname === "/more" || pathname === "/account"} layout="bottom"
+          />
         </nav>
       </div>
     </div>
+    </RealtimeProvider>
   );
 }
 
 function NavLink({ item, active, layout }: { item: NavItem; active: boolean; layout: "side" | "bottom" }) {
   const Icon = item.icon;
+  const { unread } = useUnread();
+  const count = item.badge === "chat" ? unread : 0;
+  const badge = count > 0 && (
+    <span aria-label={`${count} tin chưa đọc`} className="absolute -top-0.5 left-1/2 ml-2 grid min-w-4 place-items-center rounded-full border border-black bg-secondary px-1 text-[10px] leading-4 font-bold text-black md:static md:ml-auto md:min-w-5 md:text-xs">
+      {count > 99 ? "99+" : count}
+    </span>
+  );
   const side = layout === "side";
   const base = side
-    ? "flex h-10 items-center gap-3 rounded border border-transparent px-3 text-sm"
-    : "flex h-14 flex-col items-center justify-center gap-0.5 text-[11px]";
+    ? "relative flex h-10 items-center gap-3 rounded border border-transparent px-3 text-sm"
+    : "relative flex h-14 flex-col items-center justify-center gap-0.5 text-[11px]";
   const state = !item.ready
     ? side ? "cursor-not-allowed text-sidebar-foreground/35" : "cursor-not-allowed text-black/35"
     : active
@@ -148,7 +142,7 @@ function NavLink({ item, active, layout }: { item: NavItem; active: boolean; lay
   }
   return (
     <Link href={item.href} aria-current={active ? "page" : undefined} className={cn(base, state)}>
-      <Icon className="size-5" /> {item.label}
+      <Icon className="size-5" /> {item.label}{badge}
     </Link>
   );
 }

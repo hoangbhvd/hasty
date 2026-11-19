@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
-import { postSystemMessage } from "@/lib/booking-chat";
+import { postCard, postSystemMessage } from "@/lib/booking-chat";
+import { emitToUsers } from "@/lib/realtime";
 import { notifyUsers } from "@/lib/notify";
 import { formatVnd } from "@/lib/format";
 import { ledger, type Ledger } from "@/lib/ledger";
@@ -145,7 +146,10 @@ export async function createTransaction(userId: string, bookingId: string, i: Tx
       : `Có giao dịch ${formatVnd(amount)} (${i.txType}) đang chờ ${dir.receiver === "HOST" ? "chủ nhà" : "CTV"} xác nhận.`);
     return t;
   });
-  if (!autoConfirm) await notifyUsers([receiverUserId], `Giao dịch ${formatVnd(amount)} chờ bạn xác nhận — booking ${booking.bookingCode}`);
+  // Thẻ bill trong chat của booking (trạng thái hiển thị lấy từ DB nên tự cập nhật khi duyệt)
+  const card = await postCard(prisma, bookingId, "ACTION_BILL_UPLOAD", `Giao dịch ${formatVnd(amount)}`, { transactionId: tx.id, bookingId, bookingCode: booking.bookingCode });
+  if (card) await emitToUsers([booking.hostId, booking.brokerId], "chat:update", { conversationId: card.conv.id });
+  if (!autoConfirm) await notifyUsers([receiverUserId], `Giao dịch ${formatVnd(amount)} chờ bạn xác nhận — booking ${booking.bookingCode}`, `/${dir.receiver === "HOST" ? "host" : "broker"}/bookings/${bookingId}`);
   return tx;
 }
 
@@ -164,6 +168,7 @@ export async function decideTransaction(userId: string, txId: string, decision: 
   await postSystemMessage(prisma, tx.booking.id, decision === "CONFIRM"
     ? `Đã xác nhận giao dịch ${formatVnd(Number(tx.amount))}.`
     : `Đã từ chối giao dịch ${formatVnd(Number(tx.amount))}.`);
+  await emitToUsers([tx.booking.hostId, tx.booking.brokerId], "chat:update", { bookingId: tx.booking.id });
   const payerUserId = tx.payerRole === "HOST" ? tx.booking.hostId : tx.payerRole === "BROKER" ? tx.booking.brokerId : null;
   await notifyUsers([payerUserId], `Giao dịch ${formatVnd(Number(tx.amount))} booking ${tx.booking.bookingCode} đã ${decision === "CONFIRM" ? "được xác nhận" : "bị từ chối"}`);
   return tx.booking.id;

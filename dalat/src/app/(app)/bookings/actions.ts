@@ -7,6 +7,7 @@ import { requireUser } from "@/lib/session";
 import { BookingError, createBooking, transitionBooking, type Transition } from "@/lib/bookings";
 import { cancelBookingJobs, scheduleCheckinReminder, scheduleHoldExpiry } from "@/lib/queue";
 import { notifyUsers } from "@/lib/notify";
+import { emitToUsers } from "@/lib/realtime";
 import { normalizePhone } from "@/lib/phone";
 import { parseDateOnly, toDateOnly } from "@/lib/format";
 import { optMoney, optPhone, optText } from "@/lib/validators";
@@ -60,7 +61,8 @@ export async function createBookingAction(_: FormState, fd: FormData): Promise<F
   // Job nền (lỗi Redis không làm hỏng booking — worker còn có job quét dự phòng)
   if (booking.status === "HOLDING" && booking.holdExpiresAt) await scheduleHoldExpiry(booking.id, booking.holdExpiresAt);
   if (booking.status === "CONFIRMED") await scheduleCheckinReminder(booking.id, booking.checkIn);
-  await notifyUsers([booking.hostId === user.id ? null : booking.hostId], `Booking mới ${booking.bookingCode} — ${booking.guestName}`);
+  await notifyUsers([booking.hostId === user.id ? null : booking.hostId], `Booking mới ${booking.bookingCode} — ${booking.guestName}`, `/host/bookings/${booking.id}`);
+  await emitToUsers([booking.hostId, booking.brokerId], "booking:update", { bookingId: booking.id, propertyId: booking.propertyId });
 
   revalidatePath("/host/calendar");
   revalidatePath("/broker/bookings");
@@ -77,7 +79,9 @@ export async function transitionAction(bookingId: string, action: Transition): P
   try {
     const b = await transitionBooking(user.id, bookingId, action);
     if (action === "CANCEL") await cancelBookingJobs(b.id);
-    await notifyUsers([b.hostId, b.brokerId].filter((x) => x !== user.id), `Booking ${b.bookingCode}: ${action}`);
+    const LABEL = { CONFIRM: "đã được xác nhận", CHECK_IN: "khách đã check-in", CHECK_OUT: "khách đã check-out", CANCEL: "đã bị huỷ" } as const;
+    await notifyUsers([b.hostId, b.brokerId].filter((x) => x !== user.id), `Booking ${b.bookingCode} ${LABEL[action]}`, `/${b.hostId === user.id ? "broker" : "host"}/bookings/${b.id}`);
+    await emitToUsers([b.hostId, b.brokerId], "booking:update", { bookingId: b.id, propertyId: b.propertyId });
   } catch (e) {
     if (e instanceof BookingError) return { error: e.message };
     console.error(e);

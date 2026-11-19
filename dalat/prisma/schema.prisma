@@ -135,6 +135,7 @@ model User {
   hostConversations   Conversation[] @relation("ConvHost")
   brokerConversations Conversation[] @relation("ConvBroker")
   messages    Message[]
+  pushSubscriptions PushSubscription[]
   roomRequests RoomRequest[]
   offers      RoomRequestOffer[]
 
@@ -392,6 +393,8 @@ model Conversation {
   hostId        String    @map("host_id") @db.Uuid
   brokerId      String    @map("broker_id") @db.Uuid
   lastMessageAt DateTime? @map("last_message_at")
+  hostLastReadAt   DateTime? @map("host_last_read_at")
+  brokerLastReadAt DateTime? @map("broker_last_read_at")
 
   booking  Booking?  @relation(fields: [bookingId], references: [id])
   host     User      @relation("ConvHost", fields: [hostId], references: [id])
@@ -454,4 +457,19 @@ model RoomRequestOffer {
 
   @@index([requestId])
   @@map("room_request_offers")
+}
+
+// Web Push (PWA): mỗi thiết bị/trình duyệt 1 dòng
+model PushSubscription {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("push_subscriptions")
 }

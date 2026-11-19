@@ -29,7 +29,7 @@ export default async function PartnersPage() {
       ) : (
         <ul className="divide-y divide-black rounded border border-black bg-white">
           {links.map((l) => (
-            <PartnerRow key={l.id} link={{ id: l.id, name: l.broker.fullName, phone: l.broker.phone, tier: l.tier, status: l.status }} />
+            <PartnerRow key={l.id} link={{ id: l.id, brokerId: l.brokerId, name: l.broker.fullName, phone: l.broker.phone, tier: l.tier, status: l.status }} />
           ))}
         </ul>
       )}

@@ -2,6 +2,7 @@ import "dotenv/config";
 import { Worker, Queue } from "bullmq";
 import { QUEUE_NAME, redisConnection } from "../src/lib/queue";
 import { expireHold, sendCheckinReminder, sweepExpiredHolds } from "../src/lib/booking-jobs";
+import { closeExpiredRequests } from "../src/lib/requests";
 
 async function main() {
   const connection = redisConnection();
@@ -17,7 +18,9 @@ async function main() {
         case "sweep": {
           const n = await sweepExpiredHolds();
           if (n) console.log(`[worker] sweep: nhả ${n} booking quá hạn`);
-          return n;
+          const q = await closeExpiredRequests();
+          if (q) console.log(`[worker] sweep: đóng ${q} yêu cầu tìm gấp hết hạn`);
+          return n + q;
         }
         default:
           console.warn(`[worker] job không rõ: ${job.name}`);

@@ -18,3 +18,14 @@ export async function postSystemMessage(db: Db, bookingId: string, content: stri
   await db.message.create({ data: { conversationId: conv.id, senderId: null, msgType: "TEXT", content } });
   await db.conversation.update({ where: { id: conv.id }, data: { lastMessageAt: new Date() } });
 }
+
+type CardType = "ACTION_HOLD_REQ" | "ACTION_BILL_UPLOAD" | "ACTION_MEDIA_PACK";
+
+/** Đăng thẻ hành động (sender = null → thẻ hệ thống) vào khung chat của booking. */
+export async function postCard(db: Db, bookingId: string, msgType: CardType, content: string, metadata: Prisma.InputJsonValue) {
+  const conv = await ensureConversation(db, bookingId);
+  if (!conv) return null;
+  const m = await db.message.create({ data: { conversationId: conv.id, senderId: null, msgType, content, metadata } });
+  await db.conversation.update({ where: { id: conv.id }, data: { lastMessageAt: new Date() } });
+  return { conv, message: m };
+}
