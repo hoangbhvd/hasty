@@ -1,0 +1,454 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ───────────── Enums ─────────────
+enum LinkTier {
+  STANDARD
+  VIP
+  AGENCY
+}
+
+enum LinkStatus {
+  PENDING
+  APPROVED
+  BLOCKED
+}
+
+enum SourceType {
+  HOST_MANAGED
+  BROKER_EXTERNAL
+}
+
+enum Area {
+  TRUNG_TAM
+  TUYEN_LAM
+  TRAI_MAT
+  TA_NUNG
+  DA_PHU
+  PHUONG_11
+  KHAC
+}
+
+enum RoadAccess {
+  MOTORBIKE
+  CAR_7
+  CAR_16
+  BUS_29
+}
+
+enum SlopeLevel {
+  FLAT
+  MILD_SLOPE
+  STEEP
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+}
+
+enum BookingType {
+  WHOLE_UNIT
+  ROOMS
+  EXTERNAL_MANUAL
+}
+
+enum BookingStatus {
+  HOLDING
+  CONFIRMED
+  CHECKED_IN
+  CHECKED_OUT
+  CANCELLED
+}
+
+enum PayerRole {
+  GUEST
+  BROKER
+  HOST
+}
+
+enum ReceiverRole {
+  BROKER
+  HOST
+}
+
+enum TxType {
+  DEPOSIT
+  BALANCE
+  COMMISSION_SETTLEMENT
+  REFUND
+}
+
+enum TxStatus {
+  PENDING_CONFIRM
+  CONFIRMED
+  REJECTED
+}
+
+enum MsgType {
+  TEXT
+  IMAGE
+  ACTION_HOLD_REQ
+  ACTION_BILL_UPLOAD
+  ACTION_MEDIA_PACK
+}
+
+enum RequestStatus {
+  OPEN
+  CLOSED
+}
+
+// ───────────── 3.1 Users & Network ─────────────
+// Bảng `users` đồng thời là bảng user của Better Auth
+// (name -> full_name, image -> avatar_url).
+model User {
+  id               String   @id @default(uuid()) @db.Uuid
+  phone            String?  @unique
+  email            String   @unique
+  emailVerified    Boolean  @default(false) @map("email_verified")
+  fullName         String   @map("full_name")
+  avatarUrl        String?  @map("avatar_url")
+  isHost           Boolean  @default(true) @map("is_host")
+  isBroker         Boolean  @default(true) @map("is_broker")
+  bankId           String?  @map("bank_id")
+  bankAccountNo    String?  @map("bank_account_no")
+  bankAccountName  String?  @map("bank_account_name")
+  telegramChatId   String?  @map("telegram_chat_id")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  sessions Session[]
+  accounts Account[]
+
+  hostLinks   HostBrokerLink[]  @relation("LinkHost")
+  brokerLinks HostBrokerLink[]  @relation("LinkBroker")
+  properties  Property[]        @relation("PropertyHost")
+  extProperties Property[]      @relation("PropertyBrokerCreator")
+  hostBookings   Booking[]      @relation("BookingHost")
+  brokerBookings Booking[]      @relation("BookingBroker")
+  hostConversations   Conversation[] @relation("ConvHost")
+  brokerConversations Conversation[] @relation("ConvBroker")
+  messages    Message[]
+  roomRequests RoomRequest[]
+  offers      RoomRequestOffer[]
+
+  @@map("users")
+}
+
+model Session {
+  id        String   @id @default(uuid()) @db.Uuid
+  token     String   @unique
+  expiresAt DateTime @map("expires_at")
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  userId    String   @map("user_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model Account {
+  id                    String    @id @default(uuid()) @db.Uuid
+  accountId             String    @map("account_id")
+  providerId            String    @map("provider_id")
+  userId                String    @map("user_id") @db.Uuid
+  accessToken           String?   @map("access_token")
+  refreshToken          String?   @map("refresh_token")
+  idToken               String?   @map("id_token")
+  accessTokenExpiresAt  DateTime? @map("access_token_expires_at")
+  refreshTokenExpiresAt DateTime? @map("refresh_token_expires_at")
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("accounts")
+}
+
+model Verification {
+  id         String   @id @default(uuid()) @db.Uuid
+  identifier String
+  value      String
+  expiresAt  DateTime @map("expires_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@index([identifier])
+  @@map("verifications")
+}
+
+model HostBrokerLink {
+  id       String     @id @default(uuid()) @db.Uuid
+  hostId   String     @map("host_id") @db.Uuid
+  brokerId String     @map("broker_id") @db.Uuid
+  tier     LinkTier   @default(STANDARD)
+  status   LinkStatus @default(PENDING)
+  host     User       @relation("LinkHost", fields: [hostId], references: [id])
+  broker   User       @relation("LinkBroker", fields: [brokerId], references: [id])
+
+  @@unique([hostId, brokerId])
+  @@map("host_broker_links")
+}
+
+// ───────────── 3.2 Properties, Rooms ─────────────
+model Property {
+  id                 String     @id @default(uuid()) @db.Uuid
+  sourceType         SourceType @default(HOST_MANAGED) @map("source_type")
+  hostId             String?    @map("host_id") @db.Uuid
+  createdByBrokerId  String?    @map("created_by_broker_id") @db.Uuid
+  externalHostName   String?    @map("external_host_name")
+  externalHostPhone  String?    @map("external_host_phone")
+
+  name                 String
+  description          String?
+  allowWholeUnit       Boolean @default(true) @map("allow_whole_unit")
+  allowIndividualRooms Boolean @default(false) @map("allow_individual_rooms")
+
+  area               Area       @default(KHAC)
+  distanceToMarketKm Float?     @map("distance_to_market_km")
+  roadAccess         RoadAccess @default(MOTORBIKE) @map("road_access")
+  slopeLevel         SlopeLevel @default(FLAT) @map("slope_level")
+  // { bbQ, ac, pet_friendly, karaoke, views: string[] }
+  amenities          Json       @default("{}")
+
+  googleMapsUrl  String? @map("google_maps_url")
+  checkinGuide   String? @map("checkin_guide")
+  caretakerPhone String? @map("caretaker_phone")
+  houseRules     String? @map("house_rules")
+
+  baseWeekdayNet Decimal? @map("base_weekday_net") @db.Decimal(12, 0)
+  baseWeekendNet Decimal? @map("base_weekend_net") @db.Decimal(12, 0)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  host            User?  @relation("PropertyHost", fields: [hostId], references: [id])
+  createdByBroker User?  @relation("PropertyBrokerCreator", fields: [createdByBrokerId], references: [id])
+
+  rooms         Room[]
+  media         PropertyMedia[]
+  specialPrices SpecialPrice[]
+  bookings      Booking[]
+  offers        RoomRequestOffer[]
+
+  @@index([hostId])
+  @@index([createdByBrokerId])
+  @@map("properties")
+}
+
+model Room {
+  id             String   @id @default(uuid()) @db.Uuid
+  propertyId     String   @map("property_id") @db.Uuid
+  name           String
+  maxGuests      Int      @default(2) @map("max_guests")
+  baseWeekdayNet Decimal? @map("base_weekday_net") @db.Decimal(12, 0)
+  baseWeekendNet Decimal? @map("base_weekend_net") @db.Decimal(12, 0)
+
+  property      Property        @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  media         PropertyMedia[]
+  specialPrices SpecialPrice[]
+  bookingRooms  BookingRoom[]
+
+  @@index([propertyId])
+  @@map("rooms")
+}
+
+model PropertyMedia {
+  id         String    @id @default(uuid()) @db.Uuid
+  propertyId String    @map("property_id") @db.Uuid
+  roomId     String?   @map("room_id") @db.Uuid
+  url        String
+  mediaType  MediaType @default(IMAGE) @map("media_type")
+  sortOrder  Int       @default(0) @map("sort_order")
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  room     Room?    @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId])
+  @@map("property_media")
+}
+
+model SpecialPrice {
+  id         String    @id @default(uuid()) @db.Uuid
+  propertyId String    @map("property_id") @db.Uuid
+  roomId     String?   @map("room_id") @db.Uuid
+  date       DateTime  @db.Date
+  netPrice   Decimal   @map("net_price") @db.Decimal(12, 0)
+  brokerTier LinkTier? @map("broker_tier")
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  room     Room?    @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId, date])
+  @@map("special_prices")
+}
+
+// ───────────── 3.3 Bookings, Add-ons, Transactions ─────────────
+model Booking {
+  id           String @id @default(uuid()) @db.Uuid
+  bookingCode  String @unique @map("booking_code") // VD: DL-2611-889
+  voucherToken String @unique @default(uuid()) @map("voucher_token") @db.Uuid
+
+  propertyId String  @map("property_id") @db.Uuid
+  hostId     String? @map("host_id") @db.Uuid
+  brokerId   String? @map("broker_id") @db.Uuid
+
+  bookingType    BookingType   @map("booking_type")
+  manualRoomInfo String?       @map("manual_room_info")
+  checkIn        DateTime      @map("check_in") @db.Date
+  checkOut       DateTime      @map("check_out") @db.Date
+  guestName      String        @map("guest_name")
+  guestPhone     String?       @map("guest_phone")
+  guestCount     Int           @default(1) @map("guest_count")
+  guestNote      String?       @map("guest_note")
+  status         BookingStatus @default(CONFIRMED)
+  holdExpiresAt  DateTime?     @map("hold_expires_at")
+
+  guestTotalPrice   Decimal @map("guest_total_price") @db.Decimal(12, 0)
+  hostNetPrice      Decimal @map("host_net_price") @db.Decimal(12, 0)
+  extraFees         Decimal @default(0) @map("extra_fees") @db.Decimal(12, 0)
+  commissionAmount  Decimal @default(0) @map("commission_amount") @db.Decimal(12, 0)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  property      Property       @relation(fields: [propertyId], references: [id])
+  host          User?          @relation("BookingHost", fields: [hostId], references: [id])
+  broker        User?          @relation("BookingBroker", fields: [brokerId], references: [id])
+  rooms         BookingRoom[]
+  addons        BookingAddon[]
+  transactions  Transaction[]
+  conversations Conversation[]
+
+  @@index([propertyId, checkIn, checkOut])
+  @@index([hostId])
+  @@index([brokerId])
+  @@index([status, holdExpiresAt])
+  @@map("bookings")
+}
+
+model BookingRoom {
+  bookingId String @map("booking_id") @db.Uuid
+  roomId    String @map("room_id") @db.Uuid
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  room    Room    @relation(fields: [roomId], references: [id])
+
+  @@id([bookingId, roomId])
+  @@index([roomId])
+  @@map("booking_rooms")
+}
+
+model BookingAddon {
+  id          String  @id @default(uuid()) @db.Uuid
+  bookingId   String  @map("booking_id") @db.Uuid
+  serviceName String  @map("service_name")
+  quantity    Int     @default(1)
+  guestPrice  Decimal @map("guest_price") @db.Decimal(12, 0)
+  netPrice    Decimal @map("net_price") @db.Decimal(12, 0)
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([bookingId])
+  @@map("booking_addons")
+}
+
+model Transaction {
+  id           String       @id @default(uuid()) @db.Uuid
+  bookingId    String       @map("booking_id") @db.Uuid
+  payerRole    PayerRole    @map("payer_role")
+  receiverRole ReceiverRole @map("receiver_role")
+  amount       Decimal      @db.Decimal(12, 0)
+  txType       TxType       @map("tx_type")
+  billImageUrl String?      @map("bill_image_url")
+  status       TxStatus     @default(PENDING_CONFIRM)
+  createdAt    DateTime     @default(now()) @map("created_at")
+  confirmedAt  DateTime?    @map("confirmed_at")
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([bookingId])
+  @@map("transactions")
+}
+
+// ───────────── 3.4 Chat & Room Request ─────────────
+model Conversation {
+  id            String    @id @default(uuid()) @db.Uuid
+  bookingId     String?   @map("booking_id") @db.Uuid
+  hostId        String    @map("host_id") @db.Uuid
+  brokerId      String    @map("broker_id") @db.Uuid
+  lastMessageAt DateTime? @map("last_message_at")
+
+  booking  Booking?  @relation(fields: [bookingId], references: [id])
+  host     User      @relation("ConvHost", fields: [hostId], references: [id])
+  broker   User      @relation("ConvBroker", fields: [brokerId], references: [id])
+  messages Message[]
+
+  @@index([bookingId])
+  @@map("conversations")
+}
+
+model Message {
+  id             String   @id @default(uuid()) @db.Uuid
+  conversationId String   @map("conversation_id") @db.Uuid
+  senderId       String?  @map("sender_id") @db.Uuid // null = tin nhắn hệ thống
+  msgType        MsgType  @default(TEXT) @map("msg_type")
+  content        String?
+  metadata       Json?
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User?        @relation(fields: [senderId], references: [id])
+
+  @@index([conversationId, createdAt])
+  @@map("messages")
+}
+
+model RoomRequest {
+  id         String        @id @default(uuid()) @db.Uuid
+  brokerId   String        @map("broker_id") @db.Uuid
+  checkIn    DateTime      @map("check_in") @db.Date
+  checkOut   DateTime      @map("check_out") @db.Date
+  guestCount Int           @map("guest_count")
+  area       Area?
+  roadAccess RoadAccess?   @map("road_access")
+  maxBudget  Decimal?      @map("max_budget") @db.Decimal(12, 0)
+  note       String?
+  status     RequestStatus @default(OPEN)
+  expiresAt  DateTime?     @map("expires_at")
+  createdAt  DateTime      @default(now()) @map("created_at")
+
+  broker User               @relation(fields: [brokerId], references: [id])
+  offers RoomRequestOffer[]
+
+  @@index([status, expiresAt])
+  @@map("room_requests")
+}
+
+model RoomRequestOffer {
+  id              String   @id @default(uuid()) @db.Uuid
+  requestId       String   @map("request_id") @db.Uuid
+  hostId          String   @map("host_id") @db.Uuid
+  propertyId      String   @map("property_id") @db.Uuid
+  offeredNetPrice Decimal  @map("offered_net_price") @db.Decimal(12, 0)
+  note            String?
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  request  RoomRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  host     User        @relation(fields: [hostId], references: [id])
+  property Property    @relation(fields: [propertyId], references: [id])
+
+  @@index([requestId])
+  @@map("room_request_offers")
+}
