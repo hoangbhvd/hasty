@@ -10,10 +10,9 @@ export function proxy(request: NextRequest) {
   const hasSession = !!getSessionCookie(request);
 
   if (!hasSession && !isPublic) {
-    return NextResponse.redirect(new URL("/login", request.url));
-  }
-  if (hasSession && (pathname === "/login" || pathname === "/register")) {
-    return NextResponse.redirect(new URL("/", request.url));
+    const url = new URL("/login", request.url);
+    if (pathname !== "/") url.searchParams.set("next", pathname);
+    return NextResponse.redirect(url);
   }
   return NextResponse.next();
 }

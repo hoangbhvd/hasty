@@ -1,0 +1,83 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { prisma } from "@/lib/db";
+import { requireUser } from "@/lib/session";
+import { getBrokerVisibleProperty } from "@/lib/access";
+import { MediaManager } from "@/components/media-manager";
+import { ActionButton } from "@/components/action-button";
+import { AREA_LABEL, ROAD_LABEL, SLOPE_LABEL } from "@/lib/labels";
+import { formatVnd } from "@/lib/format";
+import { r2Configured } from "@/lib/r2";
+import { deleteExternalPropertyAction } from "../actions";
+
+type Amen = { bbQ?: boolean; ac?: boolean; pet_friendly?: boolean; karaoke?: boolean; views?: string[] };
+
+export default async function BrokerPropertyPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const user = await requireUser();
+  if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
+  const visible = await getBrokerVisibleProperty(user.id, id);
+  if (!visible) notFound();
+
+  const [p, rooms, media] = await Promise.all([
+    prisma.property.findUniqueOrThrow({ where: { id }, include: { host: { select: { fullName: true } } } }),
+    prisma.room.findMany({ where: { propertyId: id }, orderBy: { name: "asc" } }),
+    prisma.propertyMedia.findMany({ where: { propertyId: id }, orderBy: { sortOrder: "asc" }, include: { room: true } }),
+  ]);
+  const external = p.sourceType === "BROKER_EXTERNAL";
+  const am = (p.amenities ?? {}) as Amen;
+  const tags = [am.bbQ && "BBQ", am.ac && "Máy lạnh", am.pet_friendly && "Thú cưng", am.karaoke && "Karaoke", ...(am.views ?? []).map((v) => `View ${v}`)].filter(Boolean) as string[];
+
+  return (
+    <div className="max-w-3xl space-y-6">
+      <div>
+        <Link href="/broker/properties" className="text-sm text-muted-foreground">← Homestay</Link>
+        <h1 className="text-2xl font-semibold">{p.name}</h1>
+        <p className="text-muted-foreground">
+          {AREA_LABEL[p.area]} · {ROAD_LABEL[p.roadAccess]} · {SLOPE_LABEL[p.slopeLevel]}
+          {external ? ` · Chủ: ${p.externalHostName ?? "—"} ${p.externalHostPhone ?? ""}` : ` · Chủ: ${p.host?.fullName ?? ""}`}
+        </p>
+      </div>
+
+      <dl className="grid gap-3 rounded-lg border bg-card p-4 text-sm sm:grid-cols-2">
+        <div><dt className="text-muted-foreground">Net CN–T5</dt><dd className="font-medium">{formatVnd(p.baseWeekdayNet)}</dd></div>
+        <div><dt className="text-muted-foreground">Net T6–T7</dt><dd className="font-medium">{formatVnd(p.baseWeekendNet)}</dd></div>
+        {tags.length > 0 && <div className="sm:col-span-2"><dt className="text-muted-foreground">Tiện ích</dt><dd>{tags.join(" · ")}</dd></div>}
+        {p.googleMapsUrl && <div className="sm:col-span-2"><dt className="text-muted-foreground">Google Maps</dt><dd><a href={p.googleMapsUrl} target="_blank" rel="noopener noreferrer" className="underline">Mở bản đồ</a></dd></div>}
+        {p.checkinGuide && <div className="sm:col-span-2"><dt className="text-muted-foreground">Hướng dẫn check-in</dt><dd className="whitespace-pre-line">{p.checkinGuide}</dd></div>}
+        {p.houseRules && <div className="sm:col-span-2"><dt className="text-muted-foreground">Nội quy</dt><dd className="whitespace-pre-line">{p.houseRules}</dd></div>}
+      </dl>
+
+      {rooms.length > 0 && (
+        <section className="space-y-2">
+          <h2 className="font-semibold">Phòng lẻ</h2>
+          <ul className="divide-y rounded-lg border text-sm">
+            {rooms.map((r) => (
+              <li key={r.id} className="flex justify-between gap-2 p-3">
+                <span>{r.name} · tối đa {r.maxGuests} khách</span>
+                <span>{formatVnd(r.baseWeekdayNet)} / {formatVnd(r.baseWeekendNet)}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <section className="space-y-3">
+        <h2 className="font-semibold">Ảnh & video</h2>
+        <MediaManager
+          propertyId={id}
+          canEdit={external}
+          r2Ready={r2Configured()}
+          rooms={[]}
+          items={media.map((m) => ({ id: m.id, url: m.url, type: m.mediaType, roomName: m.room?.name ?? null }))}
+        />
+      </section>
+
+      {external && (
+        <ActionButton action={deleteExternalPropertyAction.bind(null, id)} confirm={`Xoá "${p.name}"?`} className="text-destructive">
+          Xoá homestay này
+        </ActionButton>
+      )}
+    </div>
+  );
+}

@@ -16,14 +16,14 @@ type NavItem = { href: string; label: string; icon: React.ComponentType<{ classN
 const NAV: Record<Mode, NavItem[]> = {
   host: [
     { href: "/host", label: "Tổng quan", icon: LayoutDashboard, ready: true },
-    { href: "/host/properties", label: "Căn của tôi", icon: Building2, ready: false },
+    { href: "/host/properties", label: "Căn của tôi", icon: Building2, ready: true },
     { href: "/host/calendar", label: "Lịch", icon: CalendarDays, ready: false },
-    { href: "/host/partners", label: "Đối tác", icon: Handshake, ready: false },
+    { href: "/host/partners", label: "Đối tác", icon: Handshake, ready: true },
     { href: "/host/finance", label: "Tài chính", icon: Wallet, ready: false },
   ],
   broker: [
     { href: "/broker", label: "Tổng quan", icon: LayoutDashboard, ready: true },
-    { href: "/broker/search", label: "Tìm phòng", icon: Search, ready: false },
+    { href: "/broker/properties", label: "Homestay", icon: Search, ready: true },
     { href: "/broker/bookings", label: "Booking", icon: ClipboardList, ready: false },
     { href: "/broker/requests", label: "Tìm gấp", icon: MessageCircle, ready: false },
     { href: "/broker/finance", label: "Hoa hồng", icon: Wallet, ready: false },

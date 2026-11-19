@@ -11,9 +11,10 @@ import type { FormState } from "@/app/(auth)/actions";
 type Props = {
   mode: "login" | "register";
   action: (state: FormState, formData: FormData) => Promise<FormState>;
+  next?: string;
 };
 
-export function AuthForm({ mode, action }: Props) {
+export function AuthForm({ mode, action, next }: Props) {
   const [state, formAction, pending] = useActionState(action, undefined);
   const isLogin = mode === "login";
 
@@ -29,6 +30,7 @@ export function AuthForm({ mode, action }: Props) {
       </CardHeader>
       <CardContent>
         <form action={formAction} className="space-y-4">
+          {next && <input type="hidden" name="next" value={next} />}
           {isLogin ? (
             <div className="space-y-2">
               <Label htmlFor="identifier">SĐT hoặc Email</Label>
@@ -71,7 +73,7 @@ export function AuthForm({ mode, action }: Props) {
           </Button>
           <p className="text-center text-sm text-muted-foreground">
             {isLogin ? "Chưa có tài khoản? " : "Đã có tài khoản? "}
-            <Link href={isLogin ? "/register" : "/login"} className="font-medium text-foreground underline">
+            <Link href={`${isLogin ? "/register" : "/login"}${next ? `?next=${encodeURIComponent(next)}` : ""}`} className="font-medium text-foreground underline">
               {isLogin ? "Đăng ký" : "Đăng nhập"}
             </Link>
           </p>

@@ -11,6 +11,12 @@ import { setMode } from "@/lib/mode";
 
 export type FormState = { error?: string } | undefined;
 
+/** Chỉ cho phép redirect nội bộ (chống open redirect). */
+function safeNext(v: FormDataEntryValue | null): string {
+  const s = typeof v === "string" ? v : "";
+  return s.startsWith("/") && !s.startsWith("//") && !s.includes("\\") ? s : "/";
+}
+
 const loginSchema = z.object({
   identifier: z.string().trim().min(1, "Nhập SĐT hoặc email"),
   password: z.string().min(1, "Nhập mật khẩu"),
@@ -36,7 +42,7 @@ export async function loginAction(_: FormState, formData: FormData): Promise<For
     if (e instanceof APIError) return { error: "Sai thông tin đăng nhập" };
     throw e;
   }
-  redirect("/");
+  redirect(safeNext(formData.get("next")));
 }
 
 const registerSchema = z.object({
@@ -71,7 +77,7 @@ export async function registerAction(_: FormState, formData: FormData): Promise<
     throw e;
   }
   await setMode("host");
-  redirect("/");
+  redirect(safeNext(formData.get("next")));
 }
 
 export async function logoutAction() {
