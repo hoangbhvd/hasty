@@ -2,6 +2,8 @@ import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/session";
 import { BankForm } from "@/components/bank-form";
 import { PushCard, TelegramCard } from "@/components/notify-settings";
+import { ChangeEmailForm, ChangePasswordForm, SessionsCard } from "@/components/security-forms";
+import { isRealEmail } from "@/lib/mailer";
 
 export default async function AccountPage() {
   const u = await requireUser();
@@ -9,12 +11,25 @@ export default async function AccountPage() {
     where: { id: u.id },
     select: { fullName: true, phone: true, email: true, bankId: true, bankAccountNo: true, bankAccountName: true, telegramChatId: true },
   });
+  const sessions = await prisma.session.count({ where: { userId: u.id, expiresAt: { gt: new Date() } } });
+  const recoverable = isRealEmail(me.email) || !!me.telegramChatId;
   return (
     <div className="max-w-xl space-y-6">
       <h1 className="text-2xl font-bold">Tài khoản</h1>
       <section className="space-y-1 rounded border border-black bg-white p-4 shadow-brutal-sm md:brutal-card">
         <div className="font-semibold">{me.fullName}</div>
         <div className="money-num text-sm text-muted-foreground">{me.phone ?? me.email}</div>
+      </section>
+      <section className="space-y-3">
+        <h2 className="text-lg font-bold">Bảo mật</h2>
+        {!recoverable && (
+          <p role="alert" className="rounded border border-black bg-status-holding p-3 text-sm font-semibold">
+            ⚠ Bạn chưa có email thật hoặc Telegram nên sẽ không tự đặt lại được mật khẩu khi quên. Hãy thêm email bên dưới hoặc kết nối Telegram.
+          </p>
+        )}
+        <ChangePasswordForm />
+        <ChangeEmailForm current={isRealEmail(me.email) ? me.email : null} />
+        <SessionsCard count={sessions} />
       </section>
       <section className="space-y-3">
         <h2 className="text-lg font-bold">Thông báo</h2>

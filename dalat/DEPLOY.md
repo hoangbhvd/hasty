@@ -34,6 +34,12 @@ sudo certbot --nginx -d dalat.tenmiencuaban.com
 File mẫu tự đủ (không cần khai báo `map` ở cấp `http {}`). Khối `location /socket.io/` là bắt buộc — thiếu thì chat real-time không chạy.
 Cookie đăng nhập chỉ an toàn khi `APP_URL` là `https://…` (đặt đúng domain trước khi build).
 
+## Bảo mật đăng nhập
+- **Giới hạn thử sai:** 5 lần sai/15 phút cho mỗi tài khoản và 30 lần/15 phút cho mỗi IP; đăng ký 10/giờ/IP; quên mật khẩu 3/giờ/tài khoản. Bộ đếm lưu ở Redis (mất Redis thì tự dùng bộ nhớ của tiến trình).
+- **IP thật:** app tin header `X-Real-IP` do nginx đặt (`proxy_set_header X-Real-IP $remote_addr;` — đã có trong file mẫu). Thiếu dòng này thì mọi người dùng chung 1 IP và giới hạn theo IP sẽ chặn nhầm.
+- **Quên mật khẩu:** link gửi qua email thật (cần điền `SMTP_*`) và/hoặc Telegram đã kết nối. Tài khoản chỉ có SĐT mà không có cả hai thì không tự khôi phục được — quản trị viên có thể đặt lại thủ công.
+- Header bảo mật (HSTS, chống iframe…) bật sẵn ở production.
+
 ## Telegram
 ```bash
 curl "https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/setWebhook" \

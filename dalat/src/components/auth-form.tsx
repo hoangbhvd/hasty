@@ -12,9 +12,10 @@ type Props = {
   mode: "login" | "register";
   action: (state: FormState, formData: FormData) => Promise<FormState>;
   next?: string;
+  notice?: string;
 };
 
-export function AuthForm({ mode, action, next }: Props) {
+export function AuthForm({ mode, action, next, notice }: Props) {
   const { state, pending, disabled, ref, onSubmit } = useSafeForm(action);
   const isLogin = mode === "login";
 
@@ -31,6 +32,7 @@ export function AuthForm({ mode, action, next }: Props) {
       <CardContent>
         <form ref={ref} onSubmit={onSubmit} className="space-y-4">
           {next && <input type="hidden" name="next" value={next} />}
+          {notice && <p role="status" className="rounded border border-black bg-status-confirmed-bg p-3 text-sm font-medium">{notice}</p>}
           {isLogin ? (
             <div className="space-y-2">
               <Label htmlFor="identifier">SĐT hoặc Email</Label>
@@ -63,6 +65,9 @@ export function AuthForm({ mode, action, next }: Props) {
               required
             />
           </div>
+          {isLogin && (
+            <p className="text-right text-sm"><Link href="/forgot-password" className="font-medium underline">Quên mật khẩu?</Link></p>
+          )}
           {state?.error && (
             <p role="alert" className="text-sm text-red-700">
               {state.error}

@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getSessionCookie } from "better-auth/cookies";
 
-const PUBLIC = ["/login", "/register", "/voucher"];
+const PUBLIC = ["/login", "/register", "/forgot-password", "/reset-password", "/voucher"];
 
 // Kiểm tra lạc quan (chỉ xem cookie). Xác thực thật nằm ở requireUser() trong server.
 export function proxy(request: NextRequest) {
