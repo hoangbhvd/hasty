@@ -13,9 +13,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   });
   return (
     <>
-      <header className="border-b border-slate-200 bg-white">
+      <header className="border-b border-black bg-white">
         <div className="mx-auto flex max-w-5xl items-center gap-4 px-4 py-3">
-          <Link href="/owner" className="font-bold text-teal-800">HMStay</Link>
+          <Link href="/owner" className="rounded-md border border-black bg-[#ff90e8] px-2 py-0.5 text-lg font-extrabold tracking-tight text-black no-underline">HMStay</Link>
           <NavLinks />
           <div className="ml-auto flex items-center gap-3 text-sm">
             <Link href="/templates" className="text-slate-600 hover:text-slate-900">Mẫu xác nhận</Link>
