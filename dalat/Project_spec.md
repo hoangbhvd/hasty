@@ -211,34 +211,37 @@ Tùy biến toàn bộ `shadcn/ui` theo các nguyên tắc sau:
 
 ## 8. TRÌNH THIẾT KẾ BOOKING CONFIRMATION RIÊNG CHO TỪNG HOMESTAY (VOUCHER BUILDER)
 
-Mỗi Căn (`properties` — bao gồm cả `HOST_MANAGED` và `BROKER_EXTERNAL`) có thể tự thiết kế mẫu **Booking Confirmation (Voucher)** riêng mang đậm dấu ấn thương hiệu của homestay đó, thay vì dùng chung 1 mẫu cứng nhắc.
+Mỗi Căn (`properties`) có thể tự thiết kế mẫu **Booking Confirmation** riêng, hỗ trợ xuất cả **ảnh PNG** (gửi Zalo) và **file PDF 1 trang A4** (in/gửi chuyên nghiệp).
 
 ### 8.1. Cập nhật Database (`properties`)
-Thêm 1 cột `voucher_config` (kiểu `JSONB`, nullable — nếu null sẽ dùng mẫu mặc định) vào bảng `properties`:
+Thêm cột `voucher_config` (JSONB, nullable) vào bảng `properties`:
 
 ```json
 {
-  "template_id": "GUMROAD_BRUTAL", // ENUM: "GUMROAD_BRUTAL" | "DALAT_CHILL" | "LUXURY_MINIMAL" | "RECEIPT_COMPACT"
+  "template_id": "DALAT_BOUTIQUE", // ENUM: "DALAT_BOUTIQUE" (Mặc định) | "GUMROAD_BRUTAL" | "LUXURY_MINIMAL" | "RECEIPT_COMPACT"
   "branding": {
-    "logo_url": "https://r2.../logo.png",
+    "brand_name": "Cottown",
     "cover_image_url": "https://r2.../cover.jpg",
-    "primary_color": "#FFC900",     // Màu nhấn chủ đạo của homestay
-    "background_color": "#F4F4F0",  // Màu nền phiếu
-    "font_style": "MODERN"          // "MODERN" (Sans) | "CLASSIC" (Serif) | "MONO" (Receipt)
+    "image_frame_style": "ARCH",    // "ARCH" (Khung vòm cong) | "RECTANGLE" | "ROUNDED"
+    "primary_color": "#B08978",     // Màu viền khung ảnh & tiêu đề
+    "background_color": "#FFFFFF",
+    "font_style": "MODERN"
   },
   "blocks": {
     "show_cover_image": true,
-    "show_guest_details": true,
-    "show_price_breakdown": true,   // Luôn chỉ hiển thị Guest Price (tuyệt đối ẩn Net Price)
-    "show_vietqr": true,
+    "show_caretaker_phone": true,
+    "show_price_table": true,       // Bảng 4 cột: Giá 1 đêm | Số đêm | Thành tiền | Đã cọc
+    "show_vietqr": false,           // Bật nếu muốn khách quét mã cọc/thanh toán nốt
     "show_google_maps": true,
-    "show_checkin_guide": true,
-    "show_house_rules": true,
-    "show_caretaker_phone": true
+    "show_surcharge_policy": true,  // Khối 1: Chính sách phụ thu phát sinh
+    "show_terms_conditions": true,  // Khối 2: Các điều khoản và điều kiện
+    "show_cancellation_policy": true // Khối 3: Điều khoản hủy booking
   },
   "custom_texts": {
     "header_title": "XÁC NHẬN ĐẶT PHÒNG",
-    "welcome_message": "Chào mừng bạn đến với Nhà Của Nắng Đà Lạt!",
-    "footer_note": "Vui lòng xuất trình phiếu này khi nhận phòng. Cần hỗ trợ đường đi hãy gọi ngay cho quản gia nhé!"
+    "surcharge_policy": "1. Giá trên không bao gồm VAT.\n2. Quý khách vui lòng đi đúng số người quy định, phát sinh phụ thu 150.000/người/đêm. Quý khách vui lòng tự dọn dẹp khu vực bếp và sân BBQ sau khi sử dụng hoặc có thể thuê dọn dẹp và trả phí 500.000 - 1.000.000/lần (tùy mức độ).",
+    "terms_conditions": "1. Quý khách vui lòng mang theo CMND/CCCD/Passport để làm thủ tục đăng ký lưu trú theo quy định.\n2. Không ồn ào sau 21h. Không sử dụng loa kéo & karaoke sau 22h.\n3. Nghiêm cấm tàng trữ, sử dụng chất gây nghiện - chất ma túy tại nơi lưu trú. Nếu phát hiện chúng tôi sẽ lập tức từ chối lưu trú không hoàn tiền.\n4. Nhận và trả phòng đúng giờ quy định. Trường hợp check-in sớm hoặc check-out trễ nếu home chưa có khách đặt, home sẽ hỗ trợ từ 1 - 3h (tùy tình trạng nhà).\n5. Quý khách vui lòng kiểm tra nhà khi nhận, nếu có hư hỏng xảy ra trong quá trình lưu trú xin đền bù theo thiệt hại.\n6. Tài sản tư trang có giá trị quý khách vui lòng tự bảo quản.\n7. Nhà không nhận thú cưng.\n8. Không hút thuốc trong nhà, không đem đồ ăn có mùi vào phòng.",
+    "cancellation_policy": "1. Áp dụng chính sách không hoàn hủy booking. Trong trường hợp hủy sẽ mất 100% tiền cọc.\n2. Không hoàn tiền nếu quý khách đặt phòng nhưng không đến hoặc hủy booking sớm hơn thời hạn lưu trú.\n3. Hủy booking, không nhận nhà khi có lý do đột xuất, hãy liên hệ sớm nhất có thể, home sẽ sắp xếp dời lịch cho quý khách.\n4. Quý khách vui lòng thanh toán đầy đủ theo thông tin đặt phòng. Số tiền thanh toán sẽ không thay đổi dù có điều chỉnh số ngày lưu trú.",
+    "footer_greeting": "Xin cảm ơn và hân hạnh được phục vụ quý khách\nChúc quý khách có chuyến nghỉ dưỡng tuyệt vời\nHẹn gặp quý khách tại Đà Lạt"
   }
 }

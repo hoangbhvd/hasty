@@ -11,6 +11,8 @@ import { ActionButton } from "@/components/action-button";
 import { formatVnd, parseDateOnly, todayVn, toDateOnly } from "@/lib/format";
 import { TIER_LABEL } from "@/lib/labels";
 import { r2Configured } from "@/lib/r2";
+import { VoucherConfigForm } from "@/components/voucher-config-form";
+import { parseVoucherConfig } from "@/lib/voucher-config";
 import { deletePropertyAction, updatePropertyAction } from "../actions";
 
 export default async function EditPropertyPage({ params }: { params: Promise<{ id: string }> }) {
@@ -18,7 +20,7 @@ export default async function EditPropertyPage({ params }: { params: Promise<{ i
   const user = await requireUser();
   if (!/^[0-9a-f-]{36}$/.test(id) || !(await getHostProperty(user.id, id))) notFound();
 
-  const [p, rooms, media, specials] = await Promise.all([
+  const [p, rooms, media, specials, lastBooking] = await Promise.all([
     prisma.property.findUniqueOrThrow({ where: { id } }),
     prisma.room.findMany({ where: { propertyId: id }, orderBy: { name: "asc" } }),
     prisma.propertyMedia.findMany({ where: { propertyId: id }, orderBy: { sortOrder: "asc" }, include: { room: true } }),
@@ -28,6 +30,7 @@ export default async function EditPropertyPage({ params }: { params: Promise<{ i
       take: 200,
       include: { room: true },
     }),
+    prisma.booking.findFirst({ where: { propertyId: id }, orderBy: { createdAt: "desc" }, select: { voucherToken: true } }),
   ]);
 
   const defaults: PropertyDefaults = {
@@ -77,6 +80,17 @@ export default async function EditPropertyPage({ params }: { params: Promise<{ i
           r2Ready={r2Configured()}
           rooms={rooms.map((r) => ({ id: r.id, name: r.name }))}
           items={media.map((m) => ({ id: m.id, url: m.url, type: m.mediaType, roomName: m.room?.name ?? null }))}
+        />
+      </section>
+
+      <section className="space-y-3 border-t pt-6">
+        <h2 className="text-lg font-semibold">Mẫu Booking Confirmation</h2>
+        <p className="text-sm text-muted-foreground">Phiếu xác nhận gửi khách (xuất PNG / PDF A4). Không bao giờ hiển thị giá Net.</p>
+        <VoucherConfigForm
+          propertyId={id}
+          config={parseVoucherConfig(p.voucherConfig)}
+          images={media.filter((m) => m.mediaType === "IMAGE").map((m) => ({ url: m.url }))}
+          previewToken={lastBooking?.voucherToken ?? null}
         />
       </section>
 

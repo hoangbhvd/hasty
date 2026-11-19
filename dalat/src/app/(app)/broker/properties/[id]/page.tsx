@@ -8,6 +8,8 @@ import { ActionButton } from "@/components/action-button";
 import { AREA_LABEL, ROAD_LABEL, SLOPE_LABEL } from "@/lib/labels";
 import { formatVnd } from "@/lib/format";
 import { r2Configured } from "@/lib/r2";
+import { VoucherConfigForm } from "@/components/voucher-config-form";
+import { parseVoucherConfig } from "@/lib/voucher-config";
 import { deleteExternalPropertyAction } from "../actions";
 
 type Amen = { bbQ?: boolean; ac?: boolean; pet_friendly?: boolean; karaoke?: boolean; views?: string[] };
@@ -25,6 +27,7 @@ export default async function BrokerPropertyPage({ params }: { params: Promise<{
     prisma.propertyMedia.findMany({ where: { propertyId: id }, orderBy: { sortOrder: "asc" }, include: { room: true } }),
   ]);
   const external = p.sourceType === "BROKER_EXTERNAL";
+  const lastBooking = external ? await prisma.booking.findFirst({ where: { propertyId: id }, orderBy: { createdAt: "desc" }, select: { voucherToken: true } }) : null;
   const am = (p.amenities ?? {}) as Amen;
   const tags = [am.bbQ && "BBQ", am.ac && "Máy lạnh", am.pet_friendly && "Thú cưng", am.karaoke && "Karaoke", ...(am.views ?? []).map((v) => `View ${v}`)].filter(Boolean) as string[];
 
@@ -72,6 +75,18 @@ export default async function BrokerPropertyPage({ params }: { params: Promise<{
           items={media.map((m) => ({ id: m.id, url: m.url, type: m.mediaType, roomName: m.room?.name ?? null }))}
         />
       </section>
+
+      {external && (
+        <section className="space-y-3">
+          <h2 className="font-semibold">Mẫu Booking Confirmation</h2>
+          <VoucherConfigForm
+            propertyId={id}
+            config={parseVoucherConfig(p.voucherConfig)}
+            images={media.filter((m) => m.mediaType === "IMAGE").map((m) => ({ url: m.url }))}
+            previewToken={lastBooking?.voucherToken ?? null}
+          />
+        </section>
+      )}
 
       {external && (
         <ActionButton action={deleteExternalPropertyAction.bind(null, id)} confirm={`Xoá "${p.name}"?`} className="bg-destructive">

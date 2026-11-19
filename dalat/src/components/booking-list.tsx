@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { BookingActions } from "@/components/booking-actions";
 import { Badge, BOOKING_TONE } from "@/components/ui/badge";
 import { formatDateTimeVi, formatDateVi, formatVnd } from "@/lib/format";
@@ -48,7 +49,10 @@ export function BookingList({ rows, viewer, showProperty = true }: { rows: Booki
           {b.status === "HOLDING" && b.holdExpiresAt && (
             <div className="money-num text-sm font-semibold">⏱ Giữ đến {formatDateTimeVi(b.holdExpiresAt)}</div>
           )}
-          <BookingActions id={b.id} status={b.status} />
+          <div className="flex flex-wrap items-center gap-2">
+            <BookingActions id={b.id} status={b.status} />
+            <Link href={`/${viewer === "HOST" ? "host" : "broker"}/bookings/${b.id}`} className="brutal-btn inline-flex h-9 items-center bg-white px-3 text-sm text-black">Chi tiết · Thanh toán</Link>
+          </div>
         </li>
       ))}
     </ul>

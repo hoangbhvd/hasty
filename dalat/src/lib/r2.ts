@@ -35,9 +35,12 @@ export const ALLOWED_TYPES: Record<string, { media: "IMAGE" | "VIDEO"; ext: stri
 
 export const keyPrefix = (propertyId: string) => `properties/${propertyId}/`;
 
-export async function presignUpload(propertyId: string, contentType: string) {
+export const billPrefix = (bookingId: string) => `bills/${bookingId}/`;
+
+/** Ký URL upload thẳng lên R2. `prefix` quyết định thư mục (ảnh căn hoặc ảnh bill). */
+export async function presignUpload(prefix: string, contentType: string) {
   const type = ALLOWED_TYPES[contentType];
-  const key = `${keyPrefix(propertyId)}${randomUUID()}.${type.ext}`;
+  const key = `${prefix}${randomUUID()}.${type.ext}`;
   const uploadUrl = await getSignedUrl(
     client(),
     new PutObjectCommand({ Bucket: env().bucket, Key: key, ContentType: contentType }),

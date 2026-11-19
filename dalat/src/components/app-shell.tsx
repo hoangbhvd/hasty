@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTransition } from "react";
 import {
-  Building2, CalendarDays, Handshake, LayoutDashboard, LogOut, Search, Wallet, ClipboardList, MessageCircle,
+  Building2, CalendarDays, Handshake, LayoutDashboard, LogOut, Search, UserCircle, Wallet, ClipboardList, MessageCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { switchModeAction } from "@/app/(app)/actions";
@@ -19,14 +19,14 @@ const NAV: Record<Mode, NavItem[]> = {
     { href: "/host/properties", label: "Căn của tôi", icon: Building2, ready: true },
     { href: "/host/calendar", label: "Lịch", icon: CalendarDays, ready: true },
     { href: "/host/partners", label: "Đối tác", icon: Handshake, ready: true },
-    { href: "/host/finance", label: "Tài chính", icon: Wallet, ready: false },
+    { href: "/host/finance", label: "Tài chính", icon: Wallet, ready: true },
   ],
   broker: [
     { href: "/broker/search", label: "Tìm phòng", icon: Search, ready: true },
     { href: "/broker/properties", label: "Homestay", icon: Building2, ready: true },
     { href: "/broker/bookings", label: "Booking", icon: ClipboardList, ready: true },
     { href: "/broker/requests", label: "Tìm gấp", icon: MessageCircle, ready: false },
-    { href: "/broker/finance", label: "Hoa hồng", icon: Wallet, ready: false },
+    { href: "/broker/finance", label: "Hoa hồng", icon: Wallet, ready: true },
   ],
 };
 
@@ -87,7 +87,7 @@ export function AppShell({
           ))}
         </nav>
         <div className="space-y-2 border-t border-sidebar-border pt-3 text-sm">
-          <div className="font-medium">{user.fullName}</div>
+          <Link href="/account" className="block font-medium underline-offset-2 hover:underline">{user.fullName}</Link>
           {user.phone && <div className="money-num text-sidebar-foreground/70">{user.phone}</div>}
           <form action={logoutAction}>
             <button className="flex items-center gap-2 text-sidebar-foreground/70 hover:text-sidebar-foreground">
@@ -103,6 +103,7 @@ export function AppShell({
           <div className="flex-1">
             <RoleSwitcher mode={mode} canHost={user.isHost} canBroker={user.isBroker} />
           </div>
+          <Link href="/account" aria-label="Tài khoản" className="grid size-10 place-items-center rounded text-black"><UserCircle className="size-5" /></Link>
           <form action={logoutAction}>
             <button aria-label="Đăng xuất" className="grid size-10 place-items-center rounded text-black">
               <LogOut className="size-5" />
