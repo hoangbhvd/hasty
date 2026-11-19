@@ -128,3 +128,18 @@ test("webhook: chưa cấu hình secret → 503; sai secret → 403; đúng secr
   assert.equal((await hook({ "x-telegram-bot-api-secret-token": "s3cret-value" }, "rác")).status, 200);
   delete process.env.TELEGRAM_WEBHOOK_SECRET;
 });
+
+test("Telegram: lệnh /id trả về chat ID (để cấu hình ADMIN_TELEGRAM_CHAT_ID), chỉ trong chat riêng", async () => {
+  const r = await handleTelegramUpdate(chat(123456789, "/id"));
+  assert.match(r!.reply, /Chat ID của bạn: 123456789/);
+  assert.equal(await handleTelegramUpdate(chat(-100, "/id", "group")), null);
+});
+
+test("sendTelegram: TELEGRAM_API_BASE cho phép trỏ tới máy chủ khác (dùng khi kiểm thử)", async () => {
+  process.env.TELEGRAM_API_BASE = "http://fake-telegram:8081/";
+  const urls: string[] = [];
+  const fake = (async (u: string) => { urls.push(u); return { ok: true }; }) as unknown as typeof fetch;
+  await sendTelegram("1", "x", undefined, fake);
+  delete process.env.TELEGRAM_API_BASE;
+  assert.equal(urls[0], "http://fake-telegram:8081/botTEST-TOKEN/sendMessage");
+});

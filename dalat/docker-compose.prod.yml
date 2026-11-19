@@ -75,6 +75,26 @@ services:
       web: { condition: service_healthy }
     command: ["node_modules/.bin/tsx", "worker/index.ts"]
 
+  # Giám sát: kiểm tra web/DB/Redis/worker/sao lưu/đĩa mỗi phút, báo quản trị viên qua Telegram/email (ADMIN_*)
+  # và ping HEARTBEAT_URL (dịch vụ ngoài như healthchecks.io) để phát hiện cả trường hợp VPS/Docker sập.
+  monitor:
+    <<: *app
+    depends_on:
+      web: { condition: service_healthy }
+    command: ["node_modules/.bin/tsx", "monitor/index.ts"]
+    volumes:
+      - ./backups:/backups:ro
+
+  # Đẩy các bản sao lưu lên bucket R2 RIÊNG (mã hoá bằng BACKUP_ENCRYPTION_KEY). Chưa cấu hình BACKUP_R2_BUCKET thì ở chế độ chờ.
+  backup-sync:
+    <<: *app
+    user: "0:0" # thư mục ./backups do container postgres (root) tạo ra
+    depends_on:
+      backup-db: { condition: service_started }
+    command: ["node_modules/.bin/tsx", "backup/index.ts"]
+    volumes:
+      - ./backups:/backups
+
   # Sao lưu DB hằng ngày vào ./backups, giữ 7 ngày gần nhất
   backup-db:
     image: postgres:16-alpine

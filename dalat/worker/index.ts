@@ -1,5 +1,7 @@
 import "dotenv/config";
 import { Worker, Queue } from "bullmq";
+import IORedis from "ioredis";
+import { WORKER_HEARTBEAT_KEY } from "../src/lib/monitor-checks";
 import { QUEUE_NAME, redisConnection } from "../src/lib/queue";
 import { expireHold, sendCheckinReminder, sweepExpiredHolds } from "../src/lib/booking-jobs";
 import { closeExpiredRequests } from "../src/lib/requests";
@@ -36,8 +38,15 @@ async function main() {
   const queue = new Queue(QUEUE_NAME, { connection });
   await queue.upsertJobScheduler("sweep-expired-holds", { every: 60_000 }, { name: "sweep" });
 
+  // Nhịp tim: ghi mốc thời gian vào Redis mỗi 30 giây (hết hạn sau 120 giây). Dịch vụ giám sát báo nếu không thấy.
+  const hb = new IORedis({ ...(connection as object) } as never);
+  hb.on("error", () => {});
+  const beat = () => hb.set(WORKER_HEARTBEAT_KEY, String(Date.now()), "EX", 120).catch(() => {});
+  await beat();
+  const hbTimer = setInterval(beat, 30_000);
+
   console.log(`[worker] đang chạy (TZ=${process.env.TZ ?? "?"})`);
-  const stop = async () => { await worker.close(); await queue.close(); process.exit(0); };
+  const stop = async () => { clearInterval(hbTimer); hb.disconnect(); await worker.close(); await queue.close(); process.exit(0); };
   process.on("SIGINT", stop);
   process.on("SIGTERM", stop);
 }

@@ -2,7 +2,7 @@ import { prisma } from "@/lib/db";
 import { randomBytes } from "node:crypto";
 
 type Fetch = typeof fetch;
-const API = (token: string, method: string) => `https://api.telegram.org/bot${token}/${method}`;
+const API = (token: string, method: string) => `${(process.env.TELEGRAM_API_BASE ?? "https://api.telegram.org").replace(/\/$/, "")}/bot${token}/${method}`;
 
 export const telegramEnabled = () => !!process.env.TELEGRAM_BOT_TOKEN;
 
@@ -42,6 +42,7 @@ export async function handleTelegramUpdate(u: TgUpdate): Promise<{ chatId: strin
   if (!m?.text || !m.chat || m.chat.type !== "private") return null; // chỉ chat riêng, tránh gắn nhầm nhóm
   const chatId = String(m.chat.id);
   const [cmd, arg] = m.text.trim().split(/\s+/);
+  if (cmd === "/id") return { chatId, reply: `Chat ID của bạn: ${chatId}\n(Dùng làm ADMIN_TELEGRAM_CHAT_ID để nhận cảnh báo hệ thống.)` };
   if (cmd === "/stop") {
     await prisma.user.updateMany({ where: { telegramChatId: chatId }, data: { telegramChatId: null } });
     return { chatId, reply: "Đã tắt thông báo Telegram." };
