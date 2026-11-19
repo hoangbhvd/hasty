@@ -137,7 +137,7 @@ export default function TemplateEditor({ id, name: initialName, project, html, c
   async function addImage(f: File | undefined) {
     if (!f || !f.type.startsWith("image/")) return;
     const src = await toDataUrl(f);
-    add({ type: "image", attributes: { src }, style: { width: "200px", height: "auto" } });
+    add({ type: "image", attributes: { src }, style: { width: "200px", height: "auto", "object-fit": "cover" } });
     if (fileIn.current) fileIn.current.value = "";
   }
 

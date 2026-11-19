@@ -54,11 +54,11 @@ export async function registerUser(email: string, password: string, name: string
   return r.rows[0].id as string;
 }
 
-export async function loginUser(email: string, password: string): Promise<string | null> {
+export async function loginUser(email: string, password: string): Promise<{ id: string; verified: boolean } | null> {
   const r = await pool.query("select * from find_user_for_login($1)", [email]);
   const u = r.rows[0];
   if (!u) return null;
-  return (await verify(u.password_hash, password)) ? (u.id as string) : null;
+  return (await verify(u.password_hash, password)) ? { id: u.id as string, verified: u.verified === true } : null;
 }
 
 const sha256 = (v: string) => createHash("sha256").update(v).digest("hex");
@@ -83,5 +83,27 @@ export async function resetPassword(token: string, newPassword: string): Promise
   if (!token) return false;
   const h = await hash(newPassword);
   const r = await pool.query("select consume_password_reset($1,$2) as ok", [sha256(token), h]);
+  return r.rows[0].ok === true;
+}
+
+/** Gửi email xác minh tới tài khoản chưa xác minh. Im lặng nếu không có/đã xác minh/quá 3 lần mỗi giờ (không lộ email nào tồn tại). */
+export async function sendEmailVerification(email: string) {
+  const token = randomBytes(32).toString("base64url");
+  const r = await pool.query("select * from create_email_verification($1,$2)", [email, sha256(token)]);
+  const u = r.rows[0];
+  if (!u) return;
+  const base = (process.env.APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
+  const link = `${base}/verify?token=${token}`;
+  const name = u.full_name || "bạn";
+  await sendMail(
+    u.email, "Xác minh email HMStay",
+    `Chào ${name},\n\nBấm vào liên kết sau để xác minh email và kích hoạt tài khoản (hiệu lực 24 giờ):\n${link}\n\nNếu bạn không đăng ký, hãy bỏ qua email này.`,
+    `<p>Chào ${name.replace(/[<>&]/g, "")},</p><p><a href="${link}">Xác minh email và kích hoạt tài khoản</a> (hiệu lực 24 giờ).</p><p>Nếu bạn không đăng ký, hãy bỏ qua email này.</p>`,
+  );
+}
+
+export async function verifyEmail(token: string): Promise<boolean> {
+  if (!token) return false;
+  const r = await pool.query("select consume_email_verification($1) as ok", [sha256(token)]);
   return r.rows[0].ok === true;
 }

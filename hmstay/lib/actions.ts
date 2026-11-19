@@ -10,7 +10,7 @@ import sharp from "sharp";
 import { z } from "zod";
 import { withUser } from "./db";
 import { flushNotificationEmails } from "./notify";
-import { endSession, loginUser, registerUser, requestPasswordReset, requireUser, resetPassword, startSession } from "./auth";
+import { endSession, loginUser, registerUser, requestPasswordReset, sendEmailVerification, verifyEmail, requireUser, resetPassword, startSession } from "./auth";
 import { nightsBetween, priceStayWithSeasons, validDate } from "./format";
 import { AMENITIES } from "./property";
 import { importHtml, STARTER_CSS, STARTER_HTML } from "./confirmation";
@@ -50,15 +50,30 @@ export async function registerAction(f: FormData) {
   try { uid = await registerUser(d.data.email, d.data.password, d.data.name, str(f, "phone")); }
   catch (e) { err = friendly(e).includes("tồn tại") ? "Email đã được đăng ký." : friendly(e); }
   if (err || !uid) redirect("/register?e=" + encodeURIComponent(err ?? "Lỗi"));
-  await startSession(uid);
-  redirect("/");
+  // Chưa đăng nhập: phải bấm liên kết trong email trước
+  try { await sendEmailVerification(d.data.email); }
+  catch (e) { console.error("[verify-mail]", e); redirect("/verify?e=" + encodeURIComponent("Đã tạo tài khoản nhưng chưa gửi được email xác minh. Nhập email để gửi lại.")); }
+  redirect("/verify?sent=1");
 }
 
 export async function loginAction(f: FormData) {
-  const uid = await loginUser(str(f, "email"), String(f.get("password") ?? ""));
-  if (!uid) redirect("/login?e=" + encodeURIComponent("Sai email hoặc mật khẩu."));
-  await startSession(uid);
+  const u = await loginUser(str(f, "email"), String(f.get("password") ?? ""));
+  if (!u) redirect("/login?e=" + encodeURIComponent("Sai email hoặc mật khẩu."));
+  if (!u.verified) redirect("/verify?e=" + encodeURIComponent("Email chưa được xác minh. Hãy bấm liên kết trong email, hoặc nhập email để gửi lại."));
+  await startSession(u.id);
   redirect("/");
+}
+
+export async function resendVerificationAction(f: FormData) {
+  const email = z.string().email().safeParse(str(f, "email"));
+  if (!email.success) redirect("/verify?e=" + encodeURIComponent("Nhập email hợp lệ."));
+  try { await sendEmailVerification(email.data); } catch (e) { console.error("[verify-mail]", e); }
+  redirect("/verify?sent=1");
+}
+
+export async function verifyEmailAction(f: FormData) {
+  if (!(await verifyEmail(str(f, "token")))) redirect("/verify?e=" + encodeURIComponent("Liên kết không hợp lệ hoặc đã hết hạn. Nhập email để nhận liên kết mới."));
+  redirect("/login?ok=" + encodeURIComponent("Đã xác minh email. Hãy đăng nhập."));
 }
 
 export async function forgotPasswordAction(f: FormData) {
