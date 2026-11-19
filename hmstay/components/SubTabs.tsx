@@ -8,7 +8,7 @@ export type TabDef = { href: string; label: string; badge?: number; exact?: bool
 export function SubTabs({ tabs }: { tabs: TabDef[] }) {
   const p = usePathname();
   return (
-    <nav className="-mx-4 flex gap-1 overflow-x-auto border-b border-black px-4">
+    <nav className="hide-scroll -mx-4 flex gap-1 overflow-x-auto border-b border-black px-4">
       {tabs.map((t) => {
         const on = t.exact ? p === t.href : p.startsWith(t.href);
         return (

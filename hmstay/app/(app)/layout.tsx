@@ -14,20 +14,16 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <>
       <header className="border-b border-black bg-white">
-        <div className="mx-auto flex max-w-5xl items-center gap-4 px-4 py-3">
+        <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2.5">
           <Link href="/owner" className="rounded-md border border-black bg-[#ff90e8] px-2 py-0.5 text-lg font-extrabold tracking-tight text-black no-underline">hmstay</Link>
-          <NavLinks />
-          <div className="ml-auto flex items-center gap-3 text-sm">
-            <Link href="/templates" className="text-slate-600 hover:text-slate-900">Mẫu xác nhận</Link>
-            <Link href="/notifications" className="relative text-slate-600 hover:text-slate-900">
-              Thông báo{unread > 0 && <span className="ml-1 rounded-full bg-red-600 px-1.5 py-0.5 text-xs text-white">{unread}</span>}
-            </Link>
-            <Link href="/settings" className="hidden text-slate-500 hover:text-slate-900 sm:inline">{name || "Cài đặt"}</Link>
-            <form action={logoutAction}><button className="text-slate-600 underline">Thoát</button></form>
+          <div className="order-last w-full min-w-0 sm:order-none sm:w-auto"><NavLinks unread={unread} /></div>
+          <div className="ml-auto flex items-center gap-3 text-sm sm:order-last">
+            <Link href="/settings" className="max-w-32 truncate text-slate-600 hover:text-black sm:max-w-none">{name || "Cài đặt"}</Link>
+            <form action={logoutAction}><button className="underline">Thoát</button></form>
           </div>
         </div>
       </header>
-      <main className="mx-auto max-w-5xl px-4 py-6">{children}</main>
+      <main className="mx-auto max-w-5xl px-4 py-4 sm:py-6">{children}</main>
     </>
   );
 }
