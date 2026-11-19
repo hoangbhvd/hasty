@@ -3,11 +3,11 @@ import { dow } from "@/lib/format";
 import { Month, todayStr } from "@/lib/calendar";
 
 export type CalUnit = { id: string; name: string };
-export type CalBlock = { unit_id: string; check_in: string; check_out: string; label: string; title: string; tone: "confirmed" | "deposit" | "holding" | "block" | "busy" };
+export type CalBlock = { unit_id: string; check_in: string; check_out: string; label: string; title: string; tone: "confirmed" | "deposit" | "holding" | "block" | "busy" | "own" };
 
 const TONE: Record<CalBlock["tone"], string> = {
   confirmed: "bg-emerald-500 text-white", deposit: "bg-blue-500 text-white",
-  holding: "bg-amber-400 text-amber-950", block: "bg-slate-500 text-white", busy: "bg-slate-300 text-slate-700",
+  holding: "bg-amber-400 text-amber-950", block: "bg-slate-500 text-white", busy: "bg-slate-300 text-slate-700", own: "bg-violet-500 text-white",
 };
 const WD = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
 

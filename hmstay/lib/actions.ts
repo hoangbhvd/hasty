@@ -440,3 +440,77 @@ export async function deleteTemplateAction(f: FormData) {
     await withUser(uid, (q) => q("delete from booking_templates where id=$1", [str(f, "id")]));
   });
 }
+
+// ───────── Broker: cơ sở tự quản lý ─────────
+const lines = (f: FormData, k: string) =>
+  [...new Set(String(f.get(k) ?? "").split(/\r?\n|,/).map((s) => s.trim()).filter(Boolean))].slice(0, 100);
+
+export async function createMyPropertyAction(f: FormData) {
+  const uid = await requireUser();
+  let id = "";
+  await run("/broker/mine", async () => {
+    const name = str(f, "name");
+    if (!name) throw new Error("Nhập tên cơ sở.");
+    id = await withUser(uid, async (q) => (await q<{ id: string }>(
+      "insert into broker_properties(broker_id,name,address,rooms) values ($1,$2,$3,$4) returning id",
+      [uid, name, str(f, "address") || null, lines(f, "rooms")]))[0].id);
+  });
+  redirect(`/broker/mine/${id}`);
+}
+
+export async function updateMyPropertyAction(f: FormData) {
+  const uid = await requireUser();
+  const pid = str(f, "property_id");
+  await run(`/broker/mine/${pid}`, async () => {
+    const name = str(f, "name");
+    if (!name) throw new Error("Nhập tên cơ sở.");
+    await withUser(uid, (q) => q("update broker_properties set name=$2, address=$3, rooms=$4 where id=$1",
+      [pid, name, str(f, "address") || null, lines(f, "rooms")]));
+  });
+}
+
+export async function deleteMyPropertyAction(f: FormData) {
+  const uid = await requireUser();
+  await run(`/broker/mine/${str(f, "property_id")}`, async () => {
+    await withUser(uid, (q) => q("delete from broker_properties where id=$1", [str(f, "property_id")]));
+  });
+  redirect("/broker/mine");
+}
+
+export async function saveMyBookingAction(f: FormData) {
+  const uid = await requireUser();
+  const pid = str(f, "property_id");
+  const id = str(f, "id");
+  await run(`/broker/mine/${pid}`, async () => {
+    const ci = str(f, "check_in"), co = str(f, "check_out");
+    if (!/^\d{4}-\d\d-\d\d$/.test(ci) || !/^\d{4}-\d\d-\d\d$/.test(co)) throw new Error("Chọn ngày check-in và check-out.");
+    if (co <= ci) throw new Error("Ngày check-out phải sau ngày check-in.");
+    const guest = str(f, "guest_name");
+    if (!guest) throw new Error("Nhập tên khách.");
+    const nights = nightsBetween(ci, co);
+    const nightly = num(f, "nightly_price");
+    const total = num(f, "total") || nightly * nights;   // để trống tổng tiền = giá/đêm × số đêm
+    const deposit = num(f, "deposit");
+    if (deposit > total) throw new Error("Tiền cọc lớn hơn tổng tiền.");
+    const args = [pid, str(f, "rooms") || null, ci, co, guest, str(f, "guest_phone") || null, nightly, total, deposit, str(f, "note") || null];
+    await withUser(uid, async (q) => {
+      if (id) {
+        await q(`update broker_bookings set rooms=$2, check_in=$3, check_out=$4, guest_name=$5, guest_phone=$6,
+                   nightly_price=$7, total=$8, deposit=$9, note=$10 where id=$1 and property_id=$11`, [id, ...args.slice(1), pid]);
+      } else {
+        await q(`insert into broker_bookings(broker_id,property_id,rooms,check_in,check_out,guest_name,guest_phone,nightly_price,total,deposit,note)
+                 values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`, [uid, ...args]);
+      }
+    });
+  });
+}
+
+export async function setMyBookingStatusAction(f: FormData) {
+  const uid = await requireUser();
+  const pid = str(f, "property_id");
+  await run(`/broker/mine/${pid}`, async () => {
+    const st = str(f, "status");
+    if (st === "delete") await withUser(uid, (q) => q("delete from broker_bookings where id=$1", [str(f, "id")]));
+    else await withUser(uid, (q) => q("update broker_bookings set status=$2 where id=$1", [str(f, "id"), st === "cancelled" ? "cancelled" : "active"]));
+  });
+}

@@ -24,6 +24,7 @@ probe() { # trả về "t" nếu migration $1 đã có dấu vết trong DB
     006_*) psql_db -c "select to_regclass('public.booking_templates') is not null" ;;
     007_*) psql_db -c "select to_regclass('public.rate_seasons') is not null" ;;
     008_*) psql_db -c "select to_regclass('public.email_verifications') is not null" ;;
+    009_*) psql_db -c "select to_regclass('public.broker_properties') is not null" ;;
     *) echo f ;;
   esac
 }
