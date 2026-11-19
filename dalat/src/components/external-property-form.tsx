@@ -29,7 +29,7 @@ export function ExternalPropertyForm({ onDone }: { onDone: () => void }) {
         <Field label="SĐT quản gia"><Input name="caretakerPhone" type="tel" className="h-11 text-base" /></Field>
       </div>
       <Field label="Hướng dẫn check-in"><Textarea name="checkinGuide" className="min-h-20" /></Field>
-      {state?.error && <p role="alert" className="text-sm text-destructive">{state.error}</p>}
+      {state?.error && <p role="alert" className="text-sm text-red-700">{state.error}</p>}
       <Button type="submit" size="lg" className="h-12 w-full" disabled={disabled}>{pending ? "Đang lưu…" : "Lưu homestay"}</Button>
     </form>
   );

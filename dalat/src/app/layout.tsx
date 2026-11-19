@@ -1,29 +1,44 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import { Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+const plusJakarta = Plus_Jakarta_Sans({
+  subsets: ["latin", "vietnamese"],
+  weight: ["400", "500", "600", "700", "800"],
+  variable: "--font-plus-jakarta",
+  display: "swap",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin", "vietnamese"],
+  weight: ["500", "700"],
+  variable: "--font-jetbrains-mono",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "Đà Lạt Homestay",
-  description: "Quản lý homestay và kết nối cộng tác viên tại Đà Lạt",
+  title: "DalatStay — Kết nối Chủ Homestay & Broker Đà Lạt",
+  description: "Quản lý lịch phòng, giữ phòng nhanh và đối soát hoa hồng homestay Đà Lạt",
+  manifest: "/manifest.json",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export const viewport: Viewport = {
+  themeColor: "#000000",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+};
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <html
-      lang="vi"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col">{children}</body>
+    <html lang="vi" className={`${plusJakarta.variable} ${jetbrainsMono.variable}`}>
+      <body className="min-h-screen bg-background text-foreground">
+        {children}
+      </body>
     </html>
   );
 }

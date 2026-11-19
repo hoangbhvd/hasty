@@ -20,7 +20,7 @@ export function SpecialPricesManager({
   const { state, pending, disabled, ref, onSubmit } = useSafeForm(addSpecialPriceAction.bind(null, propertyId), { resetOnSuccess: true });
   return (
     <div className="space-y-4">
-      <form ref={ref} onSubmit={onSubmit} className="space-y-3 rounded-lg border border-dashed p-3">
+      <form ref={ref} onSubmit={onSubmit} className="space-y-3 rounded border border-dashed border-black bg-white p-3">
         <div className="grid gap-3 sm:grid-cols-3">
           <Field label="Từ ngày"><Input name="from" type="date" className="h-11 text-base" required /></Field>
           <Field label="Đến ngày" hint="Bỏ trống nếu chỉ 1 ngày"><Input name="to" type="date" className="h-11 text-base" /></Field>
@@ -32,21 +32,21 @@ export function SpecialPricesManager({
             <Select name="brokerTier" defaultValue="" options={[{ value: "", label: "Tất cả" }, ...enumOptions(TIER_LABEL)]} />
           </Field>
         </div>
-        {state?.error && <p role="alert" className="text-sm text-destructive">{state.error}</p>}
+        {state?.error && <p role="alert" className="text-sm text-red-700">{state.error}</p>}
         <Button type="submit" className="h-10" disabled={disabled}>{pending ? "Đang lưu…" : "+ Thêm giá ngày lễ / giá riêng"}</Button>
       </form>
 
       {rows.length === 0 ? (
         <p className="text-sm text-muted-foreground">Chưa có giá riêng từ hôm nay trở đi.</p>
       ) : (
-        <ul className="divide-y rounded-lg border">
+        <ul className="divide-y divide-black rounded border border-black bg-white">
           {rows.map((r) => (
             <li key={r.id} className="flex items-center justify-between gap-2 p-3 text-sm">
               <div>
                 <div className="font-medium">{r.date} · {r.netPrice}</div>
                 <div className="text-muted-foreground">{r.roomName ?? "Nguyên căn"}{r.tier ? ` · ${r.tier}` : ""}</div>
               </div>
-              <ActionButton action={() => deleteSpecialPriceAction(r.id)} ariaLabel={`Xoá giá ngày ${r.date}`} className="text-destructive">Xoá</ActionButton>
+              <ActionButton action={() => deleteSpecialPriceAction(r.id)} ariaLabel={`Xoá giá ngày ${r.date}`} className="bg-destructive">Xoá</ActionButton>
             </li>
           ))}
         </ul>

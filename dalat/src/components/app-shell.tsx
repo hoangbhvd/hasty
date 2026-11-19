@@ -30,14 +30,14 @@ const NAV: Record<Mode, NavItem[]> = {
   ],
 };
 
-export function RoleSwitcher({ mode, canHost, canBroker }: { mode: Mode; canHost: boolean; canBroker: boolean }) {
+export function RoleSwitcher({ mode, canHost, canBroker, dark = false }: { mode: Mode; canHost: boolean; canBroker: boolean; dark?: boolean }) {
   const [pending, start] = useTransition();
   const opts: { value: Mode; label: string; enabled: boolean }[] = [
     { value: "host", label: "Chủ nhà", enabled: canHost },
     { value: "broker", label: "CTV", enabled: canBroker },
   ];
   return (
-    <div role="group" aria-label="Chuyển chế độ" className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1">
+    <div role="group" aria-label="Chuyển chế độ" className={cn("grid grid-cols-2 gap-1 rounded border border-black p-1", dark ? "bg-sidebar-accent" : "bg-white")}>
       {opts.map((o) => (
         <button
           key={o.value}
@@ -46,8 +46,10 @@ export function RoleSwitcher({ mode, canHost, canBroker }: { mode: Mode; canHost
           aria-pressed={mode === o.value}
           onClick={() => mode !== o.value && start(() => switchModeAction(o.value))}
           className={cn(
-            "h-9 rounded-md text-sm font-medium transition-colors disabled:opacity-50",
-            mode === o.value ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground",
+            "h-9 rounded border text-sm font-semibold transition-colors disabled:opacity-50",
+            mode === o.value
+              ? "border-black bg-primary text-black"
+              : cn("border-transparent", dark ? "text-sidebar-foreground/70 hover:text-sidebar-foreground" : "text-black/70 hover:text-black"),
           )}
         >
           {o.label}
@@ -74,21 +76,21 @@ export function AppShell({
   const items = NAV[mode];
 
   return (
-    <div className="min-h-dvh md:grid md:grid-cols-[16rem_1fr]">
+    <div data-mode={mode} className="min-h-dvh md:grid md:grid-cols-[16rem_1fr]">
       {/* Desktop sidebar */}
-      <aside className="sticky top-0 hidden h-dvh flex-col gap-4 border-r bg-card p-4 md:flex">
-        <Link href="/" className="text-lg font-semibold">Đà Lạt Homestay</Link>
-        <RoleSwitcher mode={mode} canHost={user.isHost} canBroker={user.isBroker} />
+      <aside className="sticky top-0 hidden h-dvh flex-col gap-4 border-r border-black bg-sidebar p-4 text-sidebar-foreground md:flex">
+        <Link href="/" className="text-lg font-extrabold tracking-tight text-sidebar-foreground">Đà Lạt Homestay</Link>
+        <RoleSwitcher mode={mode} canHost={user.isHost} canBroker={user.isBroker} dark />
         <nav className="flex flex-1 flex-col gap-1" aria-label="Chính">
           {items.map((it) => (
             <NavLink key={it.href} item={it} active={isActive(pathname, it.href)} layout="side" />
           ))}
         </nav>
-        <div className="space-y-2 border-t pt-3 text-sm">
+        <div className="space-y-2 border-t border-sidebar-border pt-3 text-sm">
           <div className="font-medium">{user.fullName}</div>
-          {user.phone && <div className="text-muted-foreground">{user.phone}</div>}
+          {user.phone && <div className="money-num text-sidebar-foreground/70">{user.phone}</div>}
           <form action={logoutAction}>
-            <button className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
+            <button className="flex items-center gap-2 text-sidebar-foreground/70 hover:text-sidebar-foreground">
               <LogOut className="size-4" /> Đăng xuất
             </button>
           </form>
@@ -97,12 +99,12 @@ export function AppShell({
 
       <div className="flex min-w-0 flex-col">
         {/* Mobile top bar */}
-        <header className="sticky top-0 z-20 flex items-center gap-3 border-b bg-background/95 p-3 backdrop-blur md:hidden">
+        <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-black bg-background p-3 md:hidden">
           <div className="flex-1">
             <RoleSwitcher mode={mode} canHost={user.isHost} canBroker={user.isBroker} />
           </div>
           <form action={logoutAction}>
-            <button aria-label="Đăng xuất" className="grid size-10 place-items-center rounded-md text-muted-foreground">
+            <button aria-label="Đăng xuất" className="grid size-10 place-items-center rounded text-black">
               <LogOut className="size-5" />
             </button>
           </form>
@@ -113,7 +115,7 @@ export function AppShell({
         {/* Mobile bottom nav (tầm ngón tay cái) */}
         <nav
           aria-label="Chính"
-          className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-5 border-t bg-background pb-[env(safe-area-inset-bottom)] md:hidden"
+          className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-5 border-t border-black bg-white pb-[env(safe-area-inset-bottom)] md:hidden"
         >
           {items.map((it) => (
             <NavLink key={it.href} item={it} active={isActive(pathname, it.href)} layout="bottom" />
@@ -126,15 +128,15 @@ export function AppShell({
 
 function NavLink({ item, active, layout }: { item: NavItem; active: boolean; layout: "side" | "bottom" }) {
   const Icon = item.icon;
-  const base =
-    layout === "side"
-      ? "flex h-10 items-center gap-3 rounded-md px-3 text-sm"
-      : "flex h-14 flex-col items-center justify-center gap-0.5 text-[11px]";
+  const side = layout === "side";
+  const base = side
+    ? "flex h-10 items-center gap-3 rounded border border-transparent px-3 text-sm"
+    : "flex h-14 flex-col items-center justify-center gap-0.5 text-[11px]";
   const state = !item.ready
-    ? "cursor-not-allowed text-muted-foreground/50"
+    ? side ? "cursor-not-allowed text-sidebar-foreground/35" : "cursor-not-allowed text-black/35"
     : active
-      ? layout === "side" ? "bg-muted font-medium" : "font-medium text-foreground"
-      : "text-muted-foreground hover:text-foreground";
+      ? "bg-primary font-bold text-black" + (side ? " border-black" : "")
+      : side ? "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground" : "text-black/75";
 
   if (!item.ready) {
     return (

@@ -61,11 +61,11 @@ export function MediaManager({
   return (
     <div className="space-y-4">
       {canEdit && (
-        <div className="space-y-2 rounded-lg border border-dashed p-3">
-          {!r2Ready && <p className="text-sm text-destructive">Chưa cấu hình Cloudflare R2 (xem .env.example) nên chưa tải ảnh lên được.</p>}
+        <div className="space-y-2 rounded border border-dashed border-black bg-white p-3">
+          {!r2Ready && <p className="text-sm text-red-700">Chưa cấu hình Cloudflare R2 (xem .env.example) nên chưa tải ảnh lên được.</p>}
           <div className="flex flex-wrap items-center gap-2">
             {rooms.length > 0 && (
-              <select aria-label="Gắn vào" value={roomId} onChange={(e) => setRoomId(e.target.value)} className="h-11 rounded-md border bg-background px-2 text-base">
+              <select aria-label="Gắn vào" value={roomId} onChange={(e) => setRoomId(e.target.value)} className="brutal-input h-11 px-2 text-base">
                 <option value="">Ảnh chung của căn</option>
                 {rooms.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
               </select>
@@ -75,7 +75,7 @@ export function MediaManager({
               {busy ?? "+ Tải ảnh / video"}
             </Button>
           </div>
-          {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+          {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
         </div>
       )}
 
@@ -88,7 +88,7 @@ export function MediaManager({
 
       <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         {items.map((m) => (
-          <li key={m.id} className="overflow-hidden rounded-lg border">
+          <li key={m.id} className="overflow-hidden rounded border border-black bg-white shadow-brutal-sm">
             <div className="aspect-square bg-muted">
               {m.type === "IMAGE" ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -100,11 +100,11 @@ export function MediaManager({
             <div className="flex items-center justify-between gap-1 p-2 text-xs">
               <span className="truncate text-muted-foreground">{m.roomName ?? "Chung"}</span>
               <span className="flex gap-1">
-                <a href={`/api/media/${m.id}/download`} aria-label="Tải file gốc" className="grid size-9 place-items-center rounded-md border hover:bg-muted">
+                <a href={`/api/media/${m.id}/download`} aria-label="Tải file gốc" className="brutal-btn grid size-9 place-items-center bg-white text-black">
                   <Download className="size-4" />
                 </a>
                 {canEdit && (
-                  <ActionButton action={() => deleteMediaAction(m.id)} confirm="Xoá file này?" ariaLabel="Xoá file" className="size-9 justify-center px-0 text-destructive">
+                  <ActionButton action={() => deleteMediaAction(m.id)} confirm="Xoá file này?" ariaLabel="Xoá file" className="size-9 justify-center bg-destructive px-0">
                     <Trash2 className="size-4" />
                   </ActionButton>
                 )}

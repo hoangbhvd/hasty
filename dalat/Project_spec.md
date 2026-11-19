@@ -158,3 +158,87 @@ Hãy thực hiện tuần tự từng Phase, kiểm tra chạy ổn định rồ
 - Mọi thao tác đọc/ghi dữ liệu đều phải kiểm tra phân quyền chặt chẽ (Host chỉ sửa được căn của mình; Broker chỉ thấy `BROKER_EXTERNAL` do chính mình tạo; khách xem Voucher không bao giờ nhận được dữ liệu giá Net từ API).
 - Xử lý ngày tháng thống nhất theo múi giờ Việt Nam (`Asia/Ho_Chi_Minh`), tránh lỗi lệch 1 ngày do UTC khi lưu `DATE` check-in/check-out.
 - Trước khi bắt đầu mỗi Phase, hãy tóm tắt ngắn gọn danh sách file sẽ tạo/sửa rồi mới tiến hành code.
+
+
+## 7. UI/UX DESIGN SYSTEM (PHONG CÁCH GUMROAD / NEO-BRUTALISM)
+
+Áp dụng phong cách thiết kế **Neo-Brutalism hiện đại lấy cảm hứng từ Gumroad.com**: sắc nét, độ tương phản cao, viền đen rõ ràng, đổ bóng cứng (không blur) và hiệu ứng tương tác vật lý (tactile). Tuy nhiên, cần tiết chế màu chói ở các khu vực nhiều dữ liệu (Lịch phòng, Bảng công nợ) để đảm bảo dễ đọc khi làm việc lâu.
+
+### 7.1. Bảng màu (Color Tokens)
+- **Nền chính (Canvas):** `#F4F4F0` (Off-white / Kem sáng ấm)
+- **Bề mặt Card / Input:** `#FFFFFF` (Trắng thuần)
+- **Màu viền & Chữ chính:** `#000000` (Đen tuyền)
+- **Sidebar Desktop:** Nền `#000000`, chữ `#FFFFFF`, item active sáng màu `#FF90E8` (giống hệt bố cục Gumroad).
+- **Màu điểm nhấn thương hiệu (Accent):**
+  - **Hồng Gumroad (`#FF90E8`):** Nút CTA chính, trạng thái active, nhận diện **Broker Mode**.
+  - **Vàng nổi bật (`#FFC900`):** Cảnh báo giữ phòng 30p (`HOLDING`), badge ưu tiên, nhận diện **Host Mode** (giúp người dùng phân biệt ngay lập tức mình đang ở chế độ Host hay Broker).
+- **Màu trạng thái Booking (Semantic):**
+  - `CONFIRMED` / Còn trống: `#23A094` (Xanh ngọc đậm) hoặc nền pastel `#90E8B8` + chữ đen.
+  - `HOLDING` (Đang giữ phòng): `#FFC900` (Vàng) + chữ đen.
+  - `CHECKED_IN`: `#90A8ED` (Xanh dương pastel) + chữ đen.
+  - `CANCELLED` / Hết phòng / Khóa chéo: `#FF5E5B` (Đỏ san hô) hoặc nền xám `#E5E5E0` có họa tiết sọc chéo (`repeating-linear-gradient`).
+
+### 7.2. Typography (Hỗ trợ tiếng Việt chuẩn)
+Thay thế *Mabry Pro* của Gumroad bằng Google Fonts hỗ trợ dấu tiếng Việt sắc nét:
+- **Font chính (Heading & Body):** `Plus Jakarta Sans` (hoặc `Be Vietnam Pro`) — tiêu đề đậm (`font-bold` / `font-extrabold`), tracking hơi khít (`tracking-tight`).
+- **Font số liệu (Tiền, Mã Booking, Đếm ngược):** Áp dụng `tabular-nums` (hoặc `JetBrains Mono` cho mã booking `DL-2611-889`) để các cột số tiền thẳng hàng tuyệt đối.
+
+### 7.3. Quy tắc Component (`shadcn/ui` custom style)
+Tùy biến toàn bộ `shadcn/ui` theo các nguyên tắc sau:
+- **Viền (Borders):** Mọi Card, Button, Input, Modal đều có viền đen `border border-black` (hoặc `border-2 border-black` cho phần tử nhấn mạnh). Bo góc nhẹ `rounded-[4px]` (trừ Badge/Tag dùng `rounded-full`).
+- **Đổ bóng cứng (Hard Shadow):** Tuyệt đối **không dùng** shadow mờ mặc định của Tailwind (`shadow-md`, `shadow-lg`). Chỉ dùng hard shadow:
+  - Chuẩn: `shadow-[4px_4px_0px_0px_#000000]`
+  - Nhỏ (Mobile/Tag): `shadow-[2px_2px_0px_0px_#000000]`
+- **Hiệu ứng Button (Tactile Hover/Press):**
+  - Trạng thái nghỉ: `border border-black bg-[#FF90E8] text-black font-medium transition-all`
+  - Khi hover: nổi lên và hiện bóng cứng `hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[4px_4px_0px_0px_#000000]`
+  - Khi bấm (active): lún sát xuống nền `active:translate-x-0 active:translate-y-0 active:shadow-none`
+- **Phân tách khu vực (Dividers):** Dùng đường kẻ đen 1px rõ ràng (`divide-y divide-black` hoặc `border-b border-black`) thay vì đường kẻ xám mờ.
+
+### 7.4. Áp dụng vào các màn hình trọng điểm
+1. **Role Switcher (Host ⇄ Broker):** Đặt nổi bật trên cùng Sidebar (Desktop) và Header (Mobile). Dùng dạng công tắc viền đen, đổi màu nền nút giữa **Vàng (`#FFC900` - Host)** và **Hồng (`#FF90E8` - Broker)** để tránh thao tác nhầm vai trò.
+2. **Thẻ Homestay & Bộ lọc Đà Lạt:**
+   - Ảnh cover đóng khung viền đen, góc trên gắn pill badge giá Net nền vàng/trắng viền đen (`2.500k/đêm`).
+   - Các thuộc tính Đà Lạt (`Xe 16 chỗ`, `Cách chợ 2km`, `Có BBQ`, `View rừng thông`) hiển thị dạng pill tag viền đen gọn gàng.
+3. **Lịch phòng Timeline (Gantt Calendar):**
+   - Các ô ngày kẻ lưới rõ nét, thanh Booking là khối chữ nhật viền đen cứng, hiển thị tên khách + nguồn bán (Host/Broker).
+   - Trạng thái **khóa chéo (Nguyên căn ⇄ Phòng lẻ)** tô nền sọc chéo đen-xám nhạt kèm chữ `"Đã khóa chéo"` để Chủ nhà nhìn phát hiểu ngay.
+4. **Thẻ tương tác trong Chat (Booking Chat):**
+   - Các thẻ `ACTION_HOLD_REQ`, `ACTION_BILL_UPLOAD` thiết kế như mini-card nền trắng, viền đen, đổ bóng `2px 2px 0px #000`, chứa sẵn nút bấm hành động trực tiếp bên trong.
+5. **Trang Public Booking Confirmation (`/voucher/[voucher_token]`):**
+   - Thiết kế như một **tấm vé / biên lai Gumroad**: nền kem `#F4F4F0`, khung phiếu nền trắng `border-2 border-black shadow-[6px_6px_0px_0px_#000]`, chia từng mục bằng nét đứt (`border-dashed border-black`). Đảm bảo khi xuất ra ảnh PNG bằng `html-to-image` (khổ dọc điện thoại) nhìn sắc nét và chuyên nghiệp.
+
+
+## 8. TRÌNH THIẾT KẾ BOOKING CONFIRMATION RIÊNG CHO TỪNG HOMESTAY (VOUCHER BUILDER)
+
+Mỗi Căn (`properties` — bao gồm cả `HOST_MANAGED` và `BROKER_EXTERNAL`) có thể tự thiết kế mẫu **Booking Confirmation (Voucher)** riêng mang đậm dấu ấn thương hiệu của homestay đó, thay vì dùng chung 1 mẫu cứng nhắc.
+
+### 8.1. Cập nhật Database (`properties`)
+Thêm 1 cột `voucher_config` (kiểu `JSONB`, nullable — nếu null sẽ dùng mẫu mặc định) vào bảng `properties`:
+
+```json
+{
+  "template_id": "GUMROAD_BRUTAL", // ENUM: "GUMROAD_BRUTAL" | "DALAT_CHILL" | "LUXURY_MINIMAL" | "RECEIPT_COMPACT"
+  "branding": {
+    "logo_url": "https://r2.../logo.png",
+    "cover_image_url": "https://r2.../cover.jpg",
+    "primary_color": "#FFC900",     // Màu nhấn chủ đạo của homestay
+    "background_color": "#F4F4F0",  // Màu nền phiếu
+    "font_style": "MODERN"          // "MODERN" (Sans) | "CLASSIC" (Serif) | "MONO" (Receipt)
+  },
+  "blocks": {
+    "show_cover_image": true,
+    "show_guest_details": true,
+    "show_price_breakdown": true,   // Luôn chỉ hiển thị Guest Price (tuyệt đối ẩn Net Price)
+    "show_vietqr": true,
+    "show_google_maps": true,
+    "show_checkin_guide": true,
+    "show_house_rules": true,
+    "show_caretaker_phone": true
+  },
+  "custom_texts": {
+    "header_title": "XÁC NHẬN ĐẶT PHÒNG",
+    "welcome_message": "Chào mừng bạn đến với Nhà Của Nắng Đà Lạt!",
+    "footer_note": "Vui lòng xuất trình phiếu này khi nhận phòng. Cần hỗ trợ đường đi hãy gọi ngay cho quản gia nhé!"
+  }
+}

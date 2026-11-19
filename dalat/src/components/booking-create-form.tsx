@@ -45,7 +45,7 @@ export function BookingCreateForm({
       </div>
       <Field label="Ghi chú" htmlFor="guestNote"><Textarea id="guestNote" name="guestNote" className="min-h-20" /></Field>
 
-      {state?.error && <p role="alert" className="text-sm text-destructive">{state.error}</p>}
+      {state?.error && <p role="alert" className="text-sm text-red-700">{state.error}</p>}
       <div className="flex flex-col gap-2 sm:flex-row">
         <Button type="submit" name="mode" value="CONFIRM" size="lg" className="h-12 flex-1" disabled={disabled}>
           {pending ? "Đang xử lý…" : "Tạo booking"}

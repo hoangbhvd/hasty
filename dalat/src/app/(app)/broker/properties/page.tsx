@@ -21,10 +21,10 @@ export default async function BrokerPropertiesPage() {
 
   const Card = ({ p, sub }: { p: (typeof mine)[number]; sub: string }) => (
     <li>
-      <Link href={`/broker/properties/${p.id}`} className="block space-y-1 rounded-lg border bg-card p-4 hover:bg-muted/50">
+      <Link href={`/broker/properties/${p.id}`} className="block space-y-1 rounded border border-black bg-white shadow-brutal-sm md:brutal-card p-4 hover:bg-muted">
         <div className="font-medium">{p.name}</div>
         <div className="text-sm text-muted-foreground">{AREA_LABEL[p.area]} · {sub}</div>
-        <div className="text-sm">Net: {formatVnd(p.baseWeekdayNet)} / {formatVnd(p.baseWeekendNet)}</div>
+        <div className="money-num text-sm">Net: {formatVnd(p.baseWeekdayNet)} / {formatVnd(p.baseWeekendNet)}</div>
       </Link>
     </li>
   );

@@ -39,7 +39,7 @@ export default async function BrokerPropertyPage({ params }: { params: Promise<{
         </p>
       </div>
 
-      <dl className="grid gap-3 rounded-lg border bg-card p-4 text-sm sm:grid-cols-2">
+      <dl className="grid gap-3 rounded border border-black bg-white shadow-brutal-sm md:brutal-card p-4 text-sm sm:grid-cols-2">
         <div><dt className="text-muted-foreground">Net CN–T5</dt><dd className="font-medium">{formatVnd(p.baseWeekdayNet)}</dd></div>
         <div><dt className="text-muted-foreground">Net T6–T7</dt><dd className="font-medium">{formatVnd(p.baseWeekendNet)}</dd></div>
         {tags.length > 0 && <div className="sm:col-span-2"><dt className="text-muted-foreground">Tiện ích</dt><dd>{tags.join(" · ")}</dd></div>}
@@ -51,7 +51,7 @@ export default async function BrokerPropertyPage({ params }: { params: Promise<{
       {rooms.length > 0 && (
         <section className="space-y-2">
           <h2 className="font-semibold">Phòng lẻ</h2>
-          <ul className="divide-y rounded-lg border text-sm">
+          <ul className="divide-y divide-black rounded border border-black bg-white text-sm">
             {rooms.map((r) => (
               <li key={r.id} className="flex justify-between gap-2 p-3">
                 <span>{r.name} · tối đa {r.maxGuests} khách</span>
@@ -74,7 +74,7 @@ export default async function BrokerPropertyPage({ params }: { params: Promise<{
       </section>
 
       {external && (
-        <ActionButton action={deleteExternalPropertyAction.bind(null, id)} confirm={`Xoá "${p.name}"?`} className="text-destructive">
+        <ActionButton action={deleteExternalPropertyAction.bind(null, id)} confirm={`Xoá "${p.name}"?`} className="bg-destructive">
           Xoá homestay này
         </ActionButton>
       )}

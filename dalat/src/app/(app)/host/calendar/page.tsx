@@ -48,7 +48,7 @@ export default async function HostCalendarPage({ searchParams }: { searchParams:
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-2xl font-semibold">Lịch</h1>
-        <Link href={`/host/bookings/new?propertyId=${property.id}`} className="inline-flex h-11 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground">
+        <Link href={`/host/bookings/new?propertyId=${property.id}`} className="inline-flex h-11 items-center brutal-btn bg-primary px-4 text-sm text-black">
           + Tạo booking
         </Link>
       </div>
@@ -56,16 +56,16 @@ export default async function HostCalendarPage({ searchParams }: { searchParams:
       <div className="flex flex-wrap gap-2" role="tablist" aria-label="Chọn căn">
         {properties.map((p) => (
           <Link key={p.id} href={nav(fromStr, p.id)} role="tab" aria-selected={p.id === property.id}
-            className={`h-10 rounded-full border px-4 text-sm leading-10 ${p.id === property.id ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}>
+            className={`h-10 rounded-full border border-black px-4 text-sm leading-10 text-black ${p.id === property.id ? "bg-primary font-semibold" : "bg-white hover:bg-muted"}`}>
             {p.name}
           </Link>
         ))}
       </div>
 
       <div className="flex items-center gap-2 text-sm">
-        <Link href={nav(addDays(fromStr, -14))} className="h-10 rounded-md border px-3 leading-10 hover:bg-muted">← 14 ngày</Link>
-        <Link href={nav(todayVn())} className="h-10 rounded-md border px-3 leading-10 hover:bg-muted">Hôm nay</Link>
-        <Link href={nav(addDays(fromStr, 14))} className="h-10 rounded-md border px-3 leading-10 hover:bg-muted">14 ngày →</Link>
+        <Link href={nav(addDays(fromStr, -14))} className="h-10 brutal-btn bg-white px-3 leading-10 text-black">← 14 ngày</Link>
+        <Link href={nav(todayVn())} className="h-10 brutal-btn bg-white px-3 leading-10 text-black">Hôm nay</Link>
+        <Link href={nav(addDays(fromStr, 14))} className="h-10 brutal-btn bg-white px-3 leading-10 text-black">14 ngày →</Link>
       </div>
 
       <Gantt from={from} days={DAYS} today={todayVn()} rooms={property.allowIndividualRooms ? property.rooms.map((r) => ({ id: r.id, name: r.name })) : []} bookings={gantt} />

@@ -1,4 +1,5 @@
 import { BookingActions } from "@/components/booking-actions";
+import { Badge, BOOKING_TONE } from "@/components/ui/badge";
 import { formatDateTimeVi, formatDateVi, formatVnd } from "@/lib/format";
 
 export type BookingRow = {
@@ -11,25 +12,26 @@ export type BookingRow = {
 export const STATUS_LABEL: Record<string, string> = {
   HOLDING: "Đang giữ", CONFIRMED: "Đã xác nhận", CHECKED_IN: "Đang ở", CHECKED_OUT: "Đã trả phòng", CANCELLED: "Đã huỷ",
 };
+/** Màu thanh booking trên lịch (cùng bảng màu với Badge trạng thái). */
 export const STATUS_STYLE: Record<string, string> = {
-  HOLDING: "bg-amber-100 text-amber-900 border-amber-300",
-  CONFIRMED: "bg-green-100 text-green-900 border-green-300",
-  CHECKED_IN: "bg-blue-100 text-blue-900 border-blue-300",
-  CHECKED_OUT: "bg-muted text-muted-foreground",
-  CANCELLED: "bg-muted text-muted-foreground line-through",
+  HOLDING: "bg-status-holding",
+  CONFIRMED: "bg-status-confirmed-bg",
+  CHECKED_IN: "bg-status-checked-in",
+  CHECKED_OUT: "bg-muted",
+  CANCELLED: "bg-status-cancelled",
 };
 
 export function BookingList({ rows, viewer, showProperty = true }: { rows: BookingRow[]; viewer: "HOST" | "BROKER"; showProperty?: boolean }) {
   if (rows.length === 0) return <p className="text-sm text-muted-foreground">Chưa có booking.</p>;
   return (
-    <ul className="divide-y rounded-lg border">
+    <ul className="divide-y divide-black rounded border border-black bg-white">
       {rows.map((b) => (
         <li key={b.id} id={`b-${b.id}`} className="scroll-mt-20 space-y-2 p-3 target:bg-muted/50">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="font-medium">
-              {b.guestName} <span className="text-sm font-normal text-muted-foreground">· {b.bookingCode}</span>
+              {b.guestName} <span className="font-mono text-sm font-normal text-muted-foreground">· {b.bookingCode}</span>
             </div>
-            <span className={`rounded-full border px-2 py-0.5 text-xs ${STATUS_STYLE[b.status]}`}>{STATUS_LABEL[b.status]}</span>
+            <Badge tone={BOOKING_TONE[b.status]}>{STATUS_LABEL[b.status]}</Badge>
           </div>
           <div className="text-sm text-muted-foreground">
             {showProperty && <>{b.propertyName} · </>}
@@ -39,12 +41,12 @@ export function BookingList({ rows, viewer, showProperty = true }: { rows: Booki
             {b.guestPhone && <> · {b.guestPhone}</>}
             {viewer === "HOST" && b.brokerName && <> · CTV {b.brokerName}</>}
           </div>
-          <div className="text-sm">
+          <div className="money-num text-sm">
             Khách trả: <strong>{formatVnd(b.guestTotalPrice)}</strong>
             {viewer === "HOST" ? <> · Chủ nhận: {formatVnd(b.hostNetPrice)}</> : <> · Net: {formatVnd(b.hostNetPrice)} · Hoa hồng: {formatVnd(b.commissionAmount)}</>}
           </div>
           {b.status === "HOLDING" && b.holdExpiresAt && (
-            <div className="text-sm text-amber-800">Giữ đến {formatDateTimeVi(b.holdExpiresAt)}</div>
+            <div className="money-num text-sm font-semibold">⏱ Giữ đến {formatDateTimeVi(b.holdExpiresAt)}</div>
           )}
           <BookingActions id={b.id} status={b.status} />
         </li>

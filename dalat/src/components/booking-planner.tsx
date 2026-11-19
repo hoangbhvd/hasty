@@ -50,7 +50,7 @@ export async function BookingPlanner({
     const quoteOk = q.missing.length === 0 && q.total > 0;
 
     result = (
-      <section className="space-y-4 rounded-lg border bg-card p-4">
+      <section className="space-y-4 rounded border border-black bg-white shadow-brutal-sm md:brutal-card p-4">
         {external ? (
           <p className="text-sm text-muted-foreground">Homestay ngoài hệ thống: không kiểm tra lịch trống.</p>
         ) : type === "ROOMS" && roomIds.length === 0 ? (
@@ -58,14 +58,14 @@ export async function BookingPlanner({
         ) : free ? (
           <p role="status" className="font-medium text-green-700">✓ Còn trống {q.nights} đêm</p>
         ) : (
-          <p role="alert" className="font-medium text-destructive">✗ Không còn trống: đã có booking hoặc đang được giữ.</p>
+          <p role="alert" className="font-medium text-red-700">✗ Không còn trống: đã có booking hoặc đang được giữ.</p>
         )}
 
         {(external || free) && (type !== "ROOMS" || roomIds.length > 0 || external) && (
           <>
             {quoteOk ? (
               <div className="text-sm">
-                <div>Giá Net: <strong>{formatVnd(q.total)}</strong> ({q.nights} đêm{tier ? ` · hạng ${tier}` : ""})</div>
+                <div className="money-num">Giá Net: <strong>{formatVnd(q.total)}</strong> ({q.nights} đêm{tier ? ` · hạng ${tier}` : ""})</div>
               </div>
             ) : (
               <p className="text-sm text-amber-700">
@@ -97,7 +97,7 @@ export async function BookingPlanner({
 
   return (
     <div className="space-y-5">
-      <form method="GET" action={basePath} className="space-y-4 rounded-lg border p-4">
+      <form method="GET" action={basePath} className="space-y-4 rounded border border-black bg-white p-4">
         {properties.length > 1 ? (
           <Field label="Căn" htmlFor="propertyId">
             <Select id="propertyId" name="propertyId" defaultValue={propertyId} options={properties.map((p) => ({ value: p.id, label: p.name }))} />
@@ -124,7 +124,7 @@ export async function BookingPlanner({
                 return (
                   <label key={r.id} className="flex min-h-11 items-center gap-2 text-sm">
                     <input type="checkbox" name="rooms" value={r.id} defaultChecked={roomIds.includes(r.id)} className="size-5 accent-foreground" />
-                    {r.name} · {r.maxGuests} khách {taken && <span className="text-destructive">(đã kín)</span>}
+                    {r.name} · {r.maxGuests} khách {taken && <span className="bg-destructive">(đã kín)</span>}
                   </label>
                 );
               })}
@@ -134,7 +134,7 @@ export async function BookingPlanner({
         )}
         <Button type="submit" variant="outline" className="h-11">Kiểm tra</Button>
       </form>
-      {!property && propertyId && <p role="alert" className="text-destructive">Không tìm thấy căn hoặc bạn chưa có quyền.</p>}
+      {!property && propertyId && <p role="alert" className="bg-destructive">Không tìm thấy căn hoặc bạn chưa có quyền.</p>}
       {result}
     </div>
   );

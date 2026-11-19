@@ -23,12 +23,12 @@ function RoomFields({ r }: { r?: Room }) {
 function RoomRow({ room }: { room: Room }) {
   const { state, pending, disabled, ref, onSubmit } = useSafeForm(updateRoomAction.bind(null, room.id));
   return (
-    <form ref={ref} onSubmit={onSubmit} className="space-y-3 rounded-lg border p-3">
+    <form ref={ref} onSubmit={onSubmit} className="space-y-3 rounded border border-black bg-white p-3">
       <RoomFields r={room} />
-      {state?.error && <p role="alert" className="text-sm text-destructive">{state.error}</p>}
+      {state?.error && <p role="alert" className="text-sm text-red-700">{state.error}</p>}
       <div className="flex items-center gap-2">
         <Button type="submit" className="h-9" disabled={disabled}>{pending ? "Đang lưu…" : "Lưu phòng"}</Button>
-        <ActionButton action={() => deleteRoomAction(room.id)} confirm={`Xoá phòng "${room.name}"?`} className="text-destructive">Xoá</ActionButton>
+        <ActionButton action={() => deleteRoomAction(room.id)} confirm={`Xoá phòng "${room.name}"?`} className="bg-destructive">Xoá</ActionButton>
       </div>
     </form>
   );
@@ -40,10 +40,10 @@ export function RoomsManager({ propertyId, rooms }: { propertyId: string; rooms:
     <div className="space-y-4">
       {rooms.length === 0 && <p className="text-sm text-muted-foreground">Chưa có phòng lẻ nào.</p>}
       {rooms.map((r) => <RoomRow key={r.id} room={r} />)}
-      <form ref={ref} onSubmit={onSubmit} className="space-y-3 rounded-lg border border-dashed p-3">
+      <form ref={ref} onSubmit={onSubmit} className="space-y-3 rounded border border-dashed border-black bg-white p-3">
         <h3 className="text-sm font-medium">Thêm phòng</h3>
         <RoomFields />
-        {state?.error && <p role="alert" className="text-sm text-destructive">{state.error}</p>}
+        {state?.error && <p role="alert" className="text-sm text-red-700">{state.error}</p>}
         <Button type="submit" className="h-10" disabled={disabled}>{pending ? "Đang thêm…" : "+ Thêm phòng"}</Button>
       </form>
     </div>

@@ -81,7 +81,7 @@ export default async function EditPropertyPage({ params }: { params: Promise<{ i
       </section>
 
       <section className="border-t pt-6">
-        <ActionButton action={deletePropertyAction.bind(null, id)} confirm={`Xoá căn "${p.name}"? Không thể hoàn tác.`} className="text-destructive">
+        <ActionButton action={deletePropertyAction.bind(null, id)} confirm={`Xoá căn "${p.name}"? Không thể hoàn tác.`} className="bg-destructive">
           Xoá căn này
         </ActionButton>
       </section>

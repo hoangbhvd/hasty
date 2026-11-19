@@ -25,7 +25,7 @@ export function ActionButton({
         type="button"
         aria-label={ariaLabel}
         disabled={pending}
-        className={cn("inline-flex h-9 items-center gap-1 rounded-md border px-3 text-sm hover:bg-muted disabled:opacity-50", className)}
+        className={cn("brutal-btn inline-flex h-9 items-center gap-1 bg-white px-3 text-sm text-black disabled:opacity-50", className)}
         onClick={() => {
           if (confirmText && !window.confirm(confirmText)) return;
           setError(undefined);
@@ -38,7 +38,7 @@ export function ActionButton({
       >
         {children}
       </button>
-      {error && <span role="alert" className="mt-1 text-xs text-destructive">{error}</span>}
+      {error && <span role="alert" className="mt-1 text-xs font-medium text-red-700">{error}</span>}
     </span>
   );
 }

@@ -86,7 +86,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   return (
     <div className="space-y-5">
       <h1 className="text-2xl font-semibold">Tìm phòng trống</h1>
-      <form method="GET" className="space-y-4 rounded-lg border p-4">
+      <form method="GET" className="space-y-4 rounded border border-black bg-white p-4">
         <div className="grid gap-3 sm:grid-cols-3">
           <Field label="Check-in" htmlFor="checkIn"><Input id="checkIn" name="checkIn" type="date" min={todayVn()} defaultValue={defaultIn} className="h-11 text-base" required /></Field>
           <Field label="Check-out" htmlFor="checkOut"><Input id="checkOut" name="checkOut" type="date" min={todayVn()} defaultValue={sp.checkOut ?? addDays(defaultIn, 1)} className="h-11 text-base" required /></Field>
@@ -117,20 +117,20 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
         ) : (
           <ul className="grid gap-3 lg:grid-cols-2">
             {results.map((r) => (
-              <li key={r.id} className="space-y-2 rounded-lg border bg-card p-4">
+              <li key={r.id} className="space-y-2 rounded border border-black bg-white shadow-brutal-sm md:brutal-card p-4">
                 <div className="font-medium">{r.name}</div>
                 <div className="text-sm text-muted-foreground">{r.sub}</div>
                 {r.external && <p className="text-sm">Không kiểm tra lịch (ngoài hệ thống).</p>}
-                {r.whole && <div className="text-sm">Nguyên căn trống · Net <strong>{formatVnd(r.whole.total)}</strong></div>}
+                {r.whole && <div className="money-num text-sm">Nguyên căn trống · Net <strong>{formatVnd(r.whole.total)}</strong></div>}
                 {r.rooms && <div className="text-sm">Phòng lẻ trống: {r.rooms.free.map((x) => `${x.name} (${x.maxGuests} khách)`).join(", ")}</div>}
                 <div className="flex flex-wrap gap-2 pt-1">
                   {(r.external || r.whole) && (
-                    <Link href={r.href} className="inline-flex h-11 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground">
+                    <Link href={r.href} className="inline-flex h-11 items-center brutal-btn bg-primary px-4 text-sm text-black">
                       {r.external ? "Tạo booking" : "Đặt nguyên căn"}
                     </Link>
                   )}
                   {r.rooms && (
-                    <Link href={`${r.href}&type=ROOMS`} className="inline-flex h-11 items-center rounded-md border px-4 text-sm font-medium hover:bg-muted">Chọn phòng lẻ</Link>
+                    <Link href={`${r.href}&type=ROOMS`} className="inline-flex h-11 items-center brutal-btn bg-white px-4 text-sm text-black">Chọn phòng lẻ</Link>
                   )}
                 </div>
               </li>

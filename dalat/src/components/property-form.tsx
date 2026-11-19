@@ -105,7 +105,7 @@ export function PropertyForm({
         </Field>
       </section>
 
-      {state?.error && <p role="alert" className="text-sm text-destructive">{state.error}</p>}
+      {state?.error && <p role="alert" className="text-sm text-red-700">{state.error}</p>}
       {saved && <p role="status" className="text-sm text-green-700">Đã lưu</p>}
       <Button type="submit" size="lg" className="h-12 w-full sm:w-auto" disabled={disabled}>
         {pending ? "Đang lưu…" : submitLabel}

@@ -14,7 +14,7 @@ export default async function InvitePage({ params }: { params: Promise<{ hostId:
   const link = await prisma.hostBrokerLink.findUnique({ where: { hostId_brokerId: { hostId, brokerId: user.id } } });
 
   return (
-    <div className="mx-auto max-w-md space-y-4 rounded-lg border bg-card p-5">
+    <div className="mx-auto max-w-md space-y-4 rounded border border-black bg-white shadow-brutal-sm md:brutal-card p-5">
       <h1 className="text-xl font-semibold">Lời mời làm CTV</h1>
       <p><strong>{host.fullName}</strong> mời bạn làm cộng tác viên bán phòng.</p>
       {host.id === user.id ? (
@@ -22,7 +22,7 @@ export default async function InvitePage({ params }: { params: Promise<{ hostId:
       ) : link ? (
         <p role="status">Trạng thái: <strong>{LINK_STATUS_LABEL[link.status]}</strong></p>
       ) : (
-        <ActionButton action={requestLinkAction.bind(null, host.id)} className="h-11 bg-primary text-primary-foreground hover:bg-primary/90">
+        <ActionButton action={requestLinkAction.bind(null, host.id)} className="h-11 bg-primary">
           Gửi yêu cầu liên kết
         </ActionButton>
       )}

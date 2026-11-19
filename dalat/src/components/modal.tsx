@@ -29,12 +29,12 @@ export function Modal({
         ref={ref}
         onClose={close}
         onClick={(e) => e.target === e.currentTarget && close()}
-        className="m-auto w-[calc(100%-2rem)] max-w-lg rounded-xl border bg-background p-0 shadow-xl backdrop:bg-black/40"
+        className="m-auto w-[calc(100%-2rem)] max-w-lg rounded border border-black bg-white p-0 shadow-brutal-lg backdrop:bg-black/40"
       >
         <div className="max-h-[85dvh] overflow-y-auto p-5">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-lg font-semibold">{title}</h2>
-            <button type="button" aria-label="Đóng" onClick={close} className="grid size-9 place-items-center rounded-md hover:bg-muted">✕</button>
+            <button type="button" aria-label="Đóng" onClick={close} className="brutal-btn grid size-9 place-items-center bg-white">✕</button>
           </div>
           {open && children(close)}
         </div>

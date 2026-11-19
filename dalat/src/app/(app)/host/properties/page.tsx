@@ -17,7 +17,7 @@ export default async function HostPropertiesPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2">
         <h1 className="text-2xl font-semibold">Căn của tôi</h1>
-        <Link href="/host/properties/new" className="inline-flex h-11 items-center gap-1 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground">
+        <Link href="/host/properties/new" className="inline-flex h-11 items-center gap-1 brutal-btn bg-primary px-4 text-sm text-black">
           <Plus className="size-4" /> Thêm căn
         </Link>
       </div>
@@ -27,12 +27,12 @@ export default async function HostPropertiesPage() {
         <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {props.map((p) => (
             <li key={p.id}>
-              <Link href={`/host/properties/${p.id}`} className="block space-y-1 rounded-lg border bg-card p-4 hover:bg-muted/50">
+              <Link href={`/host/properties/${p.id}`} className="block space-y-1 rounded border border-black bg-white shadow-brutal-sm md:brutal-card p-4 hover:bg-muted">
                 <div className="font-medium">{p.name}</div>
                 <div className="text-sm text-muted-foreground">
                   {AREA_LABEL[p.area]} · {p._count.rooms} phòng · {p._count.media} ảnh/video
                 </div>
-                <div className="text-sm">Net: {formatVnd(p.baseWeekdayNet)} / {formatVnd(p.baseWeekendNet)}</div>
+                <div className="money-num text-sm">Net: {formatVnd(p.baseWeekdayNet)} / {formatVnd(p.baseWeekendNet)}</div>
               </Link>
             </li>
           ))}

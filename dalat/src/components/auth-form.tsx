@@ -64,7 +64,7 @@ export function AuthForm({ mode, action, next }: Props) {
             />
           </div>
           {state?.error && (
-            <p role="alert" className="text-sm text-destructive">
+            <p role="alert" className="text-sm text-red-700">
               {state.error}
             </p>
           )}

@@ -42,15 +42,15 @@ export function Gantt({
   ];
 
   return (
-    <div className="overflow-x-auto rounded-lg border" role="region" aria-label="Lịch đặt phòng" tabIndex={0}>
+    <div className="overflow-x-auto rounded border border-black bg-white shadow-brutal-sm" role="region" aria-label="Lịch đặt phòng" tabIndex={0}>
       <div className="min-w-max">
-        <div className="grid border-b bg-muted/40 text-center text-xs" style={{ gridTemplateColumns: template }}>
-          <div className="sticky left-0 z-10 bg-muted p-2 text-left font-medium">Phòng</div>
+        <div className="grid border-b border-black bg-muted text-center text-xs" style={{ gridTemplateColumns: template }}>
+          <div className="sticky left-0 z-10 border-r border-black bg-muted p-2 text-left font-bold">Phòng</div>
           {cols.map((c) => {
             const s = toDateOnly(c);
             const weekend = [5, 6].includes(c.getUTCDay());
             return (
-              <div key={s} className={`py-1 ${weekend ? "bg-orange-50" : ""} ${s === today ? "font-bold text-primary" : ""}`}>
+              <div key={s} className={`money-num py-1 ${weekend ? "bg-secondary/25" : ""} ${s === today ? "bg-primary font-bold" : ""}`}>
                 <div>{WD[c.getUTCDay()]}</div>
                 <div>{s.slice(8)}/{s.slice(5, 7)}</div>
               </div>
@@ -59,10 +59,10 @@ export function Gantt({
         </div>
 
         {rows.map((row) => (
-          <div key={row.key} className="relative grid h-11 border-b last:border-b-0" style={{ gridTemplateColumns: template }}>
-            <div className="sticky left-0 z-10 flex items-center truncate border-r bg-background px-2 text-sm font-medium">{row.label}</div>
+          <div key={row.key} className="relative grid h-11 border-b border-black last:border-b-0" style={{ gridTemplateColumns: template }}>
+            <div className="sticky left-0 z-10 flex items-center truncate border-r border-black bg-white px-2 text-sm font-semibold">{row.label}</div>
             {cols.map((c, i) => (
-              <div key={i} style={{ gridColumn: i + 2, gridRow: 1 }} className={`border-r ${[5, 6].includes(c.getUTCDay()) ? "bg-orange-50/60" : ""}`} />
+              <div key={i} style={{ gridColumn: i + 2, gridRow: 1 }} className={`border-r border-black/15 ${[5, 6].includes(c.getUTCDay()) ? "bg-secondary/15" : ""}`} />
             ))}
             {row.segs.map(({ b, start, end, lock }) => (
               <a
@@ -70,10 +70,8 @@ export function Gantt({
                 href={`#b-${b.id}`}
                 style={{ gridColumn: `${start + 2} / ${end + 2}`, gridRow: 1 }}
                 title={`${b.guestName}${b.brokerName ? ` · CTV ${b.brokerName}` : ""}${lock ? " (khoá chéo)" : ""}`}
-                className={`z-[1] m-0.5 flex items-center truncate rounded border px-1.5 text-xs ${
-                  lock
-                    ? "bg-[repeating-linear-gradient(45deg,transparent,transparent_4px,rgba(0,0,0,0.08)_4px,rgba(0,0,0,0.08)_8px)] text-muted-foreground"
-                    : STATUS_STYLE[b.status]
+                className={`z-[1] m-0.5 flex items-center truncate rounded border border-black px-1.5 text-xs font-semibold text-black ${
+                  lock ? "bg-cross-locked font-medium text-black/70" : STATUS_STYLE[b.status]
                 }`}
               >
                 {lock ? `🔒 ${b.guestName}` : b.guestName}

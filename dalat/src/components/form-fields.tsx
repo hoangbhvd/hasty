@@ -1,8 +1,7 @@
 import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
 
-const base =
-  "w-full rounded-md border border-input bg-background px-3 text-base outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40";
+const base = "brutal-input w-full px-3 text-base";
 
 export function Field({ label, htmlFor, hint, children }: { label: string; htmlFor?: string; hint?: string; children: React.ReactNode }) {
   return (

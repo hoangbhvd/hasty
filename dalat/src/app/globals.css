@@ -1,130 +1,192 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-@import "shadcn/tailwind.css";
-
-@custom-variant dark (&:is(.dark *));
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
-  --color-border: var(--border);
-  --color-destructive: var(--destructive);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
-  --color-card: var(--card);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
-}
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  /* === GUMROAD CORE PALETTE === */
+  --background: #F4F4F0;          /* Nền kem ấm */
+  --foreground: #000000;          /* Chữ đen tuyền */
+
+  --card: #FFFFFF;
+  --card-foreground: #000000;
+
+  --popover: #FFFFFF;
+  --popover-foreground: #000000;
+
+  /* Accent chính: Hồng Gumroad (Mặc định / Broker Mode) */
+  --primary: #FF90E8;
+  --primary-foreground: #000000;
+
+  /* Accent phụ: Vàng nổi bật (Host Mode / Cảnh báo Giữ phòng) */
+  --secondary: #FFC900;
+  --secondary-foreground: #000000;
+
+  --muted: #E5E5E0;
+  --muted-foreground: #4A4A46;
+
+  --accent: #FF90E8;
+  --accent-foreground: #000000;
+
+  --destructive: #FF5E5B;
+  --destructive-foreground: #000000;
+
+  /* Viền đen sắc nét đặc trưng */
+  --border: #000000;
+  --input: #000000;
+  --ring: #000000;
+
+  /* Bo góc nhỏ kiểu Gumroad */
+  --radius: 0.25rem; /* 4px */
+
+  /* === SIDEBAR DESKTOP (Đen tuyền giống Gumroad) === */
+  --sidebar: #000000;
+  --sidebar-foreground: #FFFFFF;
+  --sidebar-primary: #FF90E8;
+  --sidebar-primary-foreground: #000000;
+  --sidebar-accent: #222222;
+  --sidebar-accent-foreground: #FFFFFF;
+  --sidebar-border: #333333;
+
+  /* === SEMANTIC BOOKING & ROLE TOKENS === */
+  --host-accent: #FFC900;         /* Vàng - Chế độ Chủ nhà */
+  --broker-accent: #FF90E8;       /* Hồng - Chế độ Broker */
+  --status-confirmed: #23A094;    /* Xanh ngọc - Đã xác nhận / Trống */
+  --status-confirmed-bg: #90E8B8; /* Xanh pastel nền tag */
+  --status-holding: #FFC900;      /* Vàng - Đang giữ phòng 30p */
+  --status-checked-in: #90A8ED;   /* Xanh dương pastel - Đang ở */
+  --status-cancelled: #FF5E5B;    /* Đỏ san hô - Hủy / Hết phòng */
 }
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+@theme inline {
+  /* Map màu vào Tailwind utility (bg-*, text-*, border-*) */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+
+  /* Custom tokens cho Booking & Role */
+  --color-host: var(--host-accent);
+  --color-broker: var(--broker-accent);
+  --color-status-confirmed: var(--status-confirmed);
+  --color-status-confirmed-bg: var(--status-confirmed-bg);
+  --color-status-holding: var(--status-holding);
+  --color-status-checked-in: var(--status-checked-in);
+  --color-status-cancelled: var(--status-cancelled);
+
+  /* Fonts hỗ trợ tiếng Việt */
+  --font-sans: var(--font-plus-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+
+  /* Hard Shadows (Thay thế shadow mờ mặc định) */
+  --shadow-brutal-sm: 2px 2px 0px 0px #000000;
+  --shadow-brutal: 4px 4px 0px 0px #000000;
+  --shadow-brutal-lg: 6px 6px 0px 0px #000000;
+
+  /* Border Radius */
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
 }
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border;
   }
+
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans antialiased selection:bg-primary selection:text-black;
   }
-  html {
-    @apply font-sans;
+
+  h1, h2, h3, h4 {
+    @apply font-bold tracking-tight;
   }
+}
+
+/* === GUMROAD / NEO-BRUTALISM UTILITIES === */
+
+/* Nút bấm nổi lên khi hover, lún xuống khi click */
+@utility brutal-btn {
+  border: 1px solid #000000;
+  border-radius: 4px;
+  font-weight: 600;
+  transition: transform 120ms ease, box-shadow 120ms ease;
+
+  &:hover:not(:disabled) {
+    transform: translate(-3px, -3px);
+    box-shadow: 3px 3px 0px 0px #000000;
+  }
+
+  &:active:not(:disabled) {
+    transform: translate(0px, 0px);
+    box-shadow: 0px 0px 0px 0px #000000;
+  }
+}
+
+/* Card chuẩn Gumroad */
+@utility brutal-card {
+  background-color: #FFFFFF;
+  border: 1px solid #000000;
+  border-radius: 4px;
+  box-shadow: 4px 4px 0px 0px #000000;
+}
+
+/* Input sắc nét */
+@utility brutal-input {
+  background-color: #FFFFFF;
+  border: 1px solid #000000;
+  border-radius: 4px;
+
+  &:focus {
+    outline: none;
+    box-shadow: 3px 3px 0px 0px #000000;
+  }
+}
+
+/* Họa tiết sọc chéo cho ô Lịch bị khóa chéo (Nguyên căn <-> Phòng lẻ) */
+@utility bg-cross-locked {
+  background-color: #E5E5E0;
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 6px,
+    rgba(0, 0, 0, 0.14) 6px,
+    rgba(0, 0, 0, 0.14) 12px
+  );
+}
+
+/* Căn thẳng cột số tiền & đồng hồ đếm ngược 30p */
+@utility money-num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Màu nhấn theo vai trò: Chủ nhà = vàng, Broker = hồng (nút `bg-primary` tự đổi màu theo chế độ) */
+[data-mode="host"] {
+  --primary: var(--host-accent);
+  --accent: var(--host-accent);
+}
+[data-mode="broker"] {
+  --primary: var(--broker-accent);
+  --accent: var(--broker-accent);
 }

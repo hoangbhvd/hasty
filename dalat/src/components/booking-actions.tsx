@@ -11,7 +11,7 @@ export function BookingActions({ id, status }: { id: string; status: string }) {
       {status === "CONFIRMED" && <ActionButton action={run("CHECK_IN")}>Check-in</ActionButton>}
       {status === "CHECKED_IN" && <ActionButton action={run("CHECK_OUT")}>Check-out</ActionButton>}
       {(status === "HOLDING" || status === "CONFIRMED") && (
-        <ActionButton action={run("CANCEL")} confirm="Huỷ booking này?" className="text-destructive">Huỷ</ActionButton>
+        <ActionButton action={run("CANCEL")} confirm="Huỷ booking này?" className="bg-destructive">Huỷ</ActionButton>
       )}
     </div>
   );
