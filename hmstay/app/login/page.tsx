@@ -6,7 +6,7 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
   const { e, ok } = await searchParams;
   return (
     <main className="mx-auto mt-16 w-full max-w-sm px-4">
-      <h1 className="mb-1 text-2xl font-bold">HMStay</h1>
+      <h1 className="mb-1 text-2xl font-bold">hmstay</h1>
       <p className="mb-6 text-sm text-slate-600">Đăng nhập để quản lý cơ sở hoặc bán phòng với vai trò broker.</p>
       <ErrorBanner e={e} />
       {ok && <p className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{ok}</p>}

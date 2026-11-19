@@ -73,7 +73,7 @@ export async function requestPasswordReset(email: string) {
   const link = `${base}/reset?token=${token}`;
   const name = u.full_name || "bạn";
   await sendMail(
-    u.email, "Đặt lại mật khẩu HMStay",
+    u.email, "Đặt lại mật khẩu hmstay",
     `Chào ${name},\n\nBấm vào liên kết sau để đặt mật khẩu mới (hiệu lực 1 giờ, dùng một lần):\n${link}\n\nNếu bạn không yêu cầu, hãy bỏ qua email này.`,
     `<p>Chào ${name.replace(/[<>&]/g, "")},</p><p><a href="${link}">Đặt mật khẩu mới</a> (hiệu lực 1 giờ, dùng một lần).</p><p>Nếu bạn không yêu cầu, hãy bỏ qua email này.</p>`,
   );
@@ -96,7 +96,7 @@ export async function sendEmailVerification(email: string) {
   const link = `${base}/verify?token=${token}`;
   const name = u.full_name || "bạn";
   await sendMail(
-    u.email, "Xác minh email HMStay",
+    u.email, "Xác minh email hmstay",
     `Chào ${name},\n\nBấm vào liên kết sau để xác minh email và kích hoạt tài khoản (hiệu lực 24 giờ):\n${link}\n\nNếu bạn không đăng ký, hãy bỏ qua email này.`,
     `<p>Chào ${name.replace(/[<>&]/g, "")},</p><p><a href="${link}">Xác minh email và kích hoạt tài khoản</a> (hiệu lực 24 giờ).</p><p>Nếu bạn không đăng ký, hãy bỏ qua email này.</p>`,
   );

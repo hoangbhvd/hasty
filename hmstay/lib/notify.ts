@@ -12,7 +12,7 @@ export async function flushNotificationEmails() {
     try {
       await sendMail(
         r.email,
-        `[HMStay] ${r.message.length > 90 ? r.message.slice(0, 87) + "..." : r.message}`,
+        `[hmstay] ${r.message.length > 90 ? r.message.slice(0, 87) + "..." : r.message}`,
         `Chào ${r.full_name || "bạn"},\n\n${r.message}\n\nXem chi tiết: ${link}\n\nBạn có thể tắt email thông báo tại ${base}/settings`,
         `<p>Chào ${esc(r.full_name || "bạn")},</p><p>${esc(r.message)}</p><p><a href="${link}">Xem chi tiết</a></p><p style="color:#64748b;font-size:12px">Bạn có thể tắt email thông báo ở <a href="${base}/settings">Cài đặt</a>.</p>`,
       );
