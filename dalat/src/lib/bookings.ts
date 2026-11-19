@@ -1,0 +1,247 @@
+import { prisma } from "@/lib/db";
+import { Prisma } from "@/generated/prisma/client";
+import { occupyingWhere, roomsAvailable, wholeUnitAvailable, type OccupyingBooking } from "@/lib/availability";
+import { quote, type SpecialRow, type Tier } from "@/lib/pricing";
+import { postSystemMessage } from "@/lib/booking-chat";
+import { todayVn } from "@/lib/format";
+
+export class BookingError extends Error {}
+
+export const HOLD_MINUTES = 30;
+const MAX_NIGHTS = 60;
+type Db = typeof prisma | Prisma.TransactionClient;
+
+export type CreateInput = {
+  actorId: string;
+  as: "HOST" | "BROKER";
+  propertyId: string;
+  mode: "HOLD" | "CONFIRM";
+  bookingType: "WHOLE_UNIT" | "ROOMS";
+  roomIds: string[];
+  checkIn: Date;
+  checkOut: Date;
+  guestName: string;
+  guestPhone?: string;
+  guestCount: number;
+  guestNote?: string;
+  guestTotalPrice?: number;
+  hostNetPrice?: number; // chỉ dùng cho căn ngoài app
+  manualRoomInfo?: string; // chỉ dùng cho căn ngoài app
+};
+
+const dec = (n: Prisma.Decimal | number | null | undefined) => (n === null || n === undefined ? null : Number(n));
+
+/** Các booking đang chiếm lịch của nhiều căn trong khoảng ngày (dùng cho tìm phòng & lịch). */
+export async function fetchOccupying(db: Db, propertyIds: string[], checkIn: Date, checkOut: Date, now = new Date()) {
+  const rows = await db.booking.findMany({
+    where: { propertyId: { in: propertyIds }, ...occupyingWhere(checkIn, checkOut, now) },
+    select: { id: true, propertyId: true, bookingType: true, rooms: { select: { roomId: true } } },
+  });
+  const byProperty = new Map<string, OccupyingBooking[]>();
+  for (const r of rows) {
+    const list = byProperty.get(r.propertyId) ?? [];
+    list.push({ bookingType: r.bookingType, roomIds: r.rooms.map((x) => x.roomId) });
+    byProperty.set(r.propertyId, list);
+  }
+  return byProperty;
+}
+
+export async function specialRows(db: Db, propertyId: string, checkIn: Date, checkOut: Date): Promise<SpecialRow[]> {
+  const rows = await db.specialPrice.findMany({
+    where: { propertyId, date: { gte: checkIn, lt: checkOut } },
+  });
+  return rows.map((r) => ({ roomId: r.roomId, date: r.date, netPrice: Number(r.netPrice), brokerTier: r.brokerTier }));
+}
+
+type PropertyWithRooms = Prisma.PropertyGetPayload<{ include: { rooms: true } }>;
+
+export function buildQuote(
+  p: PropertyWithRooms, specials: SpecialRow[], tier: Tier | null,
+  checkIn: Date, checkOut: Date, bookingType: "WHOLE_UNIT" | "ROOMS", roomIds: string[],
+) {
+  return quote({
+    checkIn, checkOut, tier, specials,
+    whole: bookingType === "WHOLE_UNIT"
+      ? { name: p.name, base: { weekday: dec(p.baseWeekdayNet), weekend: dec(p.baseWeekendNet) } }
+      : null,
+    rooms: p.rooms
+      .filter((r) => roomIds.includes(r.id))
+      .map((r) => ({ id: r.id, name: r.name, base: { weekday: dec(r.baseWeekdayNet), weekend: dec(r.baseWeekendNet) } })),
+  });
+}
+
+async function generateCode(tx: Prisma.TransactionClient): Promise<string> {
+  const [y, m] = todayVn().split("-");
+  for (let i = 0; i < 20; i++) {
+    const code = `DL-${y.slice(2)}${m}-${String(Math.floor(Math.random() * 1000)).padStart(3, "0")}`;
+    if (!(await tx.booking.findUnique({ where: { bookingCode: code }, select: { id: true } }))) return code;
+  }
+  throw new BookingError("Không tạo được mã booking, thử lại");
+}
+
+/** Tạo booking / giữ phòng. Toàn bộ chạy trong 1 transaction, khoá dòng `properties` trước khi kiểm tra trùng lịch. */
+export async function createBooking(input: CreateInput) {
+  const run = () =>
+    prisma.$transaction(async (tx) => {
+      const property = await tx.property.findUnique({ where: { id: input.propertyId }, include: { rooms: true } });
+      if (!property) throw new BookingError("Không tìm thấy căn");
+
+      // ── Phân quyền ──
+      let tier: Tier | null = null;
+      const external = property.sourceType === "BROKER_EXTERNAL";
+      if (input.as === "HOST") {
+        if (external || property.hostId !== input.actorId) throw new BookingError("Không có quyền với căn này");
+      } else if (external) {
+        if (property.createdByBrokerId !== input.actorId) throw new BookingError("Không có quyền với căn này");
+      } else {
+        const link = await tx.hostBrokerLink.findFirst({
+          where: { hostId: property.hostId!, brokerId: input.actorId, status: "APPROVED" },
+        });
+        if (!link) throw new BookingError("Bạn chưa được chủ nhà duyệt làm CTV của căn này");
+        tier = link.tier;
+      }
+      if (input.mode === "HOLD" && (external || input.as !== "BROKER")) throw new BookingError("Chỉ CTV mới giữ phòng 30 phút trên căn của chủ nhà");
+
+      // ── Ngày & khách ──
+      const nights = Math.round((input.checkOut.getTime() - input.checkIn.getTime()) / 86_400_000);
+      if (nights < 1) throw new BookingError("Ngày check-out phải sau check-in");
+      if (nights > MAX_NIGHTS) throw new BookingError(`Tối đa ${MAX_NIGHTS} đêm mỗi booking`);
+      const retro = input.as === "HOST" || external; // ghi nhận lại booking cũ
+      if (!retro && input.checkIn.toISOString().slice(0, 10) < todayVn()) throw new BookingError("Ngày check-in đã qua");
+
+      // ── Chọn đối tượng đặt ──
+      let roomIds: string[] = [];
+      if (!external) {
+        if (input.bookingType === "WHOLE_UNIT") {
+          if (!property.allowWholeUnit) throw new BookingError("Căn này không bán nguyên căn");
+        } else {
+          if (!property.allowIndividualRooms) throw new BookingError("Căn này không bán phòng lẻ");
+          roomIds = [...new Set(input.roomIds)];
+          if (roomIds.length === 0) throw new BookingError("Chọn ít nhất một phòng");
+          const own = property.rooms.filter((r) => roomIds.includes(r.id));
+          if (own.length !== roomIds.length) throw new BookingError("Phòng không thuộc căn này");
+          if (own.reduce((s, r) => s + r.maxGuests, 0) < input.guestCount) throw new BookingError("Số khách vượt sức chứa các phòng đã chọn");
+        }
+      }
+
+      // ── Khoá chéo & chống overbooking ──
+      if (!external) {
+        await tx.$queryRaw`SELECT id FROM properties WHERE id = ${input.propertyId}::uuid FOR UPDATE`;
+        const occ = (await fetchOccupying(tx, [property.id], input.checkIn, input.checkOut)).get(property.id) ?? [];
+        const ok = input.bookingType === "WHOLE_UNIT" ? wholeUnitAvailable(occ) : roomsAvailable(occ, roomIds);
+        if (!ok) throw new BookingError("Ngày này đã có booking hoặc đang được giữ, không còn trống");
+      }
+
+      // ── Giá ──
+      const q = external && !(property.baseWeekdayNet || property.baseWeekendNet)
+        ? null
+        : buildQuote(property, await specialRows(tx, property.id, input.checkIn, input.checkOut), tier,
+            input.checkIn, input.checkOut, external ? "WHOLE_UNIT" : input.bookingType, roomIds);
+      const quoteOk = q !== null && q.missing.length === 0;
+
+      let guestTotal: number;
+      let hostNet: number;
+      if (input.as === "HOST") {
+        const g = input.guestTotalPrice ?? (quoteOk ? q.total : undefined);
+        if (g === undefined) throw new BookingError("Nhập tổng tiền khách (chưa cấu hình giá Net cho căn/phòng)");
+        guestTotal = hostNet = g;
+      } else if (external) {
+        const n = input.hostNetPrice ?? (quoteOk ? q.total : undefined);
+        if (n === undefined) throw new BookingError("Nhập giá chủ thu về (Net)");
+        if (input.guestTotalPrice === undefined) throw new BookingError("Nhập giá bán cho khách");
+        hostNet = n;
+        guestTotal = input.guestTotalPrice;
+      } else {
+        if (!quoteOk) throw new BookingError(`Chưa có giá Net cho: ${q?.missing.join(", ")}. Liên hệ chủ nhà.`);
+        hostNet = q.total;
+        guestTotal = input.guestTotalPrice ?? hostNet;
+      }
+      if (input.as === "BROKER" && guestTotal < hostNet) throw new BookingError("Giá bán cho khách không được thấp hơn giá Net");
+
+      const holding = input.mode === "HOLD";
+      const booking = await tx.booking.create({
+        data: {
+          bookingCode: await generateCode(tx),
+          propertyId: property.id,
+          hostId: external ? null : property.hostId,
+          brokerId: input.as === "BROKER" ? input.actorId : null,
+          bookingType: external ? "EXTERNAL_MANUAL" : input.bookingType,
+          manualRoomInfo: external ? (input.manualRoomInfo ?? null) : null,
+          checkIn: input.checkIn,
+          checkOut: input.checkOut,
+          guestName: input.guestName,
+          guestPhone: input.guestPhone ?? null,
+          guestCount: input.guestCount,
+          guestNote: input.guestNote ?? null,
+          status: holding ? "HOLDING" : "CONFIRMED",
+          holdExpiresAt: holding ? new Date(Date.now() + HOLD_MINUTES * 60_000) : null,
+          guestTotalPrice: guestTotal,
+          hostNetPrice: hostNet,
+          commissionAmount: guestTotal - hostNet,
+          rooms: roomIds.length ? { create: roomIds.map((roomId) => ({ roomId })) } : undefined,
+        },
+      });
+      await postSystemMessage(
+        tx, booking.id,
+        holding
+          ? `CTV đã giữ phòng cho khách ${booking.guestName}. Tự nhả sau ${HOLD_MINUTES} phút nếu chưa xác nhận.`
+          : `Booking ${booking.bookingCode} đã được tạo cho khách ${booking.guestName}.`,
+      );
+      return booking;
+    }, { timeout: 15_000 });
+
+  try {
+    return await run();
+  } catch (e) {
+    // Va chạm mã booking (hiếm): thử lại 1 lần
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") return await run();
+    throw e;
+  }
+}
+
+// ───────── Chuyển trạng thái ─────────
+export type Transition = "CONFIRM" | "CHECK_IN" | "CHECK_OUT" | "CANCEL";
+
+export async function transitionBooking(actorId: string, bookingId: string, action: Transition) {
+  return prisma.$transaction(async (tx) => {
+    const b = await tx.booking.findUnique({ where: { id: bookingId }, include: { property: true } });
+    const allowed = b && (b.hostId === actorId || b.brokerId === actorId || b.property.createdByBrokerId === actorId);
+    if (!b || !allowed) throw new BookingError("Không tìm thấy booking");
+
+    if (b.property.sourceType === "HOST_MANAGED") {
+      // Giữ cùng khoá với lúc tạo để không chạy đua với booking khác
+      await tx.$queryRaw`SELECT id FROM properties WHERE id = ${b.propertyId}::uuid FOR UPDATE`;
+    }
+    const fresh = await tx.booking.findUniqueOrThrow({ where: { id: bookingId } });
+    const now = new Date();
+    let data: Prisma.BookingUpdateInput;
+    let msg: string;
+
+    switch (action) {
+      case "CONFIRM":
+        if (fresh.status !== "HOLDING") throw new BookingError("Chỉ xác nhận được booking đang giữ phòng");
+        if (!fresh.holdExpiresAt || fresh.holdExpiresAt <= now) throw new BookingError("Giữ phòng đã hết hạn, hãy tạo lại");
+        data = { status: "CONFIRMED", holdExpiresAt: null };
+        msg = "Booking đã được xác nhận.";
+        break;
+      case "CHECK_IN":
+        if (fresh.status !== "CONFIRMED") throw new BookingError("Chỉ check-in được booking đã xác nhận");
+        data = { status: "CHECKED_IN" };
+        msg = "Khách đã check-in.";
+        break;
+      case "CHECK_OUT":
+        if (fresh.status !== "CHECKED_IN") throw new BookingError("Chỉ check-out được booking đang ở");
+        data = { status: "CHECKED_OUT" };
+        msg = "Khách đã check-out.";
+        break;
+      case "CANCEL":
+        if (fresh.status === "CANCELLED" || fresh.status === "CHECKED_OUT") throw new BookingError("Booking đã kết thúc");
+        data = { status: "CANCELLED", holdExpiresAt: null };
+        msg = "Booking đã bị huỷ.";
+        break;
+    }
+    const updated = await tx.booking.update({ where: { id: bookingId }, data });
+    await postSystemMessage(tx, bookingId, msg);
+    return updated;
+  });
+}

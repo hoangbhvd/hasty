@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useSafeForm } from "@/lib/use-safe-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,7 +15,7 @@ type Props = {
 };
 
 export function AuthForm({ mode, action, next }: Props) {
-  const [state, formAction, pending] = useActionState(action, undefined);
+  const { state, pending, disabled, ref, onSubmit } = useSafeForm(action);
   const isLogin = mode === "login";
 
   return (
@@ -29,7 +29,7 @@ export function AuthForm({ mode, action, next }: Props) {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form action={formAction} className="space-y-4">
+        <form ref={ref} onSubmit={onSubmit} className="space-y-4">
           {next && <input type="hidden" name="next" value={next} />}
           {isLogin ? (
             <div className="space-y-2">
@@ -68,7 +68,7 @@ export function AuthForm({ mode, action, next }: Props) {
               {state.error}
             </p>
           )}
-          <Button type="submit" size="lg" className="h-11 w-full" disabled={pending}>
+          <Button type="submit" size="lg" className="h-11 w-full" disabled={disabled}>
             {pending ? "Đang xử lý…" : isLogin ? "Đăng nhập" : "Đăng ký"}
           </Button>
           <p className="text-center text-sm text-muted-foreground">

@@ -23,3 +23,14 @@ export function formatDateVi(d: Date): string {
 export function todayVn(): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Ho_Chi_Minh" }).format(new Date());
 }
+
+export function formatDateTimeVi(d: Date): string {
+  return new Intl.DateTimeFormat("vi-VN", {
+    timeZone: "Asia/Ho_Chi_Minh", hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit",
+  }).format(d);
+}
+
+export function addDays(dateOnly: string, n: number): string {
+  const d = parseDateOnly(dateOnly)!;
+  return toDateOnly(new Date(d.getTime() + n * 86_400_000));
+}

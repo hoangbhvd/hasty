@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useSafeForm } from "@/lib/use-safe-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Check, Field, Select, Textarea } from "@/components/form-fields";
@@ -22,12 +22,12 @@ export function PropertyForm({
   defaults?: PropertyDefaults;
   submitLabel: string;
 }) {
-  const [state, formAction, pending] = useActionState(action, undefined);
+  const { state, pending, disabled, ref, onSubmit } = useSafeForm(action);
   const a = defaults.amenities ?? {};
   const saved = state && !state.error && state !== undefined;
 
   return (
-    <form action={formAction} className="space-y-6">
+    <form ref={ref} onSubmit={onSubmit} className="space-y-6">
       <section className="space-y-4">
         <h2 className="font-semibold">Thông tin chung</h2>
         <Field label="Tên căn" htmlFor="name">
@@ -107,7 +107,7 @@ export function PropertyForm({
 
       {state?.error && <p role="alert" className="text-sm text-destructive">{state.error}</p>}
       {saved && <p role="status" className="text-sm text-green-700">Đã lưu</p>}
-      <Button type="submit" size="lg" className="h-12 w-full sm:w-auto" disabled={pending}>
+      <Button type="submit" size="lg" className="h-12 w-full sm:w-auto" disabled={disabled}>
         {pending ? "Đang lưu…" : submitLabel}
       </Button>
     </form>

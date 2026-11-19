@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useSafeForm } from "@/lib/use-safe-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ActionButton } from "@/components/action-button";
@@ -17,10 +17,10 @@ export function SpecialPricesManager({
   rooms: { id: string; name: string }[];
   rows: Row[];
 }) {
-  const [state, action, pending] = useActionState(addSpecialPriceAction.bind(null, propertyId), undefined);
+  const { state, pending, disabled, ref, onSubmit } = useSafeForm(addSpecialPriceAction.bind(null, propertyId), { resetOnSuccess: true });
   return (
     <div className="space-y-4">
-      <form action={action} className="space-y-3 rounded-lg border border-dashed p-3">
+      <form ref={ref} onSubmit={onSubmit} className="space-y-3 rounded-lg border border-dashed p-3">
         <div className="grid gap-3 sm:grid-cols-3">
           <Field label="Từ ngày"><Input name="from" type="date" className="h-11 text-base" required /></Field>
           <Field label="Đến ngày" hint="Bỏ trống nếu chỉ 1 ngày"><Input name="to" type="date" className="h-11 text-base" /></Field>
@@ -33,7 +33,7 @@ export function SpecialPricesManager({
           </Field>
         </div>
         {state?.error && <p role="alert" className="text-sm text-destructive">{state.error}</p>}
-        <Button type="submit" className="h-10" disabled={pending}>{pending ? "Đang lưu…" : "+ Thêm giá ngày lễ / giá riêng"}</Button>
+        <Button type="submit" className="h-10" disabled={disabled}>{pending ? "Đang lưu…" : "+ Thêm giá ngày lễ / giá riêng"}</Button>
       </form>
 
       {rows.length === 0 ? (

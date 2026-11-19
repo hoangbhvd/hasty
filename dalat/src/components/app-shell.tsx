@@ -17,14 +17,14 @@ const NAV: Record<Mode, NavItem[]> = {
   host: [
     { href: "/host", label: "Tổng quan", icon: LayoutDashboard, ready: true },
     { href: "/host/properties", label: "Căn của tôi", icon: Building2, ready: true },
-    { href: "/host/calendar", label: "Lịch", icon: CalendarDays, ready: false },
+    { href: "/host/calendar", label: "Lịch", icon: CalendarDays, ready: true },
     { href: "/host/partners", label: "Đối tác", icon: Handshake, ready: true },
     { href: "/host/finance", label: "Tài chính", icon: Wallet, ready: false },
   ],
   broker: [
-    { href: "/broker", label: "Tổng quan", icon: LayoutDashboard, ready: true },
-    { href: "/broker/properties", label: "Homestay", icon: Search, ready: true },
-    { href: "/broker/bookings", label: "Booking", icon: ClipboardList, ready: false },
+    { href: "/broker/search", label: "Tìm phòng", icon: Search, ready: true },
+    { href: "/broker/properties", label: "Homestay", icon: Building2, ready: true },
+    { href: "/broker/bookings", label: "Booking", icon: ClipboardList, ready: true },
     { href: "/broker/requests", label: "Tìm gấp", icon: MessageCircle, ready: false },
     { href: "/broker/finance", label: "Hoa hồng", icon: Wallet, ready: false },
   ],
@@ -77,7 +77,7 @@ export function AppShell({
     <div className="min-h-dvh md:grid md:grid-cols-[16rem_1fr]">
       {/* Desktop sidebar */}
       <aside className="sticky top-0 hidden h-dvh flex-col gap-4 border-r bg-card p-4 md:flex">
-        <div className="text-lg font-semibold">Đà Lạt Homestay</div>
+        <Link href="/" className="text-lg font-semibold">Đà Lạt Homestay</Link>
         <RoleSwitcher mode={mode} canHost={user.isHost} canBroker={user.isBroker} />
         <nav className="flex flex-1 flex-col gap-1" aria-label="Chính">
           {items.map((it) => (
