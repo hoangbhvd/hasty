@@ -43,10 +43,11 @@ Người dùng liên kết ở trang **Tài khoản → Kết nối Telegram**.
 
 ## Cloudflare R2
 - Bucket cần **domain công khai** (đặt vào `R2_PUBLIC_URL`) để hiển thị ảnh.
-- Bật CORS cho bucket (trình duyệt PUT thẳng lên R2):
+- Bật CORS cho bucket: `PUT` để trình duyệt upload thẳng lên R2; `GET`/`HEAD` vì ảnh bìa trên phiếu xác nhận dùng `crossOrigin` (xuất PNG) — thiếu thì ảnh bìa không hiện:
 ```json
-[{ "AllowedOrigins": ["https://dalat.example.com"], "AllowedMethods": ["PUT"], "AllowedHeaders": ["Content-Type"], "MaxAgeSeconds": 3600 }]
+[{ "AllowedOrigins": ["https://dalat.example.com"], "AllowedMethods": ["GET", "HEAD", "PUT"], "AllowedHeaders": ["Content-Type"], "MaxAgeSeconds": 3600 }]
 ```
+- Các biến `R2_*` đọc lúc chạy: sửa `.env` rồi `docker compose -f docker-compose.prod.yml --env-file .env up -d --force-recreate web worker` (không cần `--build`).
 
 ## Cập nhật phiên bản mới
 ```bash
