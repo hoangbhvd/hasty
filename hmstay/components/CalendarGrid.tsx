@@ -43,7 +43,7 @@ export function CalendarGrid({ units, m, blocks }: { units: CalUnit[]; m: Month;
             const w = dow(d);
             const wk = w === 5 || w === 6;
             return (
-              <tr key={d}>
+              <tr key={d} className="h-9">
                 <th className={`sticky left-0 z-10 border-b border-r border-slate-200 px-1 py-1 text-left font-medium ${d === today ? "bg-teal-100 text-teal-900" : wk ? "bg-slate-50 text-slate-500" : "bg-white"}`}>
                   <span className="text-sm">{Number(d.slice(8))}</span> <span className="text-[10px] font-normal">{WD[w]}</span>
                 </th>
@@ -56,7 +56,7 @@ export function CalendarGrid({ units, m, blocks }: { units: CalUnit[]; m: Month;
                     skip[u.id] = span - 1;
                     return (
                       <td key={u.id} rowSpan={span} className="border-b border-l border-slate-100 p-0.5 align-top" title={b.title}>
-                        <div className={`h-full min-h-7 rounded px-1.5 py-1 ${TONE[b.tone]}`}>{b.label}</div>
+                        <div style={{ minHeight: span * 36 - 4 }} className={`whitespace-pre-line rounded px-1.5 py-1 ${TONE[b.tone]}`}>{b.label}</div>
                       </td>
                     );
                   }
