@@ -27,7 +27,7 @@ export default async function MyProperty({ params, searchParams }: { params: Pro
     const [p] = await q<{ id: string; name: string; address: string | null; rooms: string[] }>("select id,name,address,rooms from broker_properties where id=$1", [id]);
     if (!p) return null;
     const rows = await q<Row>(
-      `select id, rooms, check_in, check_out, guest_name, guest_phone, nightly_price, total, deposit, note, status
+      `select id, rooms, check_in, check_out, guest_name, guest_phone, nightly_price, total, deposit, net_total, note, status
        from broker_bookings where property_id=$1 order by check_in desc, check_out desc`, [id]);
     return { p, rows };
   });
@@ -68,7 +68,7 @@ export default async function MyProperty({ params, searchParams }: { params: Pro
                   {off && <span className="rounded-full bg-red-100 px-2.5 py-1 text-xs font-medium text-red-700">Đã huỷ</span>}
                 </div>
                 <p className="mt-2 text-sm">
-                  Giá/đêm: <b>{vnd(b.nightly_price)}</b> · Tổng: <b>{vnd(b.total)}</b> · Đã cọc: <b>{vnd(b.deposit)}</b> · Còn lại: <b className="text-emerald-700">{vnd(b.total - b.deposit)}</b>
+                  Giá/đêm: <b>{vnd(b.nightly_price)}</b> · Tổng: <b>{vnd(b.total)}</b> · Đã cọc: <b>{vnd(b.deposit)}</b> · Còn lại: <b className="text-emerald-700">{vnd(b.total - b.deposit)}</b> · Lãi: <b className="text-emerald-700">{vnd(b.total - b.net_total)}</b>
                 </p>
                 {b.note && <p className="mt-1 text-xs text-slate-500">Ghi chú: {b.note}</p>}
                 <div className="mt-3 flex flex-wrap gap-2">

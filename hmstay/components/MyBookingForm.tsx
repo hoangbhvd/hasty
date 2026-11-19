@@ -2,7 +2,7 @@ import { saveMyBookingAction } from "@/lib/actions";
 
 export type MyBooking = {
   id: string; rooms: string | null; check_in: string; check_out: string; guest_name: string; guest_phone: string | null;
-  nightly_price: number; total: number; deposit: number; note: string | null;
+  nightly_price: number; total: number; deposit: number; net_total: number; note: string | null;
 };
 
 /** Form thêm/sửa booking của cơ sở tự quản. Có `b` thì là sửa. */
@@ -24,8 +24,9 @@ export function MyBookingForm({ propertyId, rooms, b }: { propertyId: string; ro
       <div><label className="label">Giá bán / đêm (cả booking)</label><input className="input" name="nightly_price" inputMode="numeric" defaultValue={b?.nightly_price || ""} placeholder="VD: 1500000" /></div>
       <div><label className="label">Tổng tiền (trống = giá × số đêm)</label><input className="input" name="total" inputMode="numeric" defaultValue={b?.total || ""} /></div>
       <div><label className="label">Đã cọc</label><input className="input" name="deposit" inputMode="numeric" defaultValue={b?.deposit || ""} /></div>
-      <div className="sm:col-span-2 lg:col-span-3"><label className="label">Ghi chú</label><input className="input" name="note" defaultValue={b?.note ?? ""} /></div>
-      <div className="flex items-end"><button className="btn w-full">{b ? "Lưu thay đổi" : "Thêm booking"}</button></div>
+      <div><label className="label">Giá vốn / net (để tính lãi)</label><input className="input" name="net_total" inputMode="numeric" defaultValue={b?.net_total || ""} placeholder="Tổng chi phí" /></div>
+      <div className="sm:col-span-2"><label className="label">Ghi chú</label><input className="input" name="note" defaultValue={b?.note ?? ""} /></div>
+      <div className="flex items-end sm:col-span-2 lg:col-span-1"><button className="btn w-full">{b ? "Lưu thay đổi" : "Thêm booking"}</button></div>
     </form>
   );
 }

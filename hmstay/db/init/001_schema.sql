@@ -644,3 +644,6 @@ create policy bbook_own on broker_bookings for all
   with check (broker_id = app_uid()
     and exists (select 1 from broker_properties p where p.id = property_id and p.broker_id = app_uid()));
 grant select, insert, update, delete on broker_properties, broker_bookings to app_user;
+
+-- Giá vốn (net) của booking tự quản để tính lãi = tổng tiền − giá vốn
+alter table broker_bookings add column if not exists net_total bigint not null default 0 check (net_total >= 0);

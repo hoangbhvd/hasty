@@ -51,12 +51,19 @@ export type BrokerStats = { confirmed: number; confirmed_profit: number; confirm
 
 /** Thống kê cho BROKER theo tháng nhận phòng: lãi = giá bán − giá net. */
 export async function brokerMonthStats(q: Q, uid: string, start: string, endExclusive: string): Promise<BrokerStats> {
+  // Booking tự quản (broker_bookings) còn hiệu lực tính như đã chốt: lãi = tổng tiền − giá vốn
   const [r] = await q<BrokerStats>(
     `select count(*) filter (where status='confirmed')::int confirmed,
             coalesce(sum(sell_total - net_total) filter (where status='confirmed'),0)::bigint confirmed_profit,
             coalesce(sum(sell_total) filter (where status='confirmed'),0)::bigint confirmed_sell,
             count(*) filter (where status in ('holding','deposit_reported'))::int pending,
             coalesce(sum(sell_total - net_total) filter (where status in ('holding','deposit_reported')),0)::bigint pending_profit
-     from bookings where broker_id=$1 and check_in >= $2::date and check_in < $3::date`, [uid, start, endExclusive]);
+     from (
+       select status::text status, sell_total, net_total from bookings
+        where broker_id=$1 and check_in >= $2::date and check_in < $3::date
+       union all
+       select 'confirmed', total, net_total from broker_bookings
+        where broker_id=$1 and status='active' and check_in >= $2::date and check_in < $3::date
+     ) t`, [uid, start, endExclusive]);
   return r;
 }

@@ -25,6 +25,7 @@ probe() { # trả về "t" nếu migration $1 đã có dấu vết trong DB
     007_*) psql_db -c "select to_regclass('public.rate_seasons') is not null" ;;
     008_*) psql_db -c "select to_regclass('public.email_verifications') is not null" ;;
     009_*) psql_db -c "select to_regclass('public.broker_properties') is not null" ;;
+    010_*) psql_db -c "select exists(select 1 from information_schema.columns where table_name='broker_bookings' and column_name='net_total')" ;;
     *) echo f ;;
   esac
 }

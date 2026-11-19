@@ -491,15 +491,17 @@ export async function saveMyBookingAction(f: FormData) {
     const nightly = num(f, "nightly_price");
     const total = num(f, "total") || nightly * nights;   // để trống tổng tiền = giá/đêm × số đêm
     const deposit = num(f, "deposit");
+    const net = num(f, "net_total");
+    if (net > total) throw new Error("Giá vốn lớn hơn tổng tiền (lãi âm). Kiểm tra lại.");
     if (deposit > total) throw new Error("Tiền cọc lớn hơn tổng tiền.");
-    const args = [pid, str(f, "rooms") || null, ci, co, guest, str(f, "guest_phone") || null, nightly, total, deposit, str(f, "note") || null];
+    const args = [pid, str(f, "rooms") || null, ci, co, guest, str(f, "guest_phone") || null, nightly, total, deposit, str(f, "note") || null, net];
     await withUser(uid, async (q) => {
       if (id) {
         await q(`update broker_bookings set rooms=$2, check_in=$3, check_out=$4, guest_name=$5, guest_phone=$6,
-                   nightly_price=$7, total=$8, deposit=$9, note=$10 where id=$1 and property_id=$11`, [id, ...args.slice(1), pid]);
+                   nightly_price=$7, total=$8, deposit=$9, note=$10, net_total=$11 where id=$1 and property_id=$12`, [id, ...args.slice(1), pid]);
       } else {
-        await q(`insert into broker_bookings(broker_id,property_id,rooms,check_in,check_out,guest_name,guest_phone,nightly_price,total,deposit,note)
-                 values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`, [uid, ...args]);
+        await q(`insert into broker_bookings(broker_id,property_id,rooms,check_in,check_out,guest_name,guest_phone,nightly_price,total,deposit,note,net_total)
+                 values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`, [uid, ...args]);
       }
     });
   });
