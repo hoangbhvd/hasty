@@ -4,7 +4,9 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/session";
 import { getManagedProperty } from "@/lib/access";
-import { AVAILABLE_TEMPLATES, DEFAULT_VOUCHER_CONFIG, parseVoucherConfig, type VoucherConfig } from "@/lib/voucher-config";
+import { AVAILABLE_TEMPLATES, parseVoucherConfig } from "@/lib/voucher-config";
+import { configFromForm } from "@/lib/voucher-form";
+import { keyFromUrl, keyPrefix } from "@/lib/r2";
 import { regenerateVoucherToken, setVoucherExpiry, VoucherLinkError } from "@/lib/voucher-link";
 import type { FormState } from "@/app/(auth)/actions";
 
@@ -28,24 +30,17 @@ export async function saveVoucherConfigAction(propertyId: string, _: FormState, 
     cover = m.url;
   }
 
-  const blocks = Object.fromEntries(
-    Object.keys(DEFAULT_VOUCHER_CONFIG.blocks).map((k) => [k, fd.get(k) === "on"]),
-  ) as VoucherConfig["blocks"];
-
-  const config = parseVoucherConfig({
-    template_id: s("template_id"),
-    branding: {
-      brand_name: s("brand_name").trim(), cover_image_url: cover, image_frame_style: s("image_frame_style"),
-      primary_color: s("primary_color"), background_color: s("background_color"), font_style: s("font_style"),
-    },
-    blocks,
-    stay_times: { checkin_time: s("checkin_time"), checkout_time: s("checkout_time") },
-    custom_texts: {
-      header_title: s("header_title").trim() || DEFAULT_VOUCHER_CONFIG.custom_texts.header_title,
-      surcharge_policy: s("surcharge_policy"), terms_conditions: s("terms_conditions"),
-      cancellation_policy: s("cancellation_policy"), footer_greeting: s("footer_greeting"),
-    },
-  });
+  // Logo chỉ nhận file đã tải lên R2 cho chính căn này
+  let logo: string | null = null;
+  const wantedLogo = s("logo_url");
+  if (wantedLogo) {
+    const key = keyFromUrl(wantedLogo.split("?")[0]);
+    if (!key || !key.startsWith(`${keyPrefix(propertyId)}logo.`)) return { error: "Logo không hợp lệ" };
+    logo = wantedLogo;
+  }
+  const prev = parseVoucherConfig(property.voucherConfig);
+  // mode + pdfme_config do tab "Canva + kéo thả" quản lý, form này không đụng tới
+  const config = configFromForm(fd, { cover, logo, mode: prev.mode, pdfme: prev.pdfme_config });
   await prisma.property.update({ where: { id: propertyId }, data: { voucherConfig: config } });
   revalidatePath(`/host/properties/${propertyId}`);
   revalidatePath(`/broker/properties/${propertyId}`);

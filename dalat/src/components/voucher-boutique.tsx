@@ -2,6 +2,7 @@ import { MapPin } from "lucide-react";
 import { formatDateVi, formatVnd } from "@/lib/format";
 import type { VoucherData } from "@/lib/voucher";
 import { MapQr } from "@/components/map-qr";
+import { VoucherLogo } from "@/components/voucher-logo";
 
 const FONT = { MODERN: "font-sans", CLASSIC: "font-serif", MONO: "font-mono" } as const;
 const STATUS: Record<string, string> = {
@@ -38,6 +39,7 @@ export function BoutiqueView({ v }: { v: VoucherData }) {
     >
       {/* ───── Dải tiêu đề ───── */}
       <header className="px-6 py-8 text-center text-white @[700px]:py-6" style={{ backgroundColor: dark }}>
+        <VoucherLogo config={c} className="pb-3" />
         <div className="font-serif text-4xl leading-tight font-light tracking-wide @[700px]:text-[44px]">{c.branding.brand_name || v.propertyName}</div>
         <h1 className="pt-4 text-2xl font-light tracking-wider uppercase @[700px]:pt-2">{c.custom_texts.header_title}</h1>
         <div className="flex items-center justify-center gap-2 pt-3 text-xs tracking-[0.2em] text-white/80">

@@ -12,10 +12,26 @@ export const TEMPLATE_LABEL: Record<(typeof TEMPLATE_IDS)[number], string> = {
 };
 export const FRAME_STYLES = ["ARCH", "RECTANGLE", "ROUNDED"] as const;
 export const FONT_STYLES = ["MODERN", "CLASSIC", "MONO"] as const;
+export const LOGO_POSITIONS = ["LEFT", "CENTER", "RIGHT"] as const;
+export const LOGO_MIN_PX = 40, LOGO_MAX_PX = 140;
+export const VOUCHER_MODES = ["TEMPLATE", "CUSTOM_PDFME"] as const;
+
+/** Ô biến động của chế độ 2 (pdfme). `name` là khoá biến, vị trí/cỡ chữ tính bằng mm trên khổ A4 (210×297). */
+export type PdfmeSchema = {
+  name: string; type: "text" | "image" | "qrcode"; position: { x: number; y: number }; width: number; height: number;
+  fontSize?: number; fontColor?: string; alignment?: "left" | "center" | "right"; fontName?: string; bold?: boolean;
+};
+export type PdfmeConfig = { base_pdf_url: string | null; schemas: PdfmeSchema[] };
 
 export type VoucherConfig = {
+  /** TEMPLATE = mẫu HTML có sẵn (mặc định); CUSTOM_PDFME = PDF nền tự thiết kế + ô biến động kéo thả. */
+  mode: (typeof VOUCHER_MODES)[number];
+  pdfme_config: PdfmeConfig;
   template_id: (typeof TEMPLATE_IDS)[number];
   branding: {
+    logo_url: string | null;
+    logo_position: (typeof LOGO_POSITIONS)[number];
+    logo_size_px: number;
     brand_name: string;
     cover_image_url: string | null;
     image_frame_style: (typeof FRAME_STYLES)[number];
@@ -24,6 +40,7 @@ export type VoucherConfig = {
     font_style: (typeof FONT_STYLES)[number];
   };
   blocks: {
+    show_logo: boolean;
     show_cover_image: boolean;
     show_caretaker_phone: boolean;
     show_price_table: boolean;
@@ -44,8 +61,13 @@ export type VoucherConfig = {
 };
 
 export const DEFAULT_VOUCHER_CONFIG: VoucherConfig = {
+  mode: "TEMPLATE",
+  pdfme_config: { base_pdf_url: null, schemas: [] },
   template_id: "DALAT_BOUTIQUE",
   branding: {
+    logo_url: null,
+    logo_position: "CENTER",
+    logo_size_px: 72,
     brand_name: "",
     cover_image_url: null,
     image_frame_style: "ARCH",
@@ -54,6 +76,7 @@ export const DEFAULT_VOUCHER_CONFIG: VoucherConfig = {
     font_style: "MODERN",
   },
   blocks: {
+    show_logo: true,
     show_cover_image: true,
     show_caretaker_phone: true,
     show_price_table: true,
@@ -95,14 +118,65 @@ const oneOf = <T extends readonly string[]>(v: unknown, list: T, d: T[number]): 
 const hex = (v: unknown, d: string) => (typeof v === "string" && HEX.test(v) ? v : d);
 const obj = (v: unknown): Record<string, unknown> => (v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {});
 
+/** Biến động cho phép trong chế độ 2 (chỉ dữ liệu khách thấy được — tuyệt đối không có giá Net/hoa hồng). */
+export const PDFME_FIELDS = [
+  { name: "guest_name", label: "Tên khách", sample: "Nguyễn Văn Ánh" },
+  { name: "guest_phone", label: "SĐT khách", sample: "0900 111 222" },
+  { name: "guest_count", label: "Số khách", sample: "4 người lớn" },
+  { name: "booking_code", label: "Mã booking", sample: "DL-2606-889" },
+  { name: "room_info", label: "Hình thức thuê", sample: "Nguyên căn" },
+  { name: "check_in_str", label: "Check-in", sample: "14H 12/06/2026" },
+  { name: "check_out_str", label: "Check-out", sample: "12H 14/06/2026" },
+  { name: "nights_count", label: "Số đêm", sample: "2" },
+  { name: "price_per_night", label: "Giá 1 đêm", sample: "2.000.000đ" },
+  { name: "guest_total_price", label: "Thành tiền", sample: "4.000.000đ" },
+  { name: "deposit_paid", label: "Đã cọc", sample: "1.000.000đ" },
+  { name: "remaining_amount", label: "Còn lại", sample: "3.000.000đ" },
+  { name: "caretaker_or_broker_phone", label: "SĐT quản gia / hỗ trợ", sample: "0933 444 555" },
+  { name: "property_address", label: "Địa chỉ", sample: "12 Hẻm Thông, P.3, Đà Lạt" },
+  { name: "vietqr_image", label: "Mã VietQR", sample: "", image: true },
+] as const;
+export type PdfmeFieldName = (typeof PDFME_FIELDS)[number]["name"];
+
+const num = (v: unknown, d: number, lo: number, hi: number) => { const n = Number(v); return Number.isFinite(n) ? Math.min(Math.max(n, lo), hi) : d; };
+
+function parsePdfme(raw: unknown): PdfmeConfig {
+  const o = obj(raw);
+  const url = typeof o.base_pdf_url === "string" && /^https:\/\//.test(o.base_pdf_url) && o.base_pdf_url.length <= 500 ? o.base_pdf_url : null;
+  const names = new Map<string, boolean>(PDFME_FIELDS.map((f) => [f.name, "image" in f]));
+  const schemas: PdfmeSchema[] = [];
+  for (const it of Array.isArray(o.schemas) ? o.schemas.slice(0, 40) : []) {
+    const s = obj(it);
+    const name = typeof s.name === "string" ? s.name : "";
+    if (!names.has(name)) continue; // chỉ nhận biến trong danh sách cho phép
+    const pos = obj(s.position);
+    schemas.push({
+      name, type: names.get(name) ? "image" : "text",
+      position: { x: num(pos.x, 0, 0, 210), y: num(pos.y, 0, 0, 297) },
+      width: num(s.width, 40, 5, 210), height: num(s.height, 8, 3, 297),
+      fontSize: num(s.fontSize, 12, 6, 48), fontColor: hex(s.fontColor, "#000000"),
+      alignment: oneOf(s.alignment, ["left", "center", "right"] as const, "left"),
+      fontName: oneOf(s.fontName, ["BeVietnamPro", "BeVietnamPro-Bold", "PlayfairDisplay"] as const, "BeVietnamPro"),
+    });
+  }
+  return { base_pdf_url: url, schemas };
+}
+
 /** Đọc cấu hình từ DB/form: trường nào sai thì dùng mặc định, không bao giờ ném lỗi. */
 export function parseVoucherConfig(raw: unknown): VoucherConfig {
   const d = DEFAULT_VOUCHER_CONFIG;
   const r = obj(raw), b = obj(r.branding), k = obj(r.blocks), t = obj(r.custom_texts), st = obj(r.stay_times);
-  const cover = typeof b.cover_image_url === "string" && /^https:\/\//.test(b.cover_image_url) && b.cover_image_url.length <= 500 ? b.cover_image_url : null;
+  const https = (v: unknown) => (typeof v === "string" && /^https:\/\//.test(v) && v.length <= 500 ? v : null);
+  const cover = https(b.cover_image_url);
+  const px = Number(b.logo_size_px);
   return {
+    mode: oneOf(r.mode, VOUCHER_MODES, d.mode),
+    pdfme_config: parsePdfme(r.pdfme_config),
     template_id: oneOf(r.template_id, TEMPLATE_IDS, d.template_id),
     branding: {
+      logo_url: https(b.logo_url),
+      logo_position: oneOf(b.logo_position, LOGO_POSITIONS, d.branding.logo_position),
+      logo_size_px: Number.isFinite(px) ? Math.min(Math.max(Math.round(px), LOGO_MIN_PX), LOGO_MAX_PX) : d.branding.logo_size_px,
       brand_name: text(b.brand_name, d.branding.brand_name, 60),
       cover_image_url: cover,
       image_frame_style: oneOf(b.image_frame_style, FRAME_STYLES, d.branding.image_frame_style),

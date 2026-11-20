@@ -5,7 +5,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/session";
 import { getManagedProperty } from "@/lib/access";
-import { IMAGE_EXT, avatarKey, coverKey, publicUrlFor, r2Configured } from "@/lib/r2";
+import { IMAGE_EXT, avatarKey, coverKey, logoKey, publicUrlFor, r2Configured } from "@/lib/r2";
 import type { FormState } from "@/app/(auth)/actions";
 
 const ext = (contentType: string) => IMAGE_EXT[contentType];
@@ -51,4 +51,15 @@ export async function saveBrokerBioAction(_: FormState, fd: FormData): Promise<F
   await prisma.user.update({ where: { id: user.id }, data: { brokerBio: bio || null } });
   revalidatePath("/account");
   return { message: "Đã lưu" };
+}
+
+/** Xác nhận logo đã tải lên R2; trả URL (có ?v=) để form Voucher Studio giữ trong ô ẩn, lưu thật khi bấm "Lưu thiết kế". */
+export async function registerLogoAction(propertyId: string, contentType: string): Promise<{ error?: string; url?: string }> {
+  const user = await requireUser();
+  if (!r2Configured()) return { error: "Chưa cấu hình Cloudflare R2" };
+  const e = ext(contentType);
+  if (!e || !z.uuid().safeParse(propertyId).success) return { error: "Dữ liệu không hợp lệ" };
+  const p = await getManagedProperty(user.id, propertyId);
+  if (!p) return { error: "Không có quyền" };
+  return { url: versioned(logoKey(p.id, e)) };
 }

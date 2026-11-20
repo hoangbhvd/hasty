@@ -62,8 +62,9 @@ export async function deleteObject(key: string) {
 }
 
 /** Ảnh đại diện (avatar/cover) đã nén ở client: key cố định, ghi đè khi đổi ảnh. */
-export const IMAGE_EXT: Record<string, string> = { "image/webp": "webp", "image/jpeg": "jpg" };
+export const IMAGE_EXT: Record<string, string> = { "image/webp": "webp", "image/jpeg": "jpg", "image/png": "png" };
 export const avatarKey = (userId: string, ext: string) => `avatars/${userId}.${ext}`;
+export const logoKey = (propertyId: string, ext: string) => `${keyPrefix(propertyId)}logo.${ext}`;
 export const coverKey = (propertyId: string, ext: string) => `properties/${propertyId}/cover.${ext}`;
 
 export async function presignFixed(key: string, contentType: string) {

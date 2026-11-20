@@ -76,7 +76,7 @@ export default async function EditPropertyPage({ params }: { params: Promise<{ i
 
       <section className="space-y-3 border-t pt-6">
         <h2 className="text-lg font-semibold">Ảnh & video</h2>
-        <div className="flex items-end gap-3">
+        <div className="flex flex-wrap items-end gap-3">
           <PropertyCover url={p.coverImageUrl} name={p.name} className="w-40 shrink-0" />
           <ImageUploader kind="cover" propertyId={id} label={p.coverImageUrl ? "Đổi ảnh đại diện căn" : "Tải ảnh đại diện căn"} r2Ready={r2Configured()} />
         </div>
@@ -97,6 +97,7 @@ export default async function EditPropertyPage({ params }: { params: Promise<{ i
           propertyId={id}
           config={parseVoucherConfig(p.voucherConfig)}
           images={media.filter((m) => m.mediaType === "IMAGE").map((m) => ({ url: m.url }))}
+          propertyName={p.name} address={p.address} r2Ready={r2Configured()}
           previews={recentBookings.map((x) => ({ token: x.voucherToken, label: `${x.bookingCode} · ${x.guestName}` }))}
         />
       </section>

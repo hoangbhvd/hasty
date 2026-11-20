@@ -1,27 +1,101 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Check, Field, Select, Textarea } from "@/components/form-fields";
 import { useSafeForm } from "@/lib/use-safe-form";
 import { saveVoucherConfigAction } from "@/app/(app)/voucher-actions";
-import { SAMPLE_TEXTS, TEMPLATE_IDS, TEMPLATE_LABEL, type VoucherConfig } from "@/lib/voucher-config";
+import { LOGO_MAX_PX, LOGO_MIN_PX, SAMPLE_TEXTS, TEMPLATE_IDS, TEMPLATE_LABEL, type VoucherConfig } from "@/lib/voucher-config";
+import { configFromForm } from "@/lib/voucher-form";
+import { sampleVoucher } from "@/lib/voucher-sample";
+import { VoucherView } from "@/components/voucher-view";
+import { compressImage } from "@/lib/image-compress";
+import { registerLogoAction } from "@/app/(app)/profile-actions";
 
 const BLOCKS: [keyof VoucherConfig["blocks"], string][] = [
-  ["show_cover_image", "Ảnh bìa"], ["show_price_table", "Bảng giá"], ["show_vietqr", "Mã VietQR thanh toán"],
+  ["show_logo", "Logo"], ["show_cover_image", "Ảnh bìa"], ["show_price_table", "Bảng giá"], ["show_vietqr", "Mã VietQR thanh toán"],
   ["show_google_maps", "Bản đồ (nút / QR vị trí)"], ["show_caretaker_phone", "SĐT quản gia"], ["show_surcharge_policy", "Chính sách phụ thu"],
   ["show_terms_conditions", "Điều khoản & điều kiện"], ["show_cancellation_policy", "Điều khoản huỷ"],
 ];
 
+/** Xem trước trực tiếp: dựng đúng VoucherView với dữ liệu giả lập, thu nhỏ vừa khung. */
+function LivePreview({ config, propertyName, address }: { config: VoucherConfig; propertyName: string; address: string | null }) {
+  const box = useRef<HTMLDivElement>(null);
+  const [w, setW] = useState(0);
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setW(el.clientWidth));
+    ro.observe(el); setW(el.clientWidth);
+    return () => ro.disconnect();
+  }, []);
+  const natural = config.template_id === "DALAT_BOUTIQUE" ? 794 : 430;
+  const zoom = w > 0 ? Math.min(w / natural, 1.2) : 1;
+  return (
+    <div ref={box} className="overflow-hidden rounded border border-black bg-muted p-2" aria-label="Xem trước phiếu">
+      <div style={{ width: natural, zoom }} className="mx-auto bg-white">
+        <VoucherView v={sampleVoucher(config, { propertyName, address })} token="preview" />
+      </div>
+      <p className="pt-1 text-center text-[11px] text-muted-foreground">Dữ liệu giả lập — chỉ để xem bố cục</p>
+    </div>
+  );
+}
+
+function LogoUploader({ propertyId, value, onChange, r2Ready }: { propertyId: string; value: string; onChange: (url: string) => void; r2Ready: boolean }) {
+  const input = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string>();
+  async function pick(file: File) {
+    setBusy(true); setError(undefined);
+    try {
+      const { blob, type } = await compressImage(file, { maxW: 400, maxH: 400, png: true });
+      const res = await fetch("/api/media/presign", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind: "logo", propertyId, contentType: type, size: blob.size }) });
+      const j = await res.json();
+      if (!res.ok) throw new Error(j.error ?? "Không tải lên được");
+      const put = await fetch(j.uploadUrl, { method: "PUT", headers: { "Content-Type": type }, body: blob });
+      if (!put.ok) throw new Error("Tải lên R2 thất bại (kiểm tra CORS của bucket)");
+      const r = await registerLogoAction(propertyId, type);
+      if (r.error || !r.url) throw new Error(r.error ?? "Lỗi");
+      onChange(r.url);
+    } catch (e) { setError(e instanceof Error ? e.message : "Lỗi tải logo"); } finally { setBusy(false); if (input.current) input.current.value = ""; }
+  }
+  return (
+    <div className="space-y-1">
+      <input type="hidden" name="logo_url" value={value} />
+      <input ref={input} type="file" hidden accept="image/png,image/jpeg,image/webp" onChange={(e) => e.target.files?.[0] && pick(e.target.files[0])} />
+      <div className="flex flex-wrap items-center gap-2">
+        {value && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={value} alt="Logo hiện tại" className="h-12 w-auto border border-black bg-white object-contain p-1" />
+        )}
+        <Button type="button" variant="outline" className="h-11" disabled={!r2Ready || busy} onClick={() => input.current?.click()}>{busy ? "Đang tải…" : value ? "Đổi logo" : "Tải logo"}</Button>
+        {value && <Button type="button" variant="outline" className="h-11" onClick={() => onChange("")}>Bỏ logo</Button>}
+      </div>
+      {!r2Ready && <p className="text-xs text-red-700">Chưa cấu hình Cloudflare R2.</p>}
+      {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
+    </div>
+  );
+}
+
 export function VoucherConfigForm({
-  propertyId, config, images, previews,
+  propertyId, config, images, previews, propertyName = "Homestay của bạn", address = null, r2Ready = false,
 }: {
   propertyId: string;
   config: VoucherConfig;
   images: { url: string }[];
   previews: { token: string; label: string }[];
+  propertyName?: string;
+  address?: string | null;
+  r2Ready?: boolean;
 }) {
+  const [tab, setTab] = useState<"edit" | "preview">("edit");
+  const [logo, setLogo] = useState(config.branding.logo_url ?? "");
+  const [live, setLive] = useState<VoucherConfig>(config);
+  const recompute = (l = logo) => {
+    const f = formRef.current;
+    if (f) setLive(configFromForm(new FormData(f), { cover: String(new FormData(f).get("cover_image_url") ?? "") || null, logo: l || null }));
+  };
   const { state, pending, disabled, ref, onSubmit } = useSafeForm(saveVoucherConfigAction.bind(null, propertyId));
   const [sel, setSel] = useState(previews[0]?.token ?? "");
   const formRef = useRef<HTMLFormElement | null>(null);
@@ -35,11 +109,27 @@ export function VoucherConfigForm({
 
   const b = config.branding;
   return (
-    <form ref={setRef} onSubmit={onSubmit} className="space-y-5">
+    <div className="md:grid md:grid-cols-2 md:gap-6">
+      <div className="mb-3 grid grid-cols-2 gap-2 md:hidden" role="tablist">
+        {([["edit", "Chỉnh sửa"], ["preview", "Xem trước"]] as const).map(([k, label]) => (
+          <button key={k} type="button" role="tab" aria-selected={tab === k} onClick={() => { setTab(k); if (k === "preview") recompute(); }} className={`brutal-btn h-11 text-sm text-black ${tab === k ? "bg-primary" : "bg-white"}`}>{label}</button>
+        ))}
+      </div>
+      <form ref={setRef} onSubmit={onSubmit} onChange={() => recompute()} className={`space-y-5 ${tab === "preview" ? "hidden md:block" : ""}`}>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Mẫu giao diện" htmlFor="template_id">
           <Select id="template_id" name="template_id" defaultValue={config.template_id}
             options={TEMPLATE_IDS.map((id) => ({ value: id, label: TEMPLATE_LABEL[id] }))} />
+        </Field>
+        <div className="sm:col-span-2">
+          <span className="mb-1 block text-sm font-medium">Logo homestay</span>
+          <LogoUploader propertyId={propertyId} value={logo} onChange={(u) => { setLogo(u); recompute(u); }} r2Ready={r2Ready} />
+        </div>
+        <Field label="Vị trí logo" htmlFor="logo_position">
+          <Select id="logo_position" name="logo_position" defaultValue={b.logo_position} options={[{ value: "LEFT", label: "Trái" }, { value: "CENTER", label: "Giữa" }, { value: "RIGHT", label: "Phải" }]} />
+        </Field>
+        <Field label={`Cỡ logo (${LOGO_MIN_PX}–${LOGO_MAX_PX}px)`} htmlFor="logo_size_px">
+          <input id="logo_size_px" name="logo_size_px" type="range" min={LOGO_MIN_PX} max={LOGO_MAX_PX} defaultValue={b.logo_size_px} className="h-11 w-full accent-black" />
         </Field>
         <Field label="Tên thương hiệu" htmlFor="brand_name"><Input id="brand_name" name="brand_name" defaultValue={b.brand_name} maxLength={60} className="h-11 text-base" /></Field>
         <Field label="Giờ nhận phòng" htmlFor="checkin_time"><Input id="checkin_time" name="checkin_time" type="time" defaultValue={config.stay_times.checkin_time} required className="h-11 text-base" /></Field>
@@ -93,8 +183,8 @@ export function VoucherConfigForm({
 
       {state?.error && <p role="alert" className="text-sm font-medium text-red-700">{state.error}</p>}
       {state && !state.error && <p role="status" className="text-sm font-medium text-green-800">Đã lưu mẫu voucher</p>}
-      <div className="flex flex-wrap items-center gap-3">
-        <Button type="submit" size="lg" className="h-12" disabled={disabled}>{pending ? "Đang lưu…" : "Lưu mẫu voucher"}</Button>
+      <div className="sticky bottom-[4.5rem] z-30 -mx-1 flex flex-wrap items-center gap-3 border-t border-black bg-background p-3 md:static md:mx-0 md:border-0 md:bg-transparent md:p-0">
+        <Button type="submit" size="lg" className="h-12" disabled={disabled}>{pending ? "Đang lưu…" : "Lưu thiết kế"}</Button>
         {previews.length > 0 ? (
           <span className="inline-flex items-center gap-2">
             <select aria-label="Booking xem thử" value={sel} onChange={(e) => setSel(e.target.value)} className="brutal-input h-12 max-w-56 bg-white px-2 text-sm">
@@ -104,6 +194,10 @@ export function VoucherConfigForm({
           </span>
         ) : <span className="text-xs text-muted-foreground">Tạo booking đầu tiên để xem thử phiếu.</span>}
       </div>
-    </form>
+      </form>
+      <div className={`md:sticky md:top-4 md:self-start ${tab === "edit" ? "hidden md:block" : ""}`}>
+        <LivePreview config={live} propertyName={propertyName} address={address} />
+      </div>
+    </div>
   );
 }

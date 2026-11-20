@@ -3,6 +3,7 @@ import type { VoucherData } from "@/lib/voucher";
 import type { VoucherConfig } from "@/lib/voucher-config";
 import { BoutiqueView } from "@/components/voucher-boutique";
 import { VoucherQr } from "@/components/voucher-qr";
+import { VoucherLogo } from "@/components/voucher-logo";
 
 const FONT = { MODERN: "font-sans", CLASSIC: "font-serif", MONO: "font-mono" } as const;
 const STATUS: Record<string, string> = {
@@ -107,6 +108,7 @@ export function VoucherView({ v, token }: { v: VoucherData; token: string }) {
 
   return (
     <div id="voucher-capture" data-template={variant} className={`mx-auto w-full text-black ${wrapperClass}`} style={wrapperStyle}>
+      <VoucherLogo config={c} className="[column-span:all]" />
       {/* ───── Đầu phiếu ───── */}
       {luxury ? (
         <header className="space-y-3 text-center">
