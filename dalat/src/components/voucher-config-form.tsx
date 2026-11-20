@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Check, Field, Select, Textarea } from "@/components/form-fields";
 import { useSafeForm } from "@/lib/use-safe-form";
 import { saveVoucherConfigAction } from "@/app/(app)/voucher-actions";
-import { LOGO_MAX_PX, LOGO_MIN_PX, SAMPLE_TEXTS, TEMPLATE_IDS, TEMPLATE_LABEL, type VoucherConfig } from "@/lib/voucher-config";
+import { BLOCK_LABEL, FONT_FAMILIES, FONT_LABEL, LOGO_MAX_PX, LOGO_MIN_PX, SAMPLE_TEXTS, TEMPLATE_IDS, TEMPLATE_LABEL, type BlockId, type VoucherConfig } from "@/lib/voucher-config";
 import { configFromForm } from "@/lib/voucher-form";
 import { sampleVoucher } from "@/lib/voucher-sample";
 import { VoucherView } from "@/components/voucher-view";
@@ -39,6 +39,34 @@ function LivePreview({ config, propertyName, address }: { config: VoucherConfig;
       </div>
       <p className="pt-1 text-center text-[11px] text-muted-foreground">Dữ liệu giả lập — chỉ để xem bố cục</p>
     </div>
+  );
+}
+
+/** Đổi thứ tự các khối bằng nút lên/xuống (hoạt động tốt trên điện thoại, không cần kéo thả). */
+function BlockOrderEditor({ order, onChange, boutique }: { order: BlockId[]; onChange: (o: BlockId[]) => void; boutique: boolean }) {
+  const move = (i: number, d: -1 | 1) => {
+    const j = i + d;
+    if (j < 0 || j >= order.length) return;
+    const next = [...order];
+    [next[i], next[j]] = [next[j], next[i]];
+    onChange(next);
+  };
+  return (
+    <fieldset className="space-y-1">
+      <legend className="mb-1 text-sm font-medium">Thứ tự các khối</legend>
+      <input type="hidden" name="block_order" value={order.join(",")} />
+      <ol className="space-y-1">
+        {order.map((id, i) => (
+          <li key={id} className="flex items-center gap-2 rounded border border-black bg-white p-1 pl-3 text-sm">
+            <span className="money-num w-5 text-muted-foreground">{i + 1}</span>
+            <span className="min-w-0 flex-1">{BLOCK_LABEL[id]}</span>
+            <button type="button" aria-label={`Đưa “${BLOCK_LABEL[id]}” lên`} disabled={i === 0} onClick={() => move(i, -1)} className="brutal-btn grid size-9 place-items-center bg-white text-black disabled:opacity-40">↑</button>
+            <button type="button" aria-label={`Đưa “${BLOCK_LABEL[id]}” xuống`} disabled={i === order.length - 1} onClick={() => move(i, 1)} className="brutal-btn grid size-9 place-items-center bg-white text-black disabled:opacity-40">↓</button>
+          </li>
+        ))}
+      </ol>
+      {boutique && <p className="text-xs text-muted-foreground">Mẫu Boutique: đầu phiếu và thông tin khách luôn ở trên; thứ tự áp dụng cho 2 cột phía dưới (trái: Bảng giá ↔ Chính sách; phải: Điều khoản huỷ ↔ Lời cảm ơn). Mẫu này không có mã VietQR.</p>}
+    </fieldset>
   );
 }
 
@@ -92,6 +120,7 @@ export function VoucherConfigForm({
   const [tab, setTab] = useState<"edit" | "preview">("edit");
   const [logo, setLogo] = useState(config.branding.logo_url ?? "");
   const [live, setLive] = useState<VoucherConfig>(config);
+  const [order, setOrder] = useState<BlockId[]>(config.block_order);
   const recompute = (l = logo) => {
     const f = formRef.current;
     if (f) setLive(configFromForm(new FormData(f), { cover: String(new FormData(f).get("cover_image_url") ?? "") || null, logo: l || null }));
@@ -140,8 +169,8 @@ export function VoucherConfigForm({
         </Field>
         <Field label="Màu chủ đạo" htmlFor="primary_color"><input id="primary_color" name="primary_color" type="color" defaultValue={b.primary_color} className="brutal-input h-11 w-full p-1" /></Field>
         <Field label="Màu nền phiếu" htmlFor="background_color"><input id="background_color" name="background_color" type="color" defaultValue={b.background_color} className="brutal-input h-11 w-full p-1" /></Field>
-        <Field label="Kiểu chữ" htmlFor="font_style" hint="Mẫu Receipt Compact luôn dùng chữ biên lai (mono)">
-          <Select id="font_style" name="font_style" defaultValue={b.font_style} options={[{ value: "MODERN", label: "Hiện đại (Sans)" }, { value: "CLASSIC", label: "Cổ điển (Serif)" }, { value: "MONO", label: "Biên lai (Mono)" }]} />
+        <Field label="Font chữ" htmlFor="font_family" hint="Mẫu Receipt Compact luôn dùng chữ biên lai (mono)">
+          <Select id="font_family" name="font_family" defaultValue={b.font_family} options={FONT_FAMILIES.map((f) => ({ value: f, label: FONT_LABEL[f] }))} />
         </Field>
       </div>
 
@@ -162,6 +191,8 @@ export function VoucherConfigForm({
           </div>
         )}
       </fieldset>
+
+      <BlockOrderEditor order={order} boutique={live.template_id === "DALAT_BOUTIQUE"} onChange={(o) => { setOrder(o); setTimeout(() => recompute(), 0); }} />
 
       <fieldset>
         <legend className="mb-1 text-sm font-medium">Các khối hiển thị</legend>

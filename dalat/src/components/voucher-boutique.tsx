@@ -3,8 +3,8 @@ import { formatDateVi, formatVnd } from "@/lib/format";
 import type { VoucherData } from "@/lib/voucher";
 import { MapQr } from "@/components/map-qr";
 import { VoucherLogo } from "@/components/voucher-logo";
+import { FONT_CSS } from "@/lib/voucher-config";
 
-const FONT = { MODERN: "font-sans", CLASSIC: "font-serif", MONO: "font-mono" } as const;
 const STATUS: Record<string, string> = {
   HOLDING: "ĐANG GIỮ PHÒNG", CONFIRMED: "ĐÃ XÁC NHẬN", CHECKED_IN: "ĐANG LƯU TRÚ", CHECKED_OUT: "ĐÃ TRẢ PHÒNG", CANCELLED: "ĐÃ HUỶ",
 };
@@ -30,12 +30,14 @@ export function BoutiqueView({ v }: { v: VoucherData }) {
   const showCover = c.blocks.show_cover_image && !!c.branding.cover_image_url;
   const hasExtras = v.addons.length > 0 || v.extraFees > 0;
   const remaining = Math.max(v.remaining, 0);
+  // Thứ tự khối (block_order) áp dụng trong 2 cột phía dưới: trái = Bảng giá ↔ Chính sách (phụ thu, điều khoản); phải = Điều khoản huỷ ↔ Lời cảm ơn
+  const at = (id: (typeof c.block_order)[number]) => ({ order: c.block_order.indexOf(id) });
 
   return (
     <div
       id="voucher-capture" data-template="DALAT_BOUTIQUE"
-      className={`@container mx-auto flex w-full max-w-[820px] flex-col overflow-hidden text-black @[700px]:min-h-[1130px] ${FONT[c.branding.font_style]}`}
-      style={{ backgroundColor: c.branding.background_color }}
+      className={`@container mx-auto flex w-full max-w-[820px] flex-col overflow-hidden text-black @[700px]:min-h-[1130px] `}
+      style={{ backgroundColor: c.branding.background_color, fontFamily: FONT_CSS[c.branding.font_family] }}
     >
       {/* ───── Dải tiêu đề ───── */}
       <header className="px-6 py-8 text-center text-white @[700px]:py-6" style={{ backgroundColor: dark }}>
@@ -80,7 +82,8 @@ export function BoutiqueView({ v }: { v: VoucherData }) {
 
       {/* ───── Khối dưới: trái (giá, phụ thu, điều khoản) | phải (huỷ, lời chào, QR) ───── */}
       <div className="grid flex-1 @[700px]:grid-cols-[54%_46%]">
-        <section className="space-y-5 px-6 py-7 text-white @[700px]:space-y-3 @[700px]:py-5" style={{ backgroundColor: panel }}>
+        <section className="flex flex-col gap-5 px-6 py-7 text-white @[700px]:gap-3 @[700px]:py-5" style={{ backgroundColor: panel }}>
+          <div className="space-y-5 @[700px]:space-y-3" style={at("PRICE_TABLE")}>
           {c.blocks.show_price_table && (
             <>
               <dl className="money-num grid grid-cols-4 divide-x divide-white/50 border border-white/50 text-center text-[13px] font-bold">
@@ -108,6 +111,8 @@ export function BoutiqueView({ v }: { v: VoucherData }) {
               : <>Quý khách đã thanh toán đủ</>}
           </p>
           <hr className="mx-auto w-4/5 border-white/70" />
+          </div>
+          <div className="space-y-5 @[700px]:space-y-3" style={at("POLICIES")}>
           {c.blocks.show_surcharge_policy && c.custom_texts.surcharge_policy && (
             <div className="space-y-1">
               <h3 className="text-center text-[12px] font-bold tracking-wide uppercase italic">Chính sách phụ thu phát sinh (nếu có):</h3>
@@ -120,10 +125,11 @@ export function BoutiqueView({ v }: { v: VoucherData }) {
               <ol className="space-y-1 text-[11px] leading-5 uppercase @[700px]:space-y-0.5 @[700px]:text-[9.5px] @[700px]:leading-[1.35]">{lines(c.custom_texts.terms_conditions).map((l, i) => <li key={i}>{l}</li>)}</ol>
             </div>
           )}
+          </div>
         </section>
 
         <section className="flex flex-col justify-between gap-8 px-8 py-7 @[700px]:gap-4 @[700px]:px-7 @[700px]:py-5" style={{ color: ink }}>
-          <div className="space-y-4">
+          <div className="space-y-4" style={at("POLICIES")}>
             {c.blocks.show_cancellation_policy && c.custom_texts.cancellation_policy && (
               <>
                 <h3 className="text-center text-[13px] font-bold tracking-wide uppercase">Điều khoản hủy booking</h3>
@@ -131,7 +137,7 @@ export function BoutiqueView({ v }: { v: VoucherData }) {
               </>
             )}
           </div>
-          <div className="space-y-6">
+          <div className="space-y-6" style={at("FOOTER")}>
             {c.custom_texts.footer_greeting && (
               <p className="text-center text-[12px] leading-5 font-bold whitespace-pre-line italic">{c.custom_texts.footer_greeting}</p>
             )}

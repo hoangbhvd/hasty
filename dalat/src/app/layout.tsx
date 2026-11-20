@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
+import { Plus_Jakarta_Sans, JetBrains_Mono, Be_Vietnam_Pro, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import { PwaRegister } from "@/components/pwa-register";
 
@@ -9,6 +9,10 @@ const plusJakarta = Plus_Jakarta_Sans({
   variable: "--font-plus-jakarta",
   display: "swap",
 });
+
+// Hai font của Booking Confirmation (VOUCHER_SPEC font_family)
+const beVietnam = Be_Vietnam_Pro({ subsets: ["latin", "vietnamese"], weight: ["400", "500", "600", "700", "800"], variable: "--font-be-vietnam", display: "swap" });
+const playfair = Playfair_Display({ subsets: ["latin", "vietnamese"], weight: ["400", "500", "600", "700"], variable: "--font-playfair", display: "swap" });
 
 const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin", "vietnamese"],
@@ -38,7 +42,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="vi" className={`${plusJakarta.variable} ${jetbrainsMono.variable}`}>
+    <html lang="vi" className={`${plusJakarta.variable} ${jetbrainsMono.variable} ${beVietnam.variable} ${playfair.variable}`}>
       <body className="min-h-screen bg-background text-foreground">
         {children}
         <PwaRegister />

@@ -1,11 +1,11 @@
 import { formatDateVi, formatVnd } from "@/lib/format";
 import type { VoucherData } from "@/lib/voucher";
-import type { VoucherConfig } from "@/lib/voucher-config";
+import { FONT_CSS, type BlockId, type VoucherConfig } from "@/lib/voucher-config";
 import { BoutiqueView } from "@/components/voucher-boutique";
 import { VoucherQr } from "@/components/voucher-qr";
 import { VoucherLogo } from "@/components/voucher-logo";
+import { Fragment } from "react";
 
-const FONT = { MODERN: "font-sans", CLASSIC: "font-serif", MONO: "font-mono" } as const;
 const STATUS: Record<string, string> = {
   HOLDING: "ĐANG GIỮ PHÒNG", CONFIRMED: "ĐÃ XÁC NHẬN", CHECKED_IN: "ĐANG LƯU TRÚ", CHECKED_OUT: "ĐÃ TRẢ PHÒNG", CANCELLED: "ĐÃ HUỶ",
 };
@@ -92,10 +92,10 @@ export function VoucherView({ v, token }: { v: VoucherData; token: string }) {
   const wrapperClass = receipt
     ? "max-w-[360px] space-y-3 border-y-2 border-dashed border-black px-4 py-5 font-mono text-[12px]"
     : luxury
-      ? `max-w-[430px] space-y-6 border p-9 ${FONT[c.branding.font_style]}`
+      ? `max-w-[430px] space-y-6 border p-9`
       : brutal
-        ? `max-w-[430px] space-y-4 border-2 border-black bg-white p-5 shadow-[6px_6px_0px_0px_#000] ${FONT[c.branding.font_style]}`
-        : `max-w-[430px] space-y-4 border p-5 ${FONT[c.branding.font_style]}`;
+        ? `max-w-[430px] space-y-4 border-2 border-black bg-white p-5 shadow-[6px_6px_0px_0px_#000]`
+        : `max-w-[430px] space-y-4 border p-5`;
   const wrapperStyle: React.CSSProperties | undefined = brutal
     ? undefined
     : receipt
@@ -104,10 +104,12 @@ export function VoucherView({ v, token }: { v: VoucherData; token: string }) {
         ? { backgroundColor: c.branding.background_color, borderColor: faint(main, "66"), outline: `1px solid ${faint(main, "33")}`, outlineOffset: "-10px" }
         : { backgroundColor: c.branding.background_color, borderColor: main };
 
+  const fontStyle: React.CSSProperties = receipt ? {} : { fontFamily: FONT_CSS[c.branding.font_family] };
   const statusPill = `rounded-full border border-black px-2 py-0.5 text-[10px] font-bold ${v.status === "CANCELLED" ? "bg-status-cancelled" : v.status === "HOLDING" ? "bg-status-holding" : "bg-status-confirmed-bg"}`;
 
-  return (
-    <div id="voucher-capture" data-template={variant} className={`mx-auto w-full text-black ${wrapperClass}`} style={wrapperStyle}>
+  const parts: Record<BlockId, React.ReactNode> = {
+    HEADER: (
+      <>
       <VoucherLogo config={c} className="[column-span:all]" />
       {/* ───── Đầu phiếu ───── */}
       {luxury ? (
@@ -153,6 +155,10 @@ export function VoucherView({ v, token }: { v: VoucherData; token: string }) {
         <div className={luxury ? "text-xs tracking-[0.2em] text-black/60 uppercase" : "text-sm"}>{v.roomLabel}</div>
       </section>
 
+      </>
+    ),
+    GUEST_INFO: (
+      <>
       <Section look={look} title="Thông tin lưu trú">
         <dl className={`space-y-1.5 ${receipt ? "" : "text-sm"}`}>
           <Row look={look} k="Khách" v={v.guestName} />
@@ -162,6 +168,29 @@ export function VoucherView({ v, token }: { v: VoucherData; token: string }) {
         </dl>
       </Section>
 
+      <Section look={look} title="Hướng dẫn đến nhà">
+        {v.checkinGuide && <p className={`whitespace-pre-line ${receipt ? "" : "text-sm"} ${luxury ? "text-center text-black/80" : ""}`}>{v.checkinGuide}</p>}
+        <div className={`space-y-0.5 ${receipt ? "" : "text-sm"} ${luxury ? "text-center" : ""}`}>
+          {c.blocks.show_caretaker_phone && v.caretakerPhone && <div>Quản gia: <b className="money-num">{v.caretakerPhone}</b></div>}
+          {v.supportPhone && <div>{v.supportLabel}: <b className="money-num">{v.supportPhone}</b></div>}
+        </div>
+        {c.blocks.show_google_maps && v.mapsUrl && (
+          <div className={luxury ? "text-center" : undefined}>
+            <a
+              href={v.mapsUrl} target="_blank" rel="noopener noreferrer"
+              className={`no-print mt-1 inline-flex h-10 items-center px-4 text-sm text-black ${luxury ? "border text-[11px] tracking-[0.2em] uppercase" : "brutal-btn bg-primary"}`}
+              style={luxury ? { borderColor: main } : undefined}
+            >
+              {luxury ? "Mở Google Maps" : "📍 Mở Google Maps"}
+            </a>
+          </div>
+        )}
+      </Section>
+
+      </>
+    ),
+    PRICE_TABLE: (
+      <>
       {c.blocks.show_price_table && (
         <Section look={look} title="Chi phí">
           {receipt ? (
@@ -209,32 +238,25 @@ export function VoucherView({ v, token }: { v: VoucherData; token: string }) {
           <Row look={look} k="Đã thanh toán" v={formatVnd(v.paid)} />
           <Row look={look} k="Còn lại" v={formatVnd(Math.max(v.remaining, 0))} strong />
         </dl>
-        {c.blocks.show_vietqr && v.hasQr && <VoucherQr token={token} code={v.bookingCode} className={receipt ? "w-36" : "w-48"} />}
       </Section>
 
-      <Section look={look} title="Hướng dẫn đến nhà">
-        {v.checkinGuide && <p className={`whitespace-pre-line ${receipt ? "" : "text-sm"} ${luxury ? "text-center text-black/80" : ""}`}>{v.checkinGuide}</p>}
-        <div className={`space-y-0.5 ${receipt ? "" : "text-sm"} ${luxury ? "text-center" : ""}`}>
-          {c.blocks.show_caretaker_phone && v.caretakerPhone && <div>Quản gia: <b className="money-num">{v.caretakerPhone}</b></div>}
-          {v.supportPhone && <div>{v.supportLabel}: <b className="money-num">{v.supportPhone}</b></div>}
-        </div>
-        {c.blocks.show_google_maps && v.mapsUrl && (
-          <div className={luxury ? "text-center" : undefined}>
-            <a
-              href={v.mapsUrl} target="_blank" rel="noopener noreferrer"
-              className={`no-print mt-1 inline-flex h-10 items-center px-4 text-sm text-black ${luxury ? "border text-[11px] tracking-[0.2em] uppercase" : "brutal-btn bg-primary"}`}
-              style={luxury ? { borderColor: main } : undefined}
-            >
-              {luxury ? "Mở Google Maps" : "📍 Mở Google Maps"}
-            </a>
-          </div>
-        )}
+      </>
+    ),
+    VIETQR: c.blocks.show_vietqr && v.hasQr ? (
+      <Section look={look} title="Quét mã thanh toán">
+        <VoucherQr token={token} code={v.bookingCode} className={receipt ? "w-36" : "w-48"} />
       </Section>
-
+    ) : null,
+    POLICIES: (
+      <>
       {c.blocks.show_surcharge_policy && c.custom_texts.surcharge_policy && <Policy look={look} title="Chính sách phụ thu phát sinh" text={c.custom_texts.surcharge_policy} />}
       {c.blocks.show_terms_conditions && c.custom_texts.terms_conditions && <Policy look={look} title="Các điều khoản và điều kiện" text={c.custom_texts.terms_conditions} />}
       {c.blocks.show_cancellation_policy && c.custom_texts.cancellation_policy && <Policy look={look} title="Điều khoản hủy booking" text={c.custom_texts.cancellation_policy} />}
 
+      </>
+    ),
+    FOOTER: (
+      <>
       {c.custom_texts.footer_greeting && (
         <footer
           className={`pt-4 text-center whitespace-pre-line ${receipt ? "border-t-2 border-dashed border-black text-[11px]" : brutal ? "border-t-2 border-dashed border-black text-[12px] leading-relaxed" : luxury ? "border-t pt-6 font-serif text-[13px] leading-loose text-black/70 italic" : "border-t text-[12px] leading-relaxed"}`}
@@ -243,6 +265,13 @@ export function VoucherView({ v, token }: { v: VoucherData; token: string }) {
           {c.custom_texts.footer_greeting}
         </footer>
       )}
+      </>
+    ),
+  };
+
+  return (
+    <div id="voucher-capture" data-template={variant} className={`mx-auto w-full text-black ${wrapperClass}`} style={{ ...wrapperStyle, ...fontStyle }}>
+      {c.block_order.map((id) => <Fragment key={id}>{parts[id]}</Fragment>)}
     </div>
   );
 }

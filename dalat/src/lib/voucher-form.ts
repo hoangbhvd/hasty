@@ -8,10 +8,11 @@ export function configFromForm(fd: FormData, extra: { cover: string | null; logo
     mode: extra.mode ?? "TEMPLATE",
     pdfme_config: extra.pdfme ?? DEFAULT_VOUCHER_CONFIG.pdfme_config,
     template_id: s("template_id"),
+    block_order: s("block_order"),
     branding: {
       logo_url: extra.logo, logo_position: s("logo_position"), logo_size_px: s("logo_size_px"),
       brand_name: s("brand_name").trim(), cover_image_url: extra.cover, image_frame_style: s("image_frame_style"),
-      primary_color: s("primary_color"), background_color: s("background_color"), font_style: s("font_style"),
+      primary_color: s("primary_color"), background_color: s("background_color"), font_family: s("font_family"),
     },
     blocks,
     stay_times: { checkin_time: s("checkin_time"), checkout_time: s("checkout_time") },

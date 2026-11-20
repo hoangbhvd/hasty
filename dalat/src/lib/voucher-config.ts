@@ -11,7 +11,35 @@ export const TEMPLATE_LABEL: Record<(typeof TEMPLATE_IDS)[number], string> = {
   RECEIPT_COMPACT: "Receipt Compact (biên lai gọn)",
 };
 export const FRAME_STYLES = ["ARCH", "RECTANGLE", "ROUNDED"] as const;
-export const FONT_STYLES = ["MODERN", "CLASSIC", "MONO"] as const;
+export const FONT_FAMILIES = ["PLUS_JAKARTA", "BE_VIETNAM", "PLAYFAIR_SERIF"] as const;
+export const FONT_LABEL: Record<(typeof FONT_FAMILIES)[number], string> = {
+  PLUS_JAKARTA: "Plus Jakarta Sans (hiện đại)",
+  BE_VIETNAM: "Be Vietnam Pro (chuẩn tiếng Việt)",
+  PLAYFAIR_SERIF: "Playfair Display (cổ điển, có chân)",
+};
+/** CSS font-family cho từng lựa chọn (biến do next/font khai báo ở app/layout.tsx). */
+export const FONT_CSS: Record<(typeof FONT_FAMILIES)[number], string> = {
+  PLUS_JAKARTA: "var(--font-plus-jakarta), ui-sans-serif, system-ui, sans-serif",
+  BE_VIETNAM: "var(--font-be-vietnam), ui-sans-serif, system-ui, sans-serif",
+  PLAYFAIR_SERIF: "var(--font-playfair), ui-serif, Georgia, serif",
+};
+
+/** Các khối của phiếu, theo thứ tự hiển thị mặc định. */
+export const BLOCK_IDS = ["HEADER", "GUEST_INFO", "PRICE_TABLE", "VIETQR", "POLICIES", "FOOTER"] as const;
+export type BlockId = (typeof BLOCK_IDS)[number];
+export const BLOCK_LABEL: Record<BlockId, string> = {
+  HEADER: "Đầu phiếu (logo, ảnh, tên, tiêu đề)", GUEST_INFO: "Thông tin khách & lưu trú", PRICE_TABLE: "Bảng giá & thanh toán",
+  VIETQR: "Mã VietQR", POLICIES: "3 khối chính sách", FOOTER: "Lời cảm ơn cuối phiếu",
+};
+
+/** Danh sách hợp lệ: bỏ id lạ/trùng, id thiếu được thêm vào cuối theo thứ tự mặc định. */
+export function normalizeBlockOrder(v: unknown): BlockId[] {
+  const raw = Array.isArray(v) ? v : typeof v === "string" ? v.split(",") : [];
+  const seen = new Set<BlockId>();
+  for (const x of raw) { const id = String(x).trim() as BlockId; if ((BLOCK_IDS as readonly string[]).includes(id)) seen.add(id); }
+  for (const id of BLOCK_IDS) seen.add(id);
+  return [...seen];
+}
 export const LOGO_POSITIONS = ["LEFT", "CENTER", "RIGHT"] as const;
 export const LOGO_MIN_PX = 40, LOGO_MAX_PX = 140;
 export const VOUCHER_MODES = ["TEMPLATE", "CUSTOM_PDFME"] as const;
@@ -28,6 +56,8 @@ export type VoucherConfig = {
   mode: (typeof VOUCHER_MODES)[number];
   pdfme_config: PdfmeConfig;
   template_id: (typeof TEMPLATE_IDS)[number];
+  /** Thứ tự các khối trên phiếu (xem BLOCK_IDS). */
+  block_order: BlockId[];
   branding: {
     logo_url: string | null;
     logo_position: (typeof LOGO_POSITIONS)[number];
@@ -37,7 +67,7 @@ export type VoucherConfig = {
     image_frame_style: (typeof FRAME_STYLES)[number];
     primary_color: string;
     background_color: string;
-    font_style: (typeof FONT_STYLES)[number];
+    font_family: (typeof FONT_FAMILIES)[number];
   };
   blocks: {
     show_logo: boolean;
@@ -64,6 +94,7 @@ export const DEFAULT_VOUCHER_CONFIG: VoucherConfig = {
   mode: "TEMPLATE",
   pdfme_config: { base_pdf_url: null, schemas: [] },
   template_id: "DALAT_BOUTIQUE",
+  block_order: [...BLOCK_IDS],
   branding: {
     logo_url: null,
     logo_position: "CENTER",
@@ -73,7 +104,7 @@ export const DEFAULT_VOUCHER_CONFIG: VoucherConfig = {
     image_frame_style: "ARCH",
     primary_color: "#C49C89",
     background_color: "#FFFFFF",
-    font_style: "MODERN",
+    font_family: "PLUS_JAKARTA",
   },
   blocks: {
     show_logo: true,
@@ -173,6 +204,7 @@ export function parseVoucherConfig(raw: unknown): VoucherConfig {
     mode: oneOf(r.mode, VOUCHER_MODES, d.mode),
     pdfme_config: parsePdfme(r.pdfme_config),
     template_id: oneOf(r.template_id, TEMPLATE_IDS, d.template_id),
+    block_order: normalizeBlockOrder(r.block_order),
     branding: {
       logo_url: https(b.logo_url),
       logo_position: oneOf(b.logo_position, LOGO_POSITIONS, d.branding.logo_position),
@@ -182,7 +214,8 @@ export function parseVoucherConfig(raw: unknown): VoucherConfig {
       image_frame_style: oneOf(b.image_frame_style, FRAME_STYLES, d.branding.image_frame_style),
       primary_color: hex(b.primary_color, d.branding.primary_color),
       background_color: hex(b.background_color, d.branding.background_color),
-      font_style: oneOf(b.font_style, FONT_STYLES, d.branding.font_style),
+      // font_style (MODERN/CLASSIC/MONO) là tên cũ: đổi sang font_family tương ứng để cấu hình đã lưu vẫn đúng
+      font_family: oneOf(b.font_family ?? ({ CLASSIC: "PLAYFAIR_SERIF" } as Record<string, string>)[String(b.font_style)], FONT_FAMILIES, d.branding.font_family),
     },
     blocks: Object.fromEntries(
       (Object.keys(d.blocks) as (keyof VoucherConfig["blocks"])[]).map((key) => [key, bool(k[key], d.blocks[key])]),

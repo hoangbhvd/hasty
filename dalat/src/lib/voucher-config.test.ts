@@ -49,3 +49,23 @@ test("pdfme: chỉ giữ biến cho phép (không bao giờ có giá Net), kẹp
   assert.equal(parseVoucherConfig({ pdfme_config: { base_pdf_url: "http://x/a.pdf" } }).pdfme_config.base_pdf_url, null);
   assert.equal(parseVoucherConfig({ mode: "HACK" }).mode, "TEMPLATE");
 });
+
+test("block_order: bỏ id lạ/trùng, thêm id thiếu vào cuối theo thứ tự mặc định", () => {
+  const o = (v: unknown) => parseVoucherConfig({ block_order: v }).block_order;
+  const D = ["HEADER", "GUEST_INFO", "PRICE_TABLE", "VIETQR", "POLICIES", "FOOTER"];
+  assert.deepEqual(o(undefined), D);
+  assert.deepEqual(o("nope"), D);
+  assert.deepEqual(o(["FOOTER", "HEADER", "HEADER", "XYZ", "POLICIES"]), ["FOOTER", "HEADER", "POLICIES", "GUEST_INFO", "PRICE_TABLE", "VIETQR"]);
+  assert.deepEqual(o("PRICE_TABLE,HEADER"), ["PRICE_TABLE", "HEADER", "GUEST_INFO", "VIETQR", "POLICIES", "FOOTER"]);
+});
+
+test("font_family: 3 lựa chọn theo spec; font_style cũ được đổi sang tương ứng", () => {
+  const f = (b: Record<string, unknown>) => parseVoucherConfig({ branding: b }).branding.font_family;
+  assert.equal(f({}), "PLUS_JAKARTA");
+  assert.equal(f({ font_family: "BE_VIETNAM" }), "BE_VIETNAM");
+  assert.equal(f({ font_family: "PLAYFAIR_SERIF" }), "PLAYFAIR_SERIF");
+  assert.equal(f({ font_family: "COMIC" }), "PLUS_JAKARTA");
+  assert.equal(f({ font_style: "CLASSIC" }), "PLAYFAIR_SERIF"); // cấu hình đã lưu từ trước
+  assert.equal(f({ font_style: "MODERN" }), "PLUS_JAKARTA");
+  assert.equal(f({ font_style: "MONO" }), "PLUS_JAKARTA");
+});
