@@ -11,6 +11,7 @@ import { Check, Field, Select } from "@/components/form-fields";
 import { BillCard, HoldRequestCard, MediaPackCard, NetPriceCard } from "@/components/chat-cards";
 import { getSocket } from "@/lib/socket-client";
 import { useUnread } from "@/components/realtime-provider";
+import { ProposeNetForm } from "@/components/net-price-ui";
 import { useSafeForm } from "@/lib/use-safe-form";
 import { holdRequestAction, shareMediaAction } from "@/app/(app)/chat-actions";
 import type { ChatRole, MessageDto } from "@/lib/chat";
@@ -51,11 +52,14 @@ function HoldForm({ convId, options, onDone }: { convId: string; options: HoldOp
 }
 
 export function ChatView({
-  conversationId, role, myId, initial, holdOptions, mediaOptions, bookingPath,
+  conversationId, role, myId, initial, holdOptions, mediaOptions, bookingPath, netOption,
 }: {
   conversationId: string; role: ChatRole; myId: string; initial: MessageDto[];
   holdOptions: HoldOption[]; mediaOptions: { id: string; name: string }[]; bookingPath: string | null;
+  /** CTV + booking còn mặc cả được và chưa có đề xuất chờ */
+  netOption: { bookingId: string; current: number; max: number } | null;
 }) {
+  const [netSent, setNetSent] = useState(false);
   const [messages, setMessages] = useState<MessageDto[]>(initial);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
@@ -146,6 +150,11 @@ export function ChatView({
                   ))}
                 </ul>
               )}
+            </Modal>
+          )}
+          {role === "BROKER" && netOption && !netSent && (
+            <Modal trigger="✏️ Đề xuất giá Net" title="Đề xuất sửa giá Net">
+              {(close) => <ProposeNetForm bookingId={netOption.bookingId} current={netOption.current} max={netOption.max} startOpen onDone={() => { setNetSent(true); close(); }} />}
             </Modal>
           )}
           {bookingPath && <Link href={bookingPath} className="brutal-btn inline-flex h-11 items-center bg-white px-4 text-sm text-black">💸 Gửi bill / Chi tiết</Link>}

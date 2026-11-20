@@ -55,6 +55,18 @@ export async function ChatConversationPage({ userId, id, viewer }: { userId: str
     : [];
   const mediaOptions = viewer === "HOST" ? props.map((p) => ({ id: p.id, name: p.name })) : [];
 
+  // Nút "Đề xuất giá Net" cho CTV: booking của căn chủ nhà, còn mặc cả được, chưa có đề xuất chờ
+  let netOption: { bookingId: string; current: number; max: number } | null = null;
+  if (viewer === "BROKER" && c.conv.bookingId) {
+    const bk = await prisma.booking.findUnique({
+      where: { id: c.conv.bookingId },
+      select: { status: true, hostNetPrice: true, guestTotalPrice: true, netPriceNegotiationStatus: true, property: { select: { sourceType: true } } },
+    });
+    if (bk && bk.property.sourceType === "HOST_MANAGED" && ["HOLDING", "CONFIRMED", "CHECKED_IN"].includes(bk.status) && bk.netPriceNegotiationStatus !== "PENDING") {
+      netOption = { bookingId: c.conv.bookingId, current: Number(bk.hostNetPrice), max: Number(bk.guestTotalPrice) };
+    }
+  }
+
   return (
     <div className="max-w-2xl space-y-3">
       <div>
@@ -64,7 +76,7 @@ export async function ChatConversationPage({ userId, id, viewer }: { userId: str
       </div>
       <ChatView
         conversationId={id} role={viewer} myId={userId} initial={messages} holdOptions={holdOptions} mediaOptions={mediaOptions}
-        bookingPath={c.conv.bookingId ? `${base(viewer)}/bookings/${c.conv.bookingId}` : null}
+        netOption={netOption} bookingPath={c.conv.bookingId ? `${base(viewer)}/bookings/${c.conv.bookingId}` : null}
       />
     </div>
   );

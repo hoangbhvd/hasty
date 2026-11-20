@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ActionButton } from "@/components/action-button";
@@ -11,9 +11,10 @@ import { proposeNetPriceAction, respondNetPriceAction } from "@/app/(app)/net-pr
 import type { NetCardMeta } from "@/lib/net-negotiation";
 
 /** CTV: gửi đề xuất sửa giá Net (mục 4.6). */
-export function ProposeNetForm({ bookingId, current, max }: { bookingId: string; current: number; max: number }) {
-  const [open, setOpen] = useState(false);
+export function ProposeNetForm({ bookingId, current, max, startOpen = false, onDone }: { bookingId: string; current: number; max: number; startOpen?: boolean; onDone?: () => void }) {
+  const [open, setOpen] = useState(startOpen);
   const { state, disabled, pending, ref, onSubmit } = useSafeForm(proposeNetPriceAction.bind(null, bookingId), { resetOnSuccess: true });
+  useEffect(() => { if (state && !state.error) onDone?.(); }, [state, onDone]);
   if (!open) return <Button type="button" variant="outline" className="h-10" onClick={() => setOpen(true)}>✏️ Đề xuất sửa giá Net</Button>;
   return (
     <form ref={ref} onSubmit={onSubmit} className="space-y-3 rounded border border-dashed border-black bg-white p-3">
@@ -25,7 +26,7 @@ export function ProposeNetForm({ bookingId, current, max }: { bookingId: string;
       {state && !state.error && <p role="status" className="text-sm font-medium text-green-800">Đã gửi đề xuất cho chủ nhà.</p>}
       <div className="flex gap-2">
         <Button type="submit" className="h-10" disabled={disabled}>{pending ? "Đang gửi…" : "Gửi đề xuất"}</Button>
-        <Button type="button" variant="outline" className="h-10" onClick={() => setOpen(false)}>Đóng</Button>
+        {!startOpen && <Button type="button" variant="outline" className="h-10" onClick={() => setOpen(false)}>Đóng</Button>}
       </div>
     </form>
   );
