@@ -22,4 +22,4 @@ export function Badge({ tone = "neutral", className, ...props }: React.Component
 export const BOOKING_TONE: Record<string, BadgeTone> = {
   HOLDING: "holding", CONFIRMED: "confirmed", CHECKED_IN: "checkedIn", CHECKED_OUT: "neutral", CANCELLED: "cancelled",
 };
-export const LINK_TONE: Record<string, BadgeTone> = { PENDING: "holding", APPROVED: "confirmed", BLOCKED: "cancelled" };
+export const LINK_TONE: Record<string, BadgeTone> = { PENDING: "holding", APPROVED: "confirmed", REJECTED: "cancelled", BLOCKED: "cancelled" };

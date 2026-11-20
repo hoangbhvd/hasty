@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Avatar } from "@/components/avatar";
 import { prisma } from "@/lib/db";
 import { getConversation, getMessages, listConversations, markRead, type ChatRole } from "@/lib/chat";
 import { ChatView, type HoldOption } from "@/components/chat-view";
@@ -71,7 +72,7 @@ export async function ChatConversationPage({ userId, id, viewer }: { userId: str
     <div className="max-w-2xl space-y-3">
       <div>
         <Link href={`${base(viewer)}/chat`} className="text-sm text-muted-foreground">← Chat</Link>
-        <h1 className="text-xl font-bold">{c.other.fullName}</h1>
+        <div className="flex items-center gap-2"><Avatar name={c.other.fullName} url={c.other.avatarUrl} tone={viewer === "HOST" ? "broker" : "host"} size={36} /><h1 className="text-xl font-bold">{c.other.fullName}</h1></div>
         {c.conv.booking && <p className="font-mono text-xs text-muted-foreground">Booking {c.conv.booking.bookingCode} · {c.conv.booking.guestName}</p>}
       </div>
       <ChatView

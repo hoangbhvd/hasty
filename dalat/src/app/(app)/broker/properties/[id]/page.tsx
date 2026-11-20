@@ -4,6 +4,8 @@ import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/session";
 import { getBrokerVisibleProperty } from "@/lib/access";
 import { MediaManager } from "@/components/media-manager";
+import { ImageUploader } from "@/components/image-uploader";
+import { PropertyCover } from "@/components/avatar";
 import { ActionButton } from "@/components/action-button";
 import { AREA_LABEL, ROAD_LABEL, SLOPE_LABEL } from "@/lib/labels";
 import { formatVnd } from "@/lib/format";
@@ -111,7 +113,14 @@ export default async function BrokerPropertyPage({ params }: { params: Promise<{
 
       <section className="space-y-3">
         <h2 className="font-semibold">Ảnh & video</h2>
+        {external ? (
+          <div className="flex items-end gap-3">
+            <PropertyCover url={p.coverImageUrl} name={p.name} className="w-40 shrink-0" />
+            <ImageUploader kind="cover" propertyId={id} label={p.coverImageUrl ? "Đổi ảnh đại diện căn" : "Tải ảnh đại diện căn"} r2Ready={r2Configured()} />
+          </div>
+        ) : p.coverImageUrl ? <PropertyCover url={p.coverImageUrl} name={p.name} className="w-40" /> : null}
         <MediaManager
+          coverUrl={p.coverImageUrl}
           propertyId={id}
           canEdit={external}
           r2Ready={r2Configured()}

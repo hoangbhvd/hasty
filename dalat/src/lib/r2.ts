@@ -60,3 +60,17 @@ export function keyFromUrl(url: string): string | null {
 export async function deleteObject(key: string) {
   await client().send(new DeleteObjectCommand({ Bucket: env().bucket, Key: key }));
 }
+
+/** Ảnh đại diện (avatar/cover) đã nén ở client: key cố định, ghi đè khi đổi ảnh. */
+export const IMAGE_EXT: Record<string, string> = { "image/webp": "webp", "image/jpeg": "jpg" };
+export const avatarKey = (userId: string, ext: string) => `avatars/${userId}.${ext}`;
+export const coverKey = (propertyId: string, ext: string) => `properties/${propertyId}/cover.${ext}`;
+
+export async function presignFixed(key: string, contentType: string) {
+  const uploadUrl = await getSignedUrl(
+    client(),
+    new PutObjectCommand({ Bucket: env().bucket, Key: key, ContentType: contentType, CacheControl: "public, max-age=31536000" }),
+    { expiresIn: 600 },
+  );
+  return { key, uploadUrl };
+}

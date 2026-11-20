@@ -23,8 +23,8 @@ export async function getConversation(userId: string, convId: string) {
   const conv = await prisma.conversation.findFirst({
     where: { id: convId, OR: [{ hostId: userId }, { brokerId: userId }] },
     include: {
-      host: { select: { id: true, fullName: true } },
-      broker: { select: { id: true, fullName: true } },
+      host: { select: { id: true, fullName: true, avatarUrl: true } },
+      broker: { select: { id: true, fullName: true, avatarUrl: true } },
       booking: { select: { id: true, bookingCode: true, guestName: true } },
     },
   });

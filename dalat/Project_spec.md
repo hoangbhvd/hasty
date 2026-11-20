@@ -266,3 +266,58 @@ Thêm cột `voucher_config` (JSONB, nullable) vào bảng `properties`:
     "footer_greeting": "Xin cảm ơn và hân hạnh được phục vụ quý khách\nChúc quý khách có chuyến nghỉ dưỡng tuyệt vời\nHẹn gặp quý khách tại Đà Lạt"
   }
 }
+
+## 9. CHỢ KẾT NỐI HOMESTAY & HỒ SƠ UY TÍN CỘNG TÁC VIÊN
+
+### 9.1. Cập nhật Database
+- **Bảng `properties`:**
+  - Thêm `is_public_directory` (Boolean, default `true`): Cho phép Chủ nhà bật/tắt việc hiển thị căn lên danh sách tìm kiếm cộng tác chung.
+  - Thêm `public_price_range` (String, nullable — VD: `"2.000k - 3.500k/đêm"`): Khoảng giá tham khảo hiển thị cho CTV chưa kết nối (giúp ẩn giá Net chính xác cho đến khi được duyệt).
+- **Bảng `host_broker_links`:**
+  - Cập nhật `status` ENUM: `PENDING`, `APPROVED`, `REJECTED`, `BLOCKED`.
+  - Thêm `request_note` (TEXT, nullable): Lời nhắn giới thiệu ngắn khi Broker bấm xin cộng tác (VD: *"Em chuyên chạy ads villa Đà Lạt, có tệp khách gia đình cuối tuần ạ"*).
+  - Thêm `responded_at` (TIMESTAMP, nullable).
+- **Bảng `users` (Hồ sơ CTV):**
+  - Thêm `broker_bio` (TEXT, nullable): Giới thiệu bản thân / kênh bán hàng (Facebook, TikTok, Zalo...).
+  - Thêm `broker_score` (Int, default `0`) hoặc tính động (cached) từ các đơn đã hoàn thành.
+
+### 9.2. Danh sách Homestay mở cộng tác (Marketplace cho Broker)
+Trong **Broker Mode**, tạo tab **"Khám phá Homestay"**:
+- **Hiển thị:** Toàn bộ căn có `source_type = 'HOST_MANAGED'` và `is_public_directory = true`. Hỗ trợ lọc theo bộ thuộc tính Đà Lạt (Khu vực, Xe 7/16 chỗ, Nguyên căn/Phòng lẻ, Tiện ích).
+- **Phân quyền hiển thị dữ liệu (Bảo mật cho Chủ nhà):**
+  - **Khi CHƯA cộng tác (`NONE` / `PENDING` / `REJECTED`):** Broker chỉ xem được **Thông tin cơ bản** để ra quyết định: Tên căn, 3–5 ảnh đại diện, Khu vực & khoảng cách ra Chợ Đà Lạt, Đường xe vào, Sức chứa/Số phòng, Tiện ích, Hình thức bán (Nguyên căn/Lẻ), và Khoảng giá tham khảo (`public_price_range`).
+  - **Ẩn hoàn toàn:** Giá Net chi tiết, Lịch trống thời gian thực, Kho ảnh/video gốc sạch, SĐT quản gia và Địa chỉ hẻm chi tiết.
+  - **Khi ĐÃ ĐƯỢC DUYỆT (`APPROVED`):** Mở khóa toàn bộ lịch trống, giá Net theo hạng (`tier`), nút tải bộ ảnh sạch và nút `[Giữ phòng 30p]`.
+
+### 9.3. Luồng Xin Cộng Tác & Duyệt (2 chiều)
+1. **Phía Broker:** Trên thẻ Homestay, bấm nút **[Xin cộng tác]** -> Hiện modal nhỏ nhập `request_note` (tùy chọn) -> Tạo bản ghi `host_broker_links` (`status = 'PENDING'`), nút chuyển sang trạng thái `[Đang chờ duyệt]` (có thể bấm hủy yêu cầu).
+2. **Phía Host:** Nhận thông báo (Telegram/In-app) -> Vào mục **"Mạng lưới Đối tác -> Tab Chờ duyệt"**.
+   - Xem thẻ **Hồ sơ năng lực CTV** đính kèm ngay trên yêu cầu.
+   - Bấm **[Chấp nhận]** (chọn luôn hạng giá `STANDARD` / `VIP` / `AGENCY`) hoặc **[Từ chối]**.
+   - Hệ thống tự động bắn thông báo kết quả về cho Broker.
+
+### 9.4. Hồ sơ năng lực & Điểm uy tín CTV (Broker Trust Card)
+Khi Host bấm xem hồ sơ một Broker (hoặc xem trong danh sách Chờ duyệt), hiển thị thẻ hồ sơ phong cách Gumroad gồm các chỉ số **chỉ tính từ đơn `HOST_MANAGED` đã xác thực trên hệ thống** (không tính đơn `BROKER_EXTERNAL` để chống làm giả số liệu):
+- **Tổng số đơn thành công:** Đếm số booking `status = 'CHECKED_OUT'`.
+- **Tổng số khách đã đưa về:** Tổng `guest_count` của các đơn `CHECKED_OUT`.
+- **Tổng số đêm đã bán:** Tổng `(check_out - check_in)` của các đơn `CHECKED_OUT`.
+- **Tỷ lệ hoàn thành / Tỷ lệ hủy:** % đơn `CHECKED_OUT` trên tổng đơn đã `CONFIRMED` (giúp Host né các CTV hay hủy kèo sát giờ).
+- **Điểm uy tín (`broker_score`) & Huy hiệu (Badge):**
+  - Công thức gợi ý: `+10 điểm` cho mỗi đơn `CHECKED_OUT` + `+2 điểm` cho mỗi đêm bán được (`-15 điểm` nếu hủy đơn sau khi đã `CONFIRMED` do lỗi CTV).
+  - Huy hiệu tự động: `CTV Mới` (< 50đ) | `CTV Tích cực` (50–199đ) | `Top Seller Đà Lạt` (≥ 200đ).
+
+  ### Bổ sung: Ảnh đại diện cho Căn (Property Cover) & Người dùng (User Avatar)
+
+1. **Database:**
+   - **Bảng `properties`:** Thêm cột `cover_image_url` (String, nullable) để hiển thị nhanh trên danh sách/thẻ Homestay (Chợ kết nối, Tìm phòng, Lịch) mà không cần query join bảng `property_media`.
+   - **Bảng `users`:** Sử dụng cột `avatar_url` (String, nullable) đã có.
+
+2. **Upload & Tối ưu dung lượng (Cloudflare R2):**
+   - Nén và resize ảnh ngay trên client trước khi upload lên R2 (định dạng `.webp` hoặc `.jpg` nhẹ):
+     - **User Avatar:** Tối đa `400x400px` (tỷ lệ 1:1), lưu tại `avatars/{user_id}.webp`.
+     - **Property Cover:** Tối đa `1200x800px` (tỷ lệ 3:2 hoặc 16:10), lưu tại `properties/{property_id}/cover.webp`.
+   - Trong trang quản lý Kho ảnh (`property_media`) của Căn, thêm nút **[Đặt làm ảnh đại diện]** để Chủ nhà có thể chọn nhanh 1 ảnh có sẵn trong album làm `cover_image_url` mà không cần upload lại.
+
+3. **Hiển thị UI (Chuẩn Gumroad):**
+   - **User Avatar:** Khung tròn `rounded-full border border-black object-cover`. Nếu người dùng chưa up ảnh, tự động hiển thị chữ cái đầu của tên (Initials) trên nền `bg-secondary` (Host) hoặc `bg-primary` (Broker). Hiển thị tại Header, Khung chat Booking, và Thẻ hồ sơ uy tín CTV (`Broker Trust Card`).
+   - **Property Cover:** Khung `border border-black object-cover` (tỷ lệ `aspect-[4/3]`). Nếu là `BROKER_EXTERNAL` chưa up ảnh, hiển thị placeholder gọn gàng theo phong cách Gumroad (nền kem `#F4F4F0` + icon ngôi nhà viền đen).

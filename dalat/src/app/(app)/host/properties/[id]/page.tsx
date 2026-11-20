@@ -7,6 +7,8 @@ import { PropertyForm, type PropertyDefaults } from "@/components/property-form"
 import { RoomsManager } from "@/components/rooms-manager";
 import { SpecialPricesManager } from "@/components/special-prices-manager";
 import { MediaManager } from "@/components/media-manager";
+import { ImageUploader } from "@/components/image-uploader";
+import { PropertyCover } from "@/components/avatar";
 import { ActionButton } from "@/components/action-button";
 import { formatVnd, parseDateOnly, todayVn, toDateOnly } from "@/lib/format";
 import { TIER_LABEL } from "@/lib/labels";
@@ -74,7 +76,12 @@ export default async function EditPropertyPage({ params }: { params: Promise<{ i
 
       <section className="space-y-3 border-t pt-6">
         <h2 className="text-lg font-semibold">Ảnh & video</h2>
+        <div className="flex items-end gap-3">
+          <PropertyCover url={p.coverImageUrl} name={p.name} className="w-40 shrink-0" />
+          <ImageUploader kind="cover" propertyId={id} label={p.coverImageUrl ? "Đổi ảnh đại diện căn" : "Tải ảnh đại diện căn"} r2Ready={r2Configured()} />
+        </div>
         <MediaManager
+          coverUrl={p.coverImageUrl}
           propertyId={id}
           canEdit
           r2Ready={r2Configured()}

@@ -29,6 +29,8 @@ export const propertySchema = z
     allowIndividualRooms: z.boolean(),
     baseWeekdayNet: optMoney,
     baseWeekendNet: optMoney,
+    isPublicDirectory: z.boolean(),
+    publicPriceRange: z.preprocess(emptyToUndef, z.string().trim().max(60).optional()),
   })
   .refine((v) => v.allowWholeUnit || v.allowIndividualRooms, {
     message: "Chọn ít nhất một hình thức: nguyên căn hoặc phòng lẻ",
@@ -53,6 +55,8 @@ export function propertyFromForm(fd: FormData) {
     allowIndividualRooms: fd.get("allowIndividualRooms") === "on",
     baseWeekdayNet: get("baseWeekdayNet"),
     baseWeekendNet: get("baseWeekendNet"),
+    isPublicDirectory: fd.get("isPublicDirectory") === "on",
+    publicPriceRange: get("publicPriceRange"),
   });
 }
 

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PropertyCover } from "@/components/avatar";
 import { Plus } from "lucide-react";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/session";
@@ -27,12 +28,15 @@ export default async function HostPropertiesPage() {
         <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {props.map((p) => (
             <li key={p.id}>
-              <Link href={`/host/properties/${p.id}`} className="block space-y-1 rounded border border-black bg-white shadow-brutal-sm md:brutal-card p-4 hover:bg-muted">
+              <Link href={`/host/properties/${p.id}`} className="block space-y-1 overflow-hidden rounded border border-black bg-white shadow-brutal-sm md:brutal-card hover:bg-muted">
+                <PropertyCover url={p.coverImageUrl} name={p.name} className="border-0 border-b" />
+                <div className="space-y-1 p-4">
                 <div className="font-medium">{p.name}</div>
                 <div className="text-sm text-muted-foreground">
                   {AREA_LABEL[p.area]} · {p._count.rooms} phòng · {p._count.media} ảnh/video
                 </div>
                 <div className="money-num text-sm">Net: {formatVnd(p.baseWeekdayNet)} / {formatVnd(p.baseWeekendNet)}</div>
+                </div>
               </Link>
             </li>
           ))}

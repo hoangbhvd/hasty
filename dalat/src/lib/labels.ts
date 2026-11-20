@@ -22,7 +22,7 @@ export const SLOPE_LABEL = {
 } as const;
 
 export const TIER_LABEL = { STANDARD: "Standard", VIP: "VIP", AGENCY: "Agency" } as const;
-export const LINK_STATUS_LABEL = { PENDING: "Chờ duyệt", APPROVED: "Đã duyệt", BLOCKED: "Đã chặn" } as const;
+export const LINK_STATUS_LABEL = { PENDING: "Chờ duyệt", APPROVED: "Đã duyệt", REJECTED: "Đã từ chối", BLOCKED: "Đã chặn" } as const;
 
 export const VIEW_OPTIONS = ["Đồi thông", "Thung lũng", "Thành phố", "Hồ", "Núi", "Vườn hoa"] as const;
 

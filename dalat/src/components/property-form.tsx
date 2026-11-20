@@ -12,6 +12,7 @@ export type PropertyDefaults = {
   roadAccess?: string; slopeLevel?: string; address?: string | null; googleMapsUrl?: string | null; checkinGuide?: string | null;
   caretakerPhone?: string | null; houseRules?: string | null; allowWholeUnit?: boolean; allowIndividualRooms?: boolean;
   baseWeekdayNet?: number | null; baseWeekendNet?: number | null;
+  isPublicDirectory?: boolean; publicPriceRange?: string | null;
   amenities?: { bbQ?: boolean; ac?: boolean; pet_friendly?: boolean; karaoke?: boolean; views?: string[] };
 };
 
@@ -105,6 +106,14 @@ export function PropertyForm({
         </Field>
         <Field label="Nội quy" htmlFor="houseRules">
           <Textarea id="houseRules" name="houseRules" defaultValue={defaults.houseRules ?? ""} />
+        </Field>
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="font-semibold">Chợ kết nối CTV</h2>
+        <Check name="isPublicDirectory" label="Hiển thị căn này trong “Khám phá Homestay” để CTV xin cộng tác" defaultChecked={defaults.isPublicDirectory ?? true} />
+        <Field label="Khoảng giá tham khảo (hiện cho CTV chưa kết nối, không lộ giá Net)" htmlFor="publicPriceRange">
+          <Input id="publicPriceRange" name="publicPriceRange" defaultValue={defaults.publicPriceRange ?? ""} maxLength={60} placeholder="2.000k - 3.500k/đêm" className="h-11 text-base" />
         </Field>
       </section>
 

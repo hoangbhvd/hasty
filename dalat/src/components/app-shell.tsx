@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTransition } from "react";
-import { LogOut, MoreHorizontal, UserCircle } from "lucide-react";
+import { LogOut, MoreHorizontal } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { cn } from "@/lib/utils";
 import { switchModeAction } from "@/app/(app)/actions";
+import { Avatar } from "@/components/avatar";
 import { logoutAction } from "@/app/(auth)/actions";
 import { NAV, type Mode, type NavItem } from "@/lib/nav";
 import { RealtimeProvider, useUnread } from "@/components/realtime-provider";
@@ -48,7 +49,7 @@ export function AppShell({
   mode: cookieMode, user, children,
 }: {
   mode: Mode;
-  user: { fullName: string; phone: string | null; isHost: boolean; isBroker: boolean };
+  user: { fullName: string; avatarUrl?: string | null; phone: string | null; isHost: boolean; isBroker: boolean };
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -70,7 +71,9 @@ export function AppShell({
           ))}
         </nav>
         <div className="space-y-2 border-t border-sidebar-border pt-3 text-sm">
-          <Link href="/account" className="block font-medium underline-offset-2 hover:underline">{user.fullName}</Link>
+          <Link href="/account" className="flex items-center gap-2 font-medium underline-offset-2 hover:underline">
+            <Avatar name={user.fullName} url={user.avatarUrl} tone={mode === "host" ? "host" : "broker"} size={32} />{user.fullName}
+          </Link>
           {user.phone && <div className="money-num text-sidebar-foreground/70">{user.phone}</div>}
           <form action={logoutAction}>
             <button className="flex items-center gap-2 text-sidebar-foreground/70 hover:text-sidebar-foreground">
@@ -86,7 +89,7 @@ export function AppShell({
           <div className="flex-1">
             <RoleSwitcher mode={mode} canHost={user.isHost} canBroker={user.isBroker} />
           </div>
-          <Link href="/account" aria-label="Tài khoản" className="grid size-10 place-items-center rounded text-black"><UserCircle className="size-5" /></Link>
+          <Link href="/account" aria-label="Tài khoản" className="grid size-10 place-items-center rounded text-black"><Avatar name={user.fullName} url={user.avatarUrl} tone={mode === "host" ? "host" : "broker"} size={28} /></Link>
           <form action={logoutAction}>
             <button aria-label="Đăng xuất" className="grid size-10 place-items-center rounded text-black">
               <LogOut className="size-5" />

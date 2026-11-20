@@ -6,12 +6,14 @@ import { Download, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ActionButton } from "@/components/action-button";
 import { deleteMediaAction, registerMediaAction } from "@/app/(app)/media-actions";
+import { setCoverFromMediaAction } from "@/app/(app)/profile-actions";
 
 type Item = { id: string; url: string; type: "IMAGE" | "VIDEO"; roomName: string | null };
 
 export function MediaManager({
-  propertyId, items, rooms, canEdit, r2Ready,
+  propertyId, items, rooms, canEdit, r2Ready, coverUrl,
 }: {
+  coverUrl?: string | null;
   propertyId: string;
   items: Item[];
   rooms: { id: string; name: string }[];
@@ -97,6 +99,15 @@ export function MediaManager({
                 <video src={m.url} controls preload="metadata" className="size-full object-cover" />
               )}
             </div>
+            {canEdit && m.type === "IMAGE" && (
+              <div className="px-2 pt-2">
+                {m.url === coverUrl ? (
+                  <span className="inline-block rounded border border-black bg-primary px-2 py-1 text-xs font-bold">⭐ Ảnh đại diện</span>
+                ) : (
+                  <ActionButton action={() => setCoverFromMediaAction(m.id)} className="h-9 w-full justify-center text-xs">Đặt làm ảnh đại diện</ActionButton>
+                )}
+              </div>
+            )}
             <div className="flex items-center justify-between gap-1 p-2 text-xs">
               <span className="truncate text-muted-foreground">{m.roomName ?? "Chung"}</span>
               <span className="flex gap-1">

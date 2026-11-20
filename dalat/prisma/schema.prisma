@@ -17,6 +17,7 @@ enum LinkTier {
 enum LinkStatus {
   PENDING
   APPROVED
+  REJECTED
   BLOCKED
 }
 
@@ -129,6 +130,8 @@ model User {
   bankAccountNo    String?  @map("bank_account_no")
   bankAccountName  String?  @map("bank_account_name")
   telegramChatId   String?  @map("telegram_chat_id")
+  /// Giới thiệu bản thân / kênh bán hàng của CTV (mục 9.1)
+  brokerBio        String?  @map("broker_bio")
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
 
@@ -204,6 +207,9 @@ model HostBrokerLink {
   brokerId String     @map("broker_id") @db.Uuid
   tier     LinkTier   @default(STANDARD)
   status   LinkStatus @default(PENDING)
+  /// Lời nhắn giới thiệu khi CTV xin cộng tác (mục 9.1)
+  requestNote String?  @map("request_note")
+  respondedAt DateTime? @map("responded_at")
   host     User       @relation("LinkHost", fields: [hostId], references: [id])
   broker   User       @relation("LinkBroker", fields: [brokerId], references: [id])
 
@@ -240,6 +246,12 @@ model Property {
 
   baseWeekdayNet Decimal? @map("base_weekday_net") @db.Decimal(12, 0)
   baseWeekendNet Decimal? @map("base_weekend_net") @db.Decimal(12, 0)
+
+  // Chợ kết nối (mục 9): hiện trong "Khám phá Homestay" cho CTV chưa kết nối
+  isPublicDirectory Boolean @default(true) @map("is_public_directory")
+  publicPriceRange  String? @map("public_price_range")
+  // Ảnh đại diện căn (mục 9, bổ sung)
+  coverImageUrl     String? @map("cover_image_url")
 
   // Mẫu Booking Confirmation riêng của căn (null = dùng mẫu mặc định) — xem lib/voucher-config.ts
   voucherConfig Json? @map("voucher_config")

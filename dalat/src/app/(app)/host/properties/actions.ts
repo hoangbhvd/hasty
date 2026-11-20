@@ -40,6 +40,8 @@ function propertyData(fd: FormData) {
       allowIndividualRooms: v.allowIndividualRooms,
       baseWeekdayNet: v.baseWeekdayNet ?? null,
       baseWeekendNet: v.baseWeekendNet ?? null,
+      isPublicDirectory: v.isPublicDirectory,
+      publicPriceRange: v.publicPriceRange ?? null,
     },
   } as const;
 }
