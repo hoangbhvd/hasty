@@ -6,8 +6,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/session";
 import { getManagedProperty } from "@/lib/access";
-import { normalizePhone } from "@/lib/phone";
-import { AreaEnum, optMoney, optPhone, optText, optUrl } from "@/lib/validators";
+import { ExternalPropertyError, createExternalProperty, parseExternalInput, updateExternalProperty } from "@/lib/external-property";
 import type { FormState } from "@/app/(auth)/actions";
 
 async function requireBroker() {
@@ -16,44 +15,30 @@ async function requireBroker() {
   return user;
 }
 
-const externalSchema = z.object({
-  name: z.string().trim().min(2, "Nhập tên homestay").max(120),
-  area: AreaEnum,
-  externalHostName: optText,
-  externalHostPhone: optPhone,
-  baseWeekdayNet: optMoney,
-  baseWeekendNet: optMoney,
-  googleMapsUrl: optUrl,
-  caretakerPhone: optPhone,
-  checkinGuide: optText,
-});
-
 export async function createExternalPropertyAction(_: FormState, fd: FormData): Promise<FormState> {
   const user = await requireBroker();
-  const p = externalSchema.safeParse(Object.fromEntries(Array.from(fd.entries()).filter(([, v]) => typeof v === "string")));
-  if (!p.success) return { error: p.error.issues[0].message };
-  const v = p.data;
-  const ph = (s?: string) => (s ? (normalizePhone(s) ?? s) : null);
-  await prisma.property.create({
-    data: {
-      sourceType: "BROKER_EXTERNAL",
-      hostId: null,
-      createdByBrokerId: user.id,
-      name: v.name,
-      area: v.area,
-      externalHostName: v.externalHostName ?? null,
-      externalHostPhone: ph(v.externalHostPhone),
-      baseWeekdayNet: v.baseWeekdayNet ?? null,
-      baseWeekendNet: v.baseWeekendNet ?? null,
-      googleMapsUrl: v.googleMapsUrl ?? null,
-      caretakerPhone: ph(v.caretakerPhone),
-      checkinGuide: v.checkinGuide ?? null,
-      allowWholeUnit: true,
-      allowIndividualRooms: false,
-    },
-  });
+  try {
+    await createExternalProperty(user.id, parseExternalInput(Object.fromEntries(fd.entries())));
+  } catch (e) {
+    if (e instanceof ExternalPropertyError) return { error: e.message };
+    throw e;
+  }
   revalidatePath("/broker/properties");
   return {};
+}
+
+export async function updateExternalPropertyAction(id: string, _: FormState, fd: FormData): Promise<FormState> {
+  const user = await requireBroker();
+  if (!z.uuid().safeParse(id).success) return { error: "Không hợp lệ" };
+  try {
+    await updateExternalProperty(user.id, id, parseExternalInput(Object.fromEntries(fd.entries())));
+  } catch (e) {
+    if (e instanceof ExternalPropertyError) return { error: e.message };
+    throw e;
+  }
+  revalidatePath("/broker/properties");
+  revalidatePath(`/broker/properties/${id}`);
+  return { message: "Đã lưu thay đổi" };
 }
 
 export async function deleteExternalPropertyAction(id: string): Promise<{ error?: string } | void> {

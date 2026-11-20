@@ -48,7 +48,7 @@ export async function setExtraFeesAction(bookingId: string, _: FormState, fd: Fo
   return run(() => setExtraFees(user.id, bookingId, num(fd.get("extraFees"))), refresh(bookingId));
 }
 
-const DIRS = ["GUEST>BROKER", "GUEST>HOST", "BROKER>HOST", "HOST>BROKER"] as const;
+const DIRS = ["GUEST>BROKER", "GUEST>HOST", "BROKER>HOST", "HOST>BROKER", "HOST>GUEST", "BROKER>GUEST"] as const;
 const TYPES = ["DEPOSIT", "BALANCE", "COMMISSION_SETTLEMENT", "REFUND"] as const;
 
 export async function createTransactionAction(bookingId: string, _: FormState, fd: FormData): Promise<FormState> {

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTransition } from "react";
 import { LogOut, MoreHorizontal, UserCircle } from "lucide-react";
+import { Logo } from "@/components/logo";
 import { cn } from "@/lib/utils";
 import { switchModeAction } from "@/app/(app)/actions";
 import { logoutAction } from "@/app/(auth)/actions";
@@ -61,7 +62,7 @@ export function AppShell({
     <div data-mode={mode} className="min-h-dvh md:grid md:grid-cols-[16rem_1fr]">
       {/* Desktop sidebar */}
       <aside className="sticky top-0 hidden h-dvh flex-col gap-4 border-r border-black bg-sidebar p-4 text-sidebar-foreground md:flex">
-        <Link href="/" className="text-lg font-extrabold tracking-tight text-sidebar-foreground">Đà Lạt Homestay</Link>
+        <Link href="/" aria-label="Đà Lạt Homestay — trang chủ" className="block"><Logo onDark priority className="h-12" /></Link>
         <RoleSwitcher mode={mode} canHost={user.isHost} canBroker={user.isBroker} dark />
         <nav className="flex flex-1 flex-col gap-1" aria-label="Chính">
           {items.map((it) => (

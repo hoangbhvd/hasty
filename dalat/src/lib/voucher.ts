@@ -49,7 +49,8 @@ async function loadByToken(token: string) {
       property: { select: { name: true, googleMapsUrl: true, checkinGuide: true, houseRules: true, caretakerPhone: true, voucherConfig: true } },
       rooms: { select: { room: { select: { name: true } } } },
       addons: { select: { serviceName: true, quantity: true, guestPrice: true } }, // KHÔNG select netPrice
-      transactions: { where: { payerRole: "GUEST", status: "CONFIRMED" }, select: { amount: true } },
+      // Khách trả (vào) và hoàn tiền cho khách (ra); chỉ giao dịch đã xác nhận
+      transactions: { where: { status: "CONFIRMED", OR: [{ payerRole: "GUEST" }, { receiverRole: "GUEST" }] }, select: { amount: true, receiverRole: true } },
     },
   });
 }
@@ -69,7 +70,7 @@ function compute(b: Loaded) {
   const extraFees = Number(b.extraFees);
   const addons = b.addons.map((a) => ({ name: a.serviceName, quantity: a.quantity, guestPrice: Number(a.guestPrice) }));
   const grandTotal = roomTotal + extraFees + addons.reduce((s, a) => s + a.guestPrice * a.quantity, 0);
-  const paid = b.transactions.reduce((s, t) => s + Number(t.amount), 0);
+  const paid = b.transactions.reduce((s, t) => s + (t.receiverRole === "GUEST" ? -1 : 1) * Number(t.amount), 0); // đã trừ hoàn tiền
   return { nights, roomTotal, extraFees, addons, grandTotal, paid, remaining: grandTotal - paid };
 }
 

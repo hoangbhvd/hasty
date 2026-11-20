@@ -5,6 +5,7 @@ import { notifyUsers } from "@/lib/notify";
 import { formatVnd } from "@/lib/format";
 import { ledger, type Ledger } from "@/lib/ledger";
 import type { Prisma } from "@/generated/prisma/client";
+import { confirmerRole, type PayerRole, type ReceiverRole } from "@/lib/tx-roles";
 
 export class FinanceError extends Error {}
 export type PartyRole = "HOST" | "BROKER";
@@ -41,7 +42,7 @@ export type LedgerBooking = {
   guestTotalPrice: unknown; hostNetPrice: unknown; extraFees: unknown; status: string;
   hostId: string | null; brokerId: string | null;
   addons: { quantity: number; guestPrice: unknown; netPrice: unknown }[];
-  transactions: { payerRole: "GUEST" | "BROKER" | "HOST"; receiverRole: "BROKER" | "HOST"; amount: unknown; status: "PENDING_CONFIRM" | "CONFIRMED" | "REJECTED" }[];
+  transactions: { payerRole: PayerRole; receiverRole: ReceiverRole; amount: unknown; status: "PENDING_CONFIRM" | "CONFIRMED" | "REJECTED" }[];
 };
 
 export function bookingLedger(b: LedgerBooking): Ledger {
@@ -94,20 +95,23 @@ export async function setExtraFees(userId: string, bookingId: string, amount: nu
 }
 
 // ───────── Giao dịch ─────────
-export type Direction = "GUEST>BROKER" | "GUEST>HOST" | "BROKER>HOST" | "HOST>BROKER";
+export type Direction = "GUEST>BROKER" | "GUEST>HOST" | "BROKER>HOST" | "HOST>BROKER" | "HOST>GUEST" | "BROKER>GUEST";
 export type TxType = "DEPOSIT" | "BALANCE" | "COMMISSION_SETTLEMENT" | "REFUND";
 
-const DIRECTIONS: Record<Direction, { payer: "GUEST" | "BROKER" | "HOST"; receiver: "BROKER" | "HOST" }> = {
+const DIRECTIONS: Record<Direction, { payer: PayerRole; receiver: ReceiverRole }> = {
   "GUEST>BROKER": { payer: "GUEST", receiver: "BROKER" },
   "GUEST>HOST": { payer: "GUEST", receiver: "HOST" },
   "BROKER>HOST": { payer: "BROKER", receiver: "HOST" },
   "HOST>BROKER": { payer: "HOST", receiver: "BROKER" },
+  "HOST>GUEST": { payer: "HOST", receiver: "GUEST" },     // hoàn tiền cho khách
+  "BROKER>GUEST": { payer: "BROKER", receiver: "GUEST" }, // hoàn tiền cho khách
 };
 const ALLOWED: Record<TxType, Direction[]> = {
   DEPOSIT: ["GUEST>BROKER", "GUEST>HOST", "BROKER>HOST"],
   BALANCE: ["GUEST>BROKER", "GUEST>HOST", "BROKER>HOST"],
   COMMISSION_SETTLEMENT: ["HOST>BROKER"],
-  REFUND: ["HOST>BROKER", "BROKER>HOST"],
+  // Hoàn tiền: giữa Host ↔ Broker, hoặc trả lại cho khách
+  REFUND: ["HOST>BROKER", "BROKER>HOST", "HOST>GUEST", "BROKER>GUEST"],
 };
 
 /** Các hướng chuyển tiền hợp lệ của 1 booking (phụ thuộc có Host/Broker hay không). */
@@ -128,11 +132,28 @@ export async function createTransaction(userId: string, bookingId: string, i: Tx
   if (!directionsFor(!!booking.hostId, !!booking.brokerId).includes(i.direction)) throw new FinanceError("Booking này không có bên nhận/chuyển tiền đó");
   const amount = money(i.amount, "Số tiền", 1);
 
-  const receiverUserId = dir.receiver === "HOST" ? booking.hostId : booking.brokerId;
-  // Tự xác nhận khi chính bên nhận tiền ghi nhận, hoặc căn ngoài app (Broker tự quản — mục 4.4)
-  const autoConfirm = external || receiverUserId === userId;
+  // Bên xác nhận: người nhận tiền; riêng hoàn tiền cho khách thì là bên TRẢ (khách không dùng app)
+  const confirmer = confirmerRole({ payerRole: dir.payer, receiverRole: dir.receiver })!;
+  const confirmerUserId = confirmer === "HOST" ? booking.hostId : booking.brokerId;
+  // Tự xác nhận khi chính bên xác nhận ghi nhận, hoặc căn ngoài app (Broker tự quản — mục 4.4)
+  const autoConfirm = external || confirmerUserId === userId;
 
   const tx = await prisma.$transaction(async (db) => {
+    if (dir.receiver === "GUEST") {
+      // Khoá booking để 2 lần hoàn tiền đồng thời không cùng vượt quá số khách đã trả
+      await db.$queryRaw`SELECT id FROM bookings WHERE id = ${bookingId}::uuid FOR UPDATE`;
+      const rows = await db.transaction.findMany({
+        where: { bookingId, status: { in: ["CONFIRMED", "PENDING_CONFIRM"] } },
+        select: { payerRole: true, receiverRole: true, amount: true, status: true },
+      });
+      const paid = rows.filter((r) => r.status === "CONFIRMED" && r.payerRole === "GUEST").reduce((s, r) => s + Number(r.amount), 0);
+      const refunded = rows.filter((r) => r.receiverRole === "GUEST").reduce((s, r) => s + Number(r.amount), 0); // cả đã xác nhận lẫn đang chờ
+      if (amount > paid - refunded) {
+        throw new FinanceError(paid - refunded <= 0
+          ? "Khách chưa có khoản thanh toán nào còn có thể hoàn"
+          : `Chỉ có thể hoàn tối đa ${formatVnd(paid - refunded)} (khách đã trả ${formatVnd(paid)}, đã/đang hoàn ${formatVnd(refunded)})`);
+      }
+    }
     const t = await db.transaction.create({
       data: {
         bookingId, payerRole: dir.payer, receiverRole: dir.receiver, amount, txType: i.txType,
@@ -143,22 +164,25 @@ export async function createTransaction(userId: string, bookingId: string, i: Tx
     });
     await postSystemMessage(db, bookingId, autoConfirm
       ? `Đã ghi nhận giao dịch ${formatVnd(amount)} (${i.txType}).`
-      : `Có giao dịch ${formatVnd(amount)} (${i.txType}) đang chờ ${dir.receiver === "HOST" ? "chủ nhà" : "CTV"} xác nhận.`);
+      : `Có giao dịch ${formatVnd(amount)} (${i.txType}) đang chờ ${confirmer === "HOST" ? "chủ nhà" : "CTV"} xác nhận.`);
     return t;
   });
   // Thẻ bill trong chat của booking (trạng thái hiển thị lấy từ DB nên tự cập nhật khi duyệt)
   const card = await postCard(prisma, bookingId, "ACTION_BILL_UPLOAD", `Giao dịch ${formatVnd(amount)}`, { transactionId: tx.id, bookingId, bookingCode: booking.bookingCode });
   if (card) await emitToUsers([booking.hostId, booking.brokerId], "chat:update", { conversationId: card.conv.id });
-  if (!autoConfirm) await notifyUsers([receiverUserId], `Giao dịch ${formatVnd(amount)} chờ bạn xác nhận — booking ${booking.bookingCode}`, `/${dir.receiver === "HOST" ? "host" : "broker"}/bookings/${bookingId}`);
+  if (!autoConfirm) await notifyUsers([confirmerUserId], `Giao dịch ${formatVnd(amount)} chờ bạn xác nhận — booking ${booking.bookingCode}`, `/${confirmer === "HOST" ? "host" : "broker"}/bookings/${bookingId}`);
   return tx;
 }
 
-/** Bên nhận tiền duyệt hoặc từ chối giao dịch đang chờ. */
+/** Bên xác nhận (nhận tiền; hoặc bên trả tiền nếu là hoàn tiền cho khách) duyệt hoặc từ chối giao dịch đang chờ. */
 export async function decideTransaction(userId: string, txId: string, decision: "CONFIRM" | "REJECT") {
   const tx = await prisma.transaction.findUnique({ where: { id: txId }, include: { booking: { select: { id: true, hostId: true, brokerId: true, bookingCode: true } } } });
   if (!tx) throw new FinanceError("Không tìm thấy giao dịch");
-  const receiverUserId = tx.receiverRole === "HOST" ? tx.booking.hostId : tx.booking.brokerId;
-  if (receiverUserId !== userId) throw new FinanceError("Chỉ bên nhận tiền mới được duyệt giao dịch");
+  const role = confirmerRole(tx);
+  const confirmerUserId = role === "HOST" ? tx.booking.hostId : role === "BROKER" ? tx.booking.brokerId : null;
+  if (!confirmerUserId || confirmerUserId !== userId) {
+    throw new FinanceError(tx.receiverRole === "GUEST" ? "Chỉ bên chi tiền hoàn mới được xác nhận giao dịch này" : "Chỉ bên nhận tiền mới được duyệt giao dịch");
+  }
 
   const r = await prisma.transaction.updateMany({
     where: { id: txId, status: "PENDING_CONFIRM" }, // nguyên tử: chỉ 1 người quyết định thành công
@@ -169,8 +193,11 @@ export async function decideTransaction(userId: string, txId: string, decision: 
     ? `Đã xác nhận giao dịch ${formatVnd(Number(tx.amount))}.`
     : `Đã từ chối giao dịch ${formatVnd(Number(tx.amount))}.`);
   await emitToUsers([tx.booking.hostId, tx.booking.brokerId], "chat:update", { bookingId: tx.booking.id });
-  const payerUserId = tx.payerRole === "HOST" ? tx.booking.hostId : tx.payerRole === "BROKER" ? tx.booking.brokerId : null;
-  await notifyUsers([payerUserId], `Giao dịch ${formatVnd(Number(tx.amount))} booking ${tx.booking.bookingCode} đã ${decision === "CONFIRM" ? "được xác nhận" : "bị từ chối"}`);
+  // Báo cho bên còn lại: với hoàn tiền cho khách thì là bên không phải người xác nhận
+  const other = tx.receiverRole === "GUEST"
+    ? (role === "HOST" ? tx.booking.brokerId : tx.booking.hostId)
+    : tx.payerRole === "HOST" ? tx.booking.hostId : tx.payerRole === "BROKER" ? tx.booking.brokerId : null;
+  await notifyUsers([other], `Giao dịch ${formatVnd(Number(tx.amount))} booking ${tx.booking.bookingCode} đã ${decision === "CONFIRM" ? "được xác nhận" : "bị từ chối"}`);
   return tx.booking.id;
 }
 

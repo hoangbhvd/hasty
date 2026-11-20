@@ -2,6 +2,7 @@
  * Tài chính 2 lớp & đối soát công nợ (mục 4.3 spec). Hàm thuần — mọi số tiền là VND nguyên.
  *
  *  - Tiền khách phải trả  = guest_total + extra_fees + Σ(addon.guest_price × qty)
+ *  - Khách đã trả (ròng)  = Σ khách trả − Σ đã hoàn cho khách (giao dịch receiver = GUEST)
  *  - Hoa hồng Broker      = (guest_total − host_net) + Σ((addon.guest − addon.net) × qty)
  *  - Host được hưởng      = host_net + Σ(addon.net × qty) + extra_fees
  *  - Tiền mặt của Host    = Σ nhận (receiver=HOST) − Σ chi (payer=HOST)   [chỉ giao dịch CONFIRMED]
@@ -10,7 +11,7 @@
  */
 export type TxLite = {
   payerRole: "GUEST" | "BROKER" | "HOST";
-  receiverRole: "BROKER" | "HOST";
+  receiverRole: "BROKER" | "HOST" | "GUEST";
   amount: number;
   status: "PENDING_CONFIRM" | "CONFIRMED" | "REJECTED";
 };
@@ -27,6 +28,8 @@ export type BookingFin = {
 export type Ledger = {
   guestPayable: number;
   guestPaid: number;
+  /** Tổng đã hoàn cho khách (đã nằm trong phần trừ của guestPaid) */
+  guestRefunded: number;
   guestRemaining: number;
   addonsGuest: number;
   addonsNet: number;
@@ -50,7 +53,8 @@ export function ledger(b: BookingFin, addons: AddonLite[], txs: TxLite[]): Ledge
   const addonsNet = addons.reduce((s, a) => s + a.netPrice * a.quantity, 0);
 
   const guestPayable = b.guestTotalPrice + b.extraFees + addonsGuest;
-  const guestPaid = sum((t) => t.payerRole === "GUEST");
+  const guestRefunded = sum((t) => t.receiverRole === "GUEST");
+  const guestPaid = sum((t) => t.payerRole === "GUEST") - guestRefunded;
   const hostEntitled = b.cancelled ? 0 : b.hostNetPrice + addonsNet + b.extraFees;
   const commission = b.cancelled ? 0 : b.guestTotalPrice - b.hostNetPrice + (addonsGuest - addonsNet);
 
@@ -71,7 +75,7 @@ export function ledger(b: BookingFin, addons: AddonLite[], txs: TxLite[]): Ledge
   }
 
   return {
-    guestPayable, guestPaid, guestRemaining: guestPayable - guestPaid,
+    guestPayable, guestPaid, guestRefunded, guestRemaining: guestPayable - guestPaid,
     addonsGuest, addonsNet, hostEntitled, commission, hostCash, brokerCash,
     owedToHost, commissionRealized, commissionPending: commission - commissionRealized,
   };

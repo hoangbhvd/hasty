@@ -7,6 +7,7 @@ import { ActionButton } from "@/components/action-button";
 import { TxDecision } from "@/components/booking-finance-forms";
 import { decideHoldAction } from "@/app/(app)/chat-actions";
 import { formatVnd } from "@/lib/format";
+import { confirmerRole } from "@/lib/tx-roles";
 import type { MessageDto, ChatRole } from "@/lib/chat";
 
 const card = "w-full max-w-sm space-y-2 rounded border border-black bg-white p-3 text-sm text-black shadow-[2px_2px_0px_0px_#000]";
@@ -45,7 +46,7 @@ const TX_LABEL: Record<string, string> = { PENDING_CONFIRM: "Chờ xác nhận",
 const TYPE_LABEL: Record<string, string> = { DEPOSIT: "Cọc", BALANCE: "Thanh toán", COMMISSION_SETTLEMENT: "Quyết toán hoa hồng", REFUND: "Hoàn tiền" };
 
 export function BillCard({ m, role }: { m: MessageDto; role: ChatRole }) {
-  const x = m.metadata as { transactionId: string; bookingId: string; bookingCode?: string; tx: { amount: number; status: string; txType: string; receiverRole: string; billImageUrl: string | null } | null };
+  const x = m.metadata as { transactionId: string; bookingId: string; bookingCode?: string; tx: { amount: number; status: string; txType: string; payerRole: string; receiverRole: string; billImageUrl: string | null } | null };
   const tx = x.tx;
   return (
     <div className={card}>
@@ -58,7 +59,7 @@ export function BillCard({ m, role }: { m: MessageDto; role: ChatRole }) {
           <div className="money-num text-lg font-extrabold">{formatVnd(tx.amount)}</div>
           <div className="text-muted-foreground">{TYPE_LABEL[tx.txType]} · {x.bookingCode}</div>
           {tx.billImageUrl && <a href={tx.billImageUrl} target="_blank" rel="noopener noreferrer" className="font-medium underline">Xem ảnh bill</a>}
-          {tx.status === "PENDING_CONFIRM" && tx.receiverRole === role && <TxDecision bookingId={x.bookingId} txId={x.transactionId} />}
+          {tx.status === "PENDING_CONFIRM" && confirmerRole({ payerRole: tx.payerRole, receiverRole: tx.receiverRole } as Parameters<typeof confirmerRole>[0]) === role && <TxDecision bookingId={x.bookingId} txId={x.transactionId} />}
         </>
       ) : <div className="text-muted-foreground">Giao dịch không còn tồn tại.</div>}
       <Link href={`/${role === "HOST" ? "host" : "broker"}/bookings/${x.bookingId}`} className="block font-medium underline">Mở booking</Link>

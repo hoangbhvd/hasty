@@ -12,6 +12,7 @@ import { VoucherConfigForm } from "@/components/voucher-config-form";
 import { parseVoucherConfig } from "@/lib/voucher-config";
 import { deleteExternalPropertyAction } from "../actions";
 import { openChatAction } from "@/app/(app)/chat-actions";
+import { EditExternalButton } from "@/components/add-external-button";
 
 type Amen = { bbQ?: boolean; ac?: boolean; pet_friendly?: boolean; karaoke?: boolean; views?: string[] };
 
@@ -42,6 +43,17 @@ export default async function BrokerPropertyPage({ params }: { params: Promise<{
           {external ? ` · Chủ: ${p.externalHostName ?? "—"} ${p.externalHostPhone ?? ""}` : ` · Chủ: ${p.host?.fullName ?? ""}`}
         </p>
       </div>
+
+      {external && (
+        <EditExternalButton
+          id={id}
+          defaults={{
+            name: p.name, area: p.area, googleMapsUrl: p.googleMapsUrl, externalHostName: p.externalHostName, externalHostPhone: p.externalHostPhone,
+            baseWeekdayNet: p.baseWeekdayNet ? Number(p.baseWeekdayNet) : null, baseWeekendNet: p.baseWeekendNet ? Number(p.baseWeekendNet) : null,
+            caretakerPhone: p.caretakerPhone, checkinGuide: p.checkinGuide,
+          }}
+        />
+      )}
 
       {!external && p.hostId && (
         <form action={openChatAction.bind(null, p.hostId, "BROKER")}>

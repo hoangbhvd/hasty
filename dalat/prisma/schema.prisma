@@ -76,6 +76,7 @@ enum PayerRole {
 enum ReceiverRole {
   BROKER
   HOST
+  GUEST // hoàn tiền cho khách (chỉ dùng với tx_type = REFUND)
 }
 
 enum TxType {

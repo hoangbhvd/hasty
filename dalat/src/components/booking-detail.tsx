@@ -8,10 +8,14 @@ import { CopyButton } from "@/components/copy-button";
 import { AddonForm, DeleteAddonButton, ExtraFeeForm, TransactionForm, TxDecision } from "@/components/booking-finance-forms";
 import { formatDateTimeVi, formatDateVi, formatVnd } from "@/lib/format";
 import { r2Configured } from "@/lib/r2";
+import { confirmerRole } from "@/lib/tx-roles";
 import { openBookingChatAction } from "@/app/(app)/chat-actions";
 
 const TYPE_LABEL = { DEPOSIT: "Cọc", BALANCE: "Thanh toán", COMMISSION_SETTLEMENT: "Quyết toán hoa hồng", REFUND: "Hoàn tiền" } as const;
-const DIR_LABEL = { "GUEST>BROKER": "Khách → CTV", "GUEST>HOST": "Khách → Chủ nhà", "BROKER>HOST": "CTV → Chủ nhà", "HOST>BROKER": "Chủ nhà → CTV" } as const;
+const DIR_LABEL = {
+  "GUEST>BROKER": "Khách → CTV", "GUEST>HOST": "Khách → Chủ nhà", "BROKER>HOST": "CTV → Chủ nhà", "HOST>BROKER": "Chủ nhà → CTV",
+  "HOST>GUEST": "Chủ nhà → Khách (hoàn tiền)", "BROKER>GUEST": "CTV → Khách (hoàn tiền)",
+} as const;
 const TX_TONE: Record<string, BadgeTone> = { PENDING_CONFIRM: "holding", CONFIRMED: "confirmed", REJECTED: "cancelled" };
 const TX_LABEL: Record<string, string> = { PENDING_CONFIRM: "Chờ xác nhận", CONFIRMED: "Đã xác nhận", REJECTED: "Bị từ chối" };
 
@@ -98,7 +102,8 @@ export async function BookingDetail({ userId, bookingId, viewer }: { userId: str
           {l.addonsGuest > 0 && <Row k="Dịch vụ đi kèm" v={formatVnd(l.addonsGuest)} />}
           {Number(b.extraFees) > 0 && <Row k="Phụ thu" v={formatVnd(b.extraFees)} />}
           <Row k="Tổng khách phải trả" v={formatVnd(l.guestPayable)} strong />
-          <Row k="Khách đã thanh toán" v={formatVnd(l.guestPaid)} />
+          <Row k="Khách đã thanh toán (đã trừ hoàn tiền)" v={formatVnd(l.guestPaid)} />
+          {l.guestRefunded > 0 && <Row k="  Đã hoàn lại cho khách" v={formatVnd(l.guestRefunded)} />}
           <Row k="Khách còn phải trả lúc check-in" v={formatVnd(Math.max(l.guestRemaining, 0))} strong />
         </dl>
         {(hasBoth || viewer === "BROKER") && (
@@ -152,7 +157,7 @@ export async function BookingDetail({ userId, bookingId, viewer }: { userId: str
           <ul className="divide-y divide-black rounded border border-black bg-white">
             {b.transactions.map((t) => {
               const dir = `${t.payerRole}>${t.receiverRole}` as keyof typeof DIR_LABEL;
-              const mine = t.status === "PENDING_CONFIRM" && t.receiverRole === viewer;
+              const mine = t.status === "PENDING_CONFIRM" && confirmerRole(t) === viewer; // hoàn tiền cho khách: bên TRẢ xác nhận
               return (
                 <li key={t.id} className="space-y-2 p-3 text-sm">
                   <div className="flex flex-wrap items-center justify-between gap-2">

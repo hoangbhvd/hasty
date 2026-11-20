@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { ledger, type BookingFin, type TxLite } from "./ledger";
 import { vietQrUrl } from "./vietqr";
+import { confirmerRole, isRefundToGuest } from "./tx-roles";
 
 const base: BookingFin = { guestTotalPrice: 3_800_000, hostNetPrice: 3_200_000, extraFees: 0, cancelled: false, hasHost: true, hasBroker: true };
 const tx = (payer: TxLite["payerRole"], receiver: TxLite["receiverRole"], amount: number, status: TxLite["status"] = "CONFIRMED"): TxLite =>
@@ -98,4 +99,39 @@ test("VietQR: URL đúng định dạng, số tiền làm tròn, nội dung cắ
   assert.equal(u.searchParams.get("addInfo"), "DL-2611-889");
   assert.equal(u.searchParams.get("accountName"), "NGUYEN VAN A");
   assert.equal(new URL(vietQrUrl({ bankId: "MB", accountNo: "1", amount: 0 })).search, "");
+});
+
+test("hoàn tiền cho khách: trừ vào số khách đã trả và vào tiền mặt của bên chi", () => {
+  const l = ledger(base, [], [tx("GUEST", "BROKER", 3_800_000), tx("BROKER", "GUEST", 1_000_000)]);
+  assert.equal(l.guestRefunded, 1_000_000);
+  assert.equal(l.guestPaid, 2_800_000);
+  assert.equal(l.guestRemaining, 1_000_000); // khách lại phải trả thêm phần đã hoàn
+  assert.equal(l.brokerCash, 2_800_000);
+});
+
+test("booking huỷ + hoàn đủ cọc cho khách: không còn nợ giữa Host và CTV", () => {
+  const cancelled = { ...base, cancelled: true };
+  const before = ledger(cancelled, [], [tx("GUEST", "HOST", 1_000_000)]);
+  assert.equal(before.owedToHost, -1_000_000); // Host đang giữ cọc, phải trả lại
+  const after = ledger(cancelled, [], [tx("GUEST", "HOST", 1_000_000), tx("HOST", "GUEST", 1_000_000)]);
+  assert.equal(after.hostCash, 0);
+  assert.equal(after.owedToHost, 0);
+  assert.equal(after.guestPaid, 0);
+});
+
+test("hoàn tiền đang chờ / bị từ chối KHÔNG được tính", () => {
+  const l = ledger(base, [], [tx("GUEST", "BROKER", 3_800_000), tx("BROKER", "GUEST", 1_000_000, "PENDING_CONFIRM"), tx("BROKER", "GUEST", 500_000, "REJECTED")]);
+  assert.equal(l.guestRefunded, 0);
+  assert.equal(l.guestPaid, 3_800_000);
+});
+
+test("ai xác nhận giao dịch: bên nhận; riêng hoàn tiền cho khách thì bên TRẢ", () => {
+  assert.equal(confirmerRole({ payerRole: "GUEST", receiverRole: "HOST" }), "HOST");
+  assert.equal(confirmerRole({ payerRole: "BROKER", receiverRole: "HOST" }), "HOST");
+  assert.equal(confirmerRole({ payerRole: "HOST", receiverRole: "BROKER" }), "BROKER");
+  assert.equal(confirmerRole({ payerRole: "HOST", receiverRole: "GUEST" }), "HOST");
+  assert.equal(confirmerRole({ payerRole: "BROKER", receiverRole: "GUEST" }), "BROKER");
+  assert.equal(confirmerRole({ payerRole: "GUEST", receiverRole: "GUEST" }), null); // vô nghĩa
+  assert.equal(isRefundToGuest({ receiverRole: "GUEST" }), true);
+  assert.equal(isRefundToGuest({ receiverRole: "HOST" }), false);
 });

@@ -169,9 +169,9 @@ test("giao dịch: sai loại/hướng, số tiền xấu, người ngoài đề
 });
 
 test("Host tự bán (không Broker): không có hướng liên quan Broker", async () => {
-  assert.deepEqual(directionsFor(true, false), ["GUEST>HOST"]);
-  assert.deepEqual(directionsFor(false, true), ["GUEST>BROKER"]);
-  assert.equal(directionsFor(true, true).length, 4);
+  assert.deepEqual(directionsFor(true, false), ["GUEST>HOST", "HOST>GUEST"]); // + hoàn tiền cho khách
+  assert.deepEqual(directionsFor(false, true), ["GUEST>BROKER", "BROKER>GUEST"]);
+  assert.equal(directionsFor(true, true).length, 6);
   const b = await createBooking({ actorId: hostId, as: "HOST", propertyId: hostedProp, mode: "CONFIRM", bookingType: "WHOLE_UNIT", roomIds: [], checkIn: d("2033-06-01"), checkOut: d("2033-06-02"), guestName: "OTA", guestCount: 1, guestTotalPrice: 2_000_000 });
   await rejects(createTransaction(hostId, b.id, { direction: "GUEST>BROKER", txType: "DEPOSIT", amount: 1000 }));
   const t = await createTransaction(hostId, b.id, { direction: "GUEST>HOST", txType: "DEPOSIT", amount: 1_000_000 });
