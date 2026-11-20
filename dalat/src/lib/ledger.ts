@@ -6,8 +6,12 @@
  *  - Hoa hồng Broker      = (guest_total − host_net) + Σ((addon.guest − addon.net) × qty)
  *  - Host được hưởng      = host_net + Σ(addon.net × qty) + extra_fees
  *  - Tiền mặt của Host    = Σ nhận (receiver=HOST) − Σ chi (payer=HOST)   [chỉ giao dịch CONFIRMED]
- *  - Công nợ (owedToHost) = Host được hưởng − Tiền mặt của Host
- *        > 0: Broker nợ Host (cọc/net chưa chuyển)   < 0: Host nợ Broker (hoa hồng đang giữ)
+ *  - Host còn thiếu (O)   = Host được hưởng − Tiền mặt của Host
+ *  - Broker nợ Host       = phần tiền khách Broker đang giữ VƯỢT hoa hồng của mình, tối đa O
+ *        (khách cọc cho Broker X > hoa hồng → Broker nợ Host X − hoa hồng)
+ *  - Khách nợ Host        = O − Broker nợ Host  (khách chưa trả thì là KHÁCH nợ, không phải Broker)
+ *  - Host nợ Broker       = −O khi O < 0 (Host đang giữ phần hoa hồng của Broker)
+ *  - owedToHost           = Broker nợ Host − Host nợ Broker  (>0 Broker nợ Host, <0 Host nợ Broker)
  */
 export type TxLite = {
   payerRole: "GUEST" | "BROKER" | "HOST";
@@ -39,6 +43,12 @@ export type Ledger = {
   brokerCash: number;
   /** >0 Broker nợ Host; <0 Host nợ Broker; 0 khi không áp dụng (thiếu 1 bên) */
   owedToHost: number;
+  /** Broker đang giữ tiền khách vượt hoa hồng → phải chuyển cho Host */
+  brokerOwesHost: number;
+  /** Phần Host còn thiếu mà khách chưa trả (khách nợ chủ) */
+  guestOwesHost: number;
+  /** Host đang giữ phần hoa hồng của Broker */
+  hostOwesBroker: number;
   commissionRealized: number;
   commissionPending: number;
 };
@@ -62,11 +72,18 @@ export function ledger(b: BookingFin, addons: AddonLite[], txs: TxLite[]): Ledge
   const brokerCash = sum((t) => t.receiverRole === "BROKER") - sum((t) => t.payerRole === "BROKER");
 
   let owedToHost = 0;
+  let brokerOwesHost = 0;
+  let guestOwesHost = 0;
+  let hostOwesBroker = 0;
   let commissionRealized = 0;
   if (b.hasHost && b.hasBroker) {
-    owedToHost = hostEntitled - hostCash;
+    const short = hostEntitled - hostCash; // Host còn thiếu bao nhiêu
+    brokerOwesHost = clamp(brokerCash - commission, 0, Math.max(short, 0));
+    guestOwesHost = clamp(Math.max(short, 0) - brokerOwesHost, 0, Math.max(guestPayable - guestPaid, 0));
+    hostOwesBroker = Math.max(-short, 0);
+    owedToHost = brokerOwesHost - hostOwesBroker;
     // Hoa hồng "đã nhận" = tiền Broker đang giữ vượt quá phần còn phải chuyển cho Host
-    commissionRealized = clamp(brokerCash - Math.max(owedToHost, 0), 0, commission);
+    commissionRealized = clamp(brokerCash - Math.max(short, 0), 0, commission);
   } else if (b.hasBroker) {
     // Homestay ngoài app: Broker thu tiền khách và tự trả chủ nhà ngoài hệ thống
     commissionRealized = clamp(guestPaid - hostEntitled, 0, commission);
@@ -77,6 +94,6 @@ export function ledger(b: BookingFin, addons: AddonLite[], txs: TxLite[]): Ledge
   return {
     guestPayable, guestPaid, guestRefunded, guestRemaining: guestPayable - guestPaid,
     addonsGuest, addonsNet, hostEntitled, commission, hostCash, brokerCash,
-    owedToHost, commissionRealized, commissionPending: commission - commissionRealized,
+    owedToHost, brokerOwesHost, guestOwesHost, hostOwesBroker, commissionRealized, commissionPending: commission - commissionRealized,
   };
 }

@@ -29,13 +29,6 @@ function Row({ k, v, strong }: { k: string; v: React.ReactNode; strong?: boolean
   );
 }
 
-function debtText(owed: number, viewer: PartyRole): string {
-  if (owed === 0) return "Đã cân bằng, không có công nợ";
-  const n = formatVnd(Math.abs(owed));
-  if (owed > 0) return viewer === "HOST" ? `CTV còn nợ bạn ${n}` : `Bạn còn phải chuyển cho chủ nhà ${n}`;
-  return viewer === "HOST" ? `Bạn còn phải chuyển hoa hồng cho CTV ${n}` : `Chủ nhà còn phải chuyển cho bạn ${n}`;
-}
-
 export async function BookingDetail({ userId, bookingId, viewer }: { userId: string; bookingId: string; viewer: PartyRole }) {
   if (!/^[0-9a-f-]{36}$/.test(bookingId)) notFound();
   const loaded = await getBookingForParty(userId, bookingId);
@@ -118,7 +111,20 @@ export async function BookingDetail({ userId, bookingId, viewer }: { userId: str
                 <Row k="  Chờ nhận" v={formatVnd(l.commissionPending)} />
               </>
             )}
-            {hasBoth && <Row k="Công nợ" v={debtText(l.owedToHost, viewer)} strong />}
+            {hasBoth && (
+              <>
+                <Row k="Khách nợ chủ nhà (chưa thanh toán)" v={formatVnd(l.guestOwesHost)} strong={l.guestOwesHost > 0} />
+                <Row k="CTV nợ chủ nhà (tiền khách đưa CTV − hoa hồng)" v={formatVnd(l.brokerOwesHost)} strong={l.brokerOwesHost > 0} />
+                {l.hostOwesBroker > 0 && <Row k="Chủ nhà nợ CTV (đang giữ hoa hồng)" v={formatVnd(l.hostOwesBroker)} strong />}
+                <p className="pt-1 text-xs text-muted-foreground">
+                  {l.guestOwesHost === 0 && l.brokerOwesHost === 0 && l.hostOwesBroker === 0
+                    ? "Đã cân bằng, không có công nợ."
+                    : viewer === "HOST"
+                      ? "Khách chưa trả thì là khách nợ chủ; CTV chỉ nợ khi giữ tiền khách đã trả vượt phần hoa hồng của mình."
+                      : "Bạn chỉ nợ chủ nhà khi đang giữ tiền khách vượt phần hoa hồng của bạn."}
+                </p>
+              </>
+            )}
           </dl>
         )}
       </section>

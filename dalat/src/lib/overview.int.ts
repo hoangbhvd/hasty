@@ -130,17 +130,21 @@ test("Tìm gấp: Host thấy yêu cầu phù hợp; CTV thấy yêu cầu mở 
 
 test("Tóm tắt tháng: doanh thu Host, hoa hồng CTV khớp sổ", async () => {
   const base = parseDateOnly(todayVn().slice(0, 7) + "-01")!;
-  await prisma.booking.create({
+  const fin = await prisma.booking.create({
     data: {
       bookingCode: `OV-${tag.slice(-6)}-fin`, propertyId: prop, hostId: host, brokerId: broker, bookingType: "WHOLE_UNIT",
       checkIn: base, checkOut: new Date(base.getTime() + 86_400_000), guestName: "Fin", guestCount: 1, status: "CONFIRMED",
       guestTotalPrice: 5_000_000, hostNetPrice: 4_000_000, commissionAmount: 1_000_000,
     },
   });
+  const before = await hostOverview(host);
+  assert.ok(before.month.revenue >= 4_000_000);
+  // Chưa có giao dịch nào → KHÁCH nợ chủ, CTV chưa nợ gì
+  await prisma.transaction.create({ data: { bookingId: fin.id, payerRole: "GUEST", receiverRole: "BROKER", amount: 2_000_000, txType: "DEPOSIT", status: "CONFIRMED", confirmedAt: new Date() } });
   const h = await hostOverview(host);
-  assert.ok(h.month.revenue >= 4_000_000);
-  assert.ok(h.month.brokerOwesYou >= 4_000_000); // chưa có giao dịch nào → CTV nợ Net
+  // Khách cọc 2tr cho CTV, hoa hồng 1tr → CTV nợ chủ 1tr
+  assert.ok(h.month.brokerOwesYou > before.month.brokerOwesYou); // (DB dùng chung: không so số tuyệt đối)
   const b = await brokerOverview(broker);
   assert.ok(b.month.commission >= 1_000_000);
-  assert.ok(b.month.youOwe >= 4_000_000);
+  assert.ok(b.month.youOwe >= 1_000_000);
 });

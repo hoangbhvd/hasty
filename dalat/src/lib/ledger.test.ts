@@ -8,13 +8,30 @@ const base: BookingFin = { guestTotalPrice: 3_800_000, hostNetPrice: 3_200_000, 
 const tx = (payer: TxLite["payerRole"], receiver: TxLite["receiverRole"], amount: number, status: TxLite["status"] = "CONFIRMED"): TxLite =>
   ({ payerRole: payer, receiverRole: receiver, amount, status });
 
-test("chưa có giao dịch: khách còn phải trả đủ, Broker nợ Host toàn bộ Net", () => {
+test("chưa có giao dịch: KHÁCH nợ chủ toàn bộ Net, CTV chưa nợ gì", () => {
   const l = ledger(base, [], []);
   assert.equal(l.guestPayable, 3_800_000);
   assert.equal(l.guestRemaining, 3_800_000);
   assert.equal(l.commission, 600_000);
-  assert.equal(l.owedToHost, 3_200_000);
+  assert.equal(l.owedToHost, 0);
+  assert.equal(l.brokerOwesHost, 0);
+  assert.equal(l.guestOwesHost, 3_200_000);
+  assert.equal(l.hostOwesBroker, 0);
   assert.equal(l.commissionRealized, 0);
+});
+
+test("khách cọc cho CTV nhiều hơn hoa hồng: CTV nợ chủ (cọc − hoa hồng), phần còn lại khách nợ chủ", () => {
+  const l = ledger(base, [], [tx("GUEST", "BROKER", 1_000_000)]);
+  assert.equal(l.brokerOwesHost, 400_000);
+  assert.equal(l.guestOwesHost, 2_800_000);
+  assert.equal(l.owedToHost, 400_000);
+});
+
+test("khách cọc cho CTV ít hơn hoa hồng: CTV không nợ chủ, khách nợ chủ đủ Net", () => {
+  const l = ledger(base, [], [tx("GUEST", "BROKER", 500_000)]);
+  assert.equal(l.brokerOwesHost, 0);
+  assert.equal(l.guestOwesHost, 3_200_000);
+  assert.equal(l.owedToHost, 0);
 });
 
 test("khách trả hết cho Broker, Broker chuyển Net cho Host → hết nợ, hoa hồng đã nhận", () => {
@@ -32,11 +49,14 @@ test("khách trả hết cho Broker nhưng Broker CHƯA chuyển Host → Broker
   assert.equal(l.commissionRealized, 600_000); // đang giữ 3.8tr, trừ 3.2tr phải trả Host = 0.6tr
   const l2 = ledger(base, [], [tx("GUEST", "BROKER", 1_000_000)]);
   assert.equal(l2.commissionRealized, 0); // giữ 1tr nhưng còn nợ Host 3.2tr
+  assert.equal(l2.brokerOwesHost, 400_000);
 });
 
 test("khách trả hết cho Host → Host nợ Broker hoa hồng; trả xong thì hết nợ", () => {
   let l = ledger(base, [], [tx("GUEST", "HOST", 3_800_000)]);
   assert.equal(l.owedToHost, -600_000);
+  assert.equal(l.hostOwesBroker, 600_000);
+  assert.equal(l.guestOwesHost, 0);
   assert.equal(l.commissionRealized, 0);
   l = ledger(base, [], [tx("GUEST", "HOST", 3_800_000), tx("HOST", "BROKER", 600_000)]);
   assert.equal(l.owedToHost, 0);
@@ -53,7 +73,8 @@ test("cọc cho Host, phần còn lại cho Broker", () => {
 test("giao dịch chưa duyệt / bị từ chối KHÔNG được tính", () => {
   const l = ledger(base, [], [tx("GUEST", "BROKER", 3_800_000, "PENDING_CONFIRM"), tx("BROKER", "HOST", 3_200_000, "REJECTED")]);
   assert.equal(l.guestPaid, 0);
-  assert.equal(l.owedToHost, 3_200_000);
+  assert.equal(l.owedToHost, 0);
+  assert.equal(l.guestOwesHost, 3_200_000);
 });
 
 test("dịch vụ đi kèm và phụ thu: tách phần Host / Broker", () => {
@@ -89,7 +110,8 @@ test("homestay ngoài app: hoa hồng thực nhận = tiền khách đã trả v
 test("hoàn tiền giữa 2 bên được tính vào tiền mặt", () => {
   const l = ledger(base, [], [tx("GUEST", "HOST", 1_000_000), tx("HOST", "BROKER", 1_000_000)]);
   assert.equal(l.hostCash, 0);
-  assert.equal(l.owedToHost, 3_200_000);
+  assert.equal(l.owedToHost, 400_000); // CTV giữ 1tr, trừ hoa hồng 0.6tr
+  assert.equal(l.guestOwesHost, 2_800_000);
 });
 
 test("VietQR: URL đúng định dạng, số tiền làm tròn, nội dung cắt ngắn", () => {

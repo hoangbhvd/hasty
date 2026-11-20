@@ -41,8 +41,52 @@ export function Gantt({
     })),
   ];
 
+  const vtemplate = `3.75rem repeat(${rows.length}, minmax(6.5rem, 1fr))`;
+
   return (
-    <div className="overflow-x-auto rounded border border-black bg-white shadow-brutal-sm" role="region" aria-label="Lịch đặt phòng" tabIndex={0}>
+    <>
+    {/* Mobile: ngày xếp DỌC (mỗi hàng 1 đêm), cột = Nguyên căn / từng phòng */}
+    <div className="overflow-x-auto rounded border border-black bg-white shadow-brutal-sm md:hidden" role="region" aria-label="Lịch đặt phòng (dọc)" tabIndex={0}>
+      <div className="min-w-max" style={{ minWidth: "100%" }}>
+        <div className="sticky top-0 z-20 grid border-b border-black bg-muted text-xs font-bold" style={{ gridTemplateColumns: vtemplate }}>
+          <div className="sticky left-0 z-30 border-r border-black bg-muted p-2">Ngày</div>
+          {rows.map((r) => <div key={r.key} className="truncate border-r border-black/30 p-2 last:border-r-0">{r.label}</div>)}
+        </div>
+        {cols.map((c, i) => {
+          const s = toDateOnly(c);
+          const weekend = [5, 6].includes(c.getUTCDay());
+          return (
+            <div key={s} className="grid min-h-11 border-b border-black/60 last:border-b-0" style={{ gridTemplateColumns: vtemplate }}>
+              <div className={`money-num sticky left-0 z-10 flex flex-col justify-center border-r border-black px-2 py-1 text-xs ${s === today ? "bg-primary font-bold" : weekend ? "bg-secondary/40" : "bg-white"}`}>
+                <span>{WD[c.getUTCDay()]}</span>
+                <span>{s.slice(8)}/{s.slice(5, 7)}</span>
+              </div>
+              {rows.map((row) => {
+                const hit = row.segs.find((g) => g.start <= i && i < g.end);
+                return (
+                  <div key={row.key} className={`border-r border-black/15 p-0.5 last:border-r-0 ${weekend ? "bg-secondary/15" : ""}`}>
+                    {hit && (
+                      <a
+                        href={`#b-${hit.b.id}`}
+                        title={`${hit.b.guestName}${hit.b.brokerName ? ` · CTV ${hit.b.brokerName}` : ""}${hit.lock ? " (khoá chéo)" : ""}`}
+                        className={`flex h-full min-h-9 items-center truncate rounded border border-black px-1.5 text-xs font-semibold text-black ${
+                          hit.lock ? "bg-cross-locked font-medium text-black/70" : STATUS_STYLE[hit.b.status]
+                        }`}
+                      >
+                        {hit.start === i || i === 0 ? `${hit.lock ? "🔒 " : ""}${hit.b.guestName}` : <span aria-hidden className="mx-auto text-black/50">│</span>}
+                      </a>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+
+    {/* Desktop: lịch ngang */}
+    <div className="hidden overflow-x-auto rounded border border-black bg-white shadow-brutal-sm md:block" role="region" aria-label="Lịch đặt phòng" tabIndex={0}>
       <div className="min-w-max">
         <div className="grid border-b border-black bg-muted text-center text-xs" style={{ gridTemplateColumns: template }}>
           <div className="sticky left-0 z-10 border-r border-black bg-muted p-2 text-left font-bold">Phòng</div>
@@ -81,5 +125,6 @@ export function Gantt({
         ))}
       </div>
     </div>
+    </>
   );
 }
