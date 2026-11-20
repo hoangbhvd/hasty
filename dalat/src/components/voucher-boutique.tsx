@@ -2,7 +2,6 @@ import { MapPin } from "lucide-react";
 import { formatDateVi, formatVnd } from "@/lib/format";
 import type { VoucherData } from "@/lib/voucher";
 import { MapQr } from "@/components/map-qr";
-import { VoucherQr } from "@/components/voucher-qr";
 
 const FONT = { MODERN: "font-sans", CLASSIC: "font-serif", MONO: "font-mono" } as const;
 const STATUS: Record<string, string> = {
@@ -18,12 +17,14 @@ export const hourLabel = (t: string) => { const [h, m] = t.split(":"); return `$
  * cột phải có điều khoản huỷ, lời chào, QR. Màn hình hẹp (<700px) xếp thành 1 cột; khi in A4 luôn dùng bố cục 2 cột.
  * Màu lấy từ màu chủ đạo của căn (đậm/nhạt suy ra bằng color-mix).
  */
-export function BoutiqueView({ v, token }: { v: VoucherData; token: string }) {
+// Mẫu này không có QR thanh toán (khách trả nốt tiền mặt khi nhận nhà); QR duy nhất là link vị trí Google Maps.
+export function BoutiqueView({ v }: { v: VoucherData }) {
   const { config: c } = v;
   const main = c.branding.primary_color;
-  const dark = `color-mix(in srgb, ${main} 78%, black)`;
-  const panel = `color-mix(in srgb, ${main} 86%, white)`;
-  const ink = `color-mix(in srgb, ${main} 62%, black)`;
+  // Bảng màu theo file mẫu: dải tiêu đề & chữ = nâu đậm (#8A7063), khối giá & viền ảnh = nâu hồng nhạt (#C49C89 = màu chủ đạo)
+  const dark = `color-mix(in srgb, ${main} 72%, black)`;
+  const panel = main;
+  const ink = dark;
   const frame = c.branding.image_frame_style === "ARCH" ? "rounded-t-[999px] rounded-b-md" : c.branding.image_frame_style === "ROUNDED" ? "rounded-2xl" : "rounded-none";
   const showCover = c.blocks.show_cover_image && !!c.branding.cover_image_url;
   const hasExtras = v.addons.length > 0 || v.extraFees > 0;
@@ -51,11 +52,10 @@ export function BoutiqueView({ v, token }: { v: VoucherData; token: string }) {
           <div>
             <div>Tên khách: {v.guestName}</div>
             {v.guestPhone && <div>Số điện thoại: {v.guestPhone}</div>}
-            <div>Số lượng khách: {v.guestCount} người</div>
+            <div>Số lượng khách: {v.guestCount} người lớn</div>
           </div>
           <hr style={{ borderColor: ink }} className="max-w-sm opacity-60" />
           <div>
-            <div>Homestay: {v.propertyName}</div>
             <div>Hình thức thuê: {v.roomLabel}</div>
             <div>Check in: {hourLabel(c.stay_times.checkin_time)} {dateOf(v.checkIn)}</div>
             <div>Check out: {hourLabel(c.stay_times.checkout_time)} {dateOf(v.checkOut)}</div>
@@ -64,7 +64,6 @@ export function BoutiqueView({ v, token }: { v: VoucherData; token: string }) {
           <div>
             {v.address && <div>Địa chỉ: {v.address}</div>}
             {c.blocks.show_caretaker_phone && v.caretakerPhone && <div>Quản gia liên hệ nhận nhà: {v.caretakerPhone}</div>}
-            {v.supportPhone && <div>{v.supportLabel}: {v.supportPhone}</div>}
           </div>
           {v.checkinGuide && <p className="text-[13px] leading-6 font-semibold whitespace-pre-line normal-case">{v.checkinGuide}</p>}
         </div>
@@ -126,7 +125,7 @@ export function BoutiqueView({ v, token }: { v: VoucherData; token: string }) {
             {c.blocks.show_cancellation_policy && c.custom_texts.cancellation_policy && (
               <>
                 <h3 className="text-center text-[13px] font-bold tracking-wide uppercase">Điều khoản hủy booking</h3>
-                <ol className="space-y-2 text-[12px] leading-6 @[700px]:space-y-1.5 @[700px]:text-[11px] @[700px]:leading-5">{lines(c.custom_texts.cancellation_policy).map((l, i) => <li key={i}>{l}</li>)}</ol>
+                <ol className="space-y-2 text-[12px] leading-6 opacity-80 @[700px]:space-y-1.5 @[700px]:text-[11px] @[700px]:leading-5">{lines(c.custom_texts.cancellation_policy).map((l, i) => <li key={i}>{l}</li>)}</ol>
               </>
             )}
           </div>
@@ -144,7 +143,6 @@ export function BoutiqueView({ v, token }: { v: VoucherData; token: string }) {
                   <span className="text-[10px] font-semibold">Quét để xem vị trí</span>
                 </a>
               )}
-              {c.blocks.show_vietqr && v.hasQr && <VoucherQr token={token} code={v.bookingCode} className="w-28" />}
             </div>
           </div>
         </section>

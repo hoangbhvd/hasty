@@ -76,7 +76,7 @@ function Policy({ look, title, text }: { look: Look; title: string; text: string
 
 /** Phiếu Booking Confirmation: 4 mẫu dùng chung nội dung. `id="voucher-capture"` là vùng xuất PNG/PDF. */
 export function VoucherView({ v, token }: { v: VoucherData; token: string }) {
-  if (v.config.template_id === "DALAT_BOUTIQUE") return <BoutiqueView v={v} token={token} />;
+  if (v.config.template_id === "DALAT_BOUTIQUE") return <BoutiqueView v={v} />;
   const { config: c } = v;
   const variant = c.template_id;
   const brutal = variant === "GUMROAD_BRUTAL";

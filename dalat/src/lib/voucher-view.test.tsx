@@ -14,7 +14,7 @@ const data = (template: string, over: Partial<VoucherData["config"]["blocks"]> =
   grandTotal: 4_800_000, paid: 2_000_000, remaining: 2_800_000, mapsUrl: "https://maps.example/x", checkinGuide: "Rẽ trái ở ngã ba thông",
   houseRules: null, caretakerPhone: "0911222333", supportPhone: "0966000002", supportLabel: "Người đặt phòng (CTV)", hasQr: true,
   config: parseVoucherConfig({
-    template_id: template, branding: { brand_name: "Cottown", primary_color: "#B08978" },
+    template_id: template, branding: { brand_name: "Cottown", primary_color: "#C49C89" },
     blocks: { show_vietqr: true, ...over },
     custom_texts: { surcharge_policy: SAMPLE_TEXTS.surcharge_policy, terms_conditions: SAMPLE_TEXTS.terms_conditions, cancellation_policy: SAMPLE_TEXTS.cancellation_policy },
   }),
@@ -33,13 +33,14 @@ test("mỗi mẫu hiển thị đủ thông tin khách cần: tên, ngày, tiề
   for (const t of TEMPLATE_IDS) {
     const h = html(data(t));
     assert.ok(h.includes(`data-template="${t}"`), `${t}: thiếu data-template`);
-    for (const must of ["Villa Đồi Thông", "Nguyễn Văn Khách", "04/12/2026", "06/12/2026", "DL-2611-889", "Cottown", "XÁC NHẬN ĐẶT PHÒNG", "Thuê xe máy", "0911222333"]) {
+    for (const must of [...(t === "DALAT_BOUTIQUE" ? [] : ["Villa Đồi Thông"]), "Nguyễn Văn Khách", "04/12/2026", "06/12/2026", "DL-2611-889", "Cottown", "XÁC NHẬN ĐẶT PHÒNG", "Thuê xe máy", "0911222333"]) {
       assert.ok(h.includes(must), `${t}: thiếu "${must}"`);
     }
     // tiền: tổng 4.800.000đ, đã trả 2.000.000đ, còn lại 2.800.000đ
     for (const money of ["4.800.000", "2.000.000", "2.800.000", "2.200.000"]) assert.ok(h.includes(money), `${t}: thiếu ${money}`);
     assert.ok(h.includes("Chính sách phụ thu phát sinh") && h.includes("Các điều khoản và điều kiện") && h.includes("Điều khoản hủy booking"), `${t}: thiếu chính sách`);
-    assert.ok(h.includes("/api/voucher/11111111-1111-4111-8111-111111111111/qr"), `${t}: thiếu QR`);
+    // Boutique không có QR thanh toán (chỉ có QR bản đồ); các mẫu khác có VietQR
+    assert.equal(h.includes("/api/voucher/11111111-1111-4111-8111-111111111111/qr"), t !== "DALAT_BOUTIQUE", `${t}: QR thanh toán`);
     // Boutique: biểu tượng ghim bản đồ (vẫn bấm được trong PDF); các mẫu khác: nút "Mở Google Maps" ẩn khi in
     assert.ok(h.includes('href="https://maps.example/x"') && (t === "DALAT_BOUTIQUE" || h.includes("no-print")), `${t}: thiếu nút bản đồ`);
   }
@@ -101,7 +102,7 @@ test("an toàn: màu chủ đạo độc hại bị loại, tên/chính sách đ
     assert.ok(!h.includes("evil") && !h.includes("<script>") && !h.includes("<img src=x"), `${t}: lọt mã độc`);
     assert.ok(h.includes("&lt;img src=x onerror=alert(1)&gt;"), `${t}: tên thương hiệu không được escape`);
     // Brutal và Receipt luôn đơn sắc (đen) nên không dùng màu chủ đạo; 2 mẫu còn lại phải quay về màu mặc định
-    if (t === "DALAT_BOUTIQUE" || t === "LUXURY_MINIMAL") assert.ok(h.includes("#B08978"), `${t}: phải quay về màu mặc định`);
+    if (t === "DALAT_BOUTIQUE" || t === "LUXURY_MINIMAL") assert.ok(h.includes("#C49C89"), `${t}: phải quay về màu mặc định`);
   }
 });
 

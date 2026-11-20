@@ -118,7 +118,7 @@ test("voucher: cấu hình sai/độc hại bị bỏ, dùng mặc định", asy
   });
   const v = (await getVoucherData(hostedToken))!;
   assert.equal(v.config.template_id, "DALAT_BOUTIQUE");
-  assert.equal(v.config.branding.primary_color, "#B08978");
+  assert.equal(v.config.branding.primary_color, "#C49C89");
   assert.equal(v.config.branding.cover_image_url, null);
   assert.equal(v.config.branding.brand_name, "Cottown");
   assert.equal(v.config.blocks.show_vietqr, true);

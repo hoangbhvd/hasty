@@ -49,7 +49,7 @@ export const DEFAULT_VOUCHER_CONFIG: VoucherConfig = {
     brand_name: "",
     cover_image_url: null,
     image_frame_style: "ARCH",
-    primary_color: "#B08978",
+    primary_color: "#C49C89",
     background_color: "#FFFFFF",
     font_style: "MODERN",
   },
