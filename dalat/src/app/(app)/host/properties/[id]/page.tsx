@@ -6,7 +6,8 @@ import { getHostProperty } from "@/lib/access";
 import { PropertyForm, type PropertyDefaults } from "@/components/property-form";
 import { RoomsManager } from "@/components/rooms-manager";
 import { SpecialPricesManager } from "@/components/special-prices-manager";
-import { MediaManager } from "@/components/media-manager";
+import { GalleryManager } from "@/components/gallery-manager";
+import { loadGallery } from "@/lib/albums";
 import { ImageUploader } from "@/components/image-uploader";
 import { PropertyCover } from "@/components/avatar";
 import { ActionButton } from "@/components/action-button";
@@ -41,6 +42,7 @@ export default async function EditPropertyPage({ params }: { params: Promise<{ i
     baseWeekendNet: p.baseWeekendNet ? Number(p.baseWeekendNet) : null,
     amenities: p.amenities as PropertyDefaults["amenities"],
   };
+  const gallery = (await loadGallery(id))!;
   const roomList = rooms.map((r) => ({
     id: r.id, name: r.name, maxGuests: r.maxGuests,
     baseWeekdayNet: r.baseWeekdayNet ? Number(r.baseWeekdayNet) : null,
@@ -80,14 +82,7 @@ export default async function EditPropertyPage({ params }: { params: Promise<{ i
           <PropertyCover url={p.coverImageUrl} name={p.name} className="w-40 shrink-0" />
           <ImageUploader kind="cover" propertyId={id} label={p.coverImageUrl ? "Đổi ảnh đại diện căn" : "Tải ảnh đại diện căn"} r2Ready={r2Configured()} />
         </div>
-        <MediaManager
-          coverUrl={p.coverImageUrl}
-          propertyId={id}
-          canEdit
-          r2Ready={r2Configured()}
-          rooms={rooms.map((r) => ({ id: r.id, name: r.name }))}
-          items={media.map((m) => ({ id: m.id, url: m.url, type: m.mediaType, roomName: m.room?.name ?? null }))}
-        />
+        <GalleryManager gallery={gallery} rooms={rooms.map((r) => ({ id: r.id, name: r.name }))} canEdit r2Ready={r2Configured()} coverUrl={p.coverImageUrl} />
       </section>
 
       <section className="space-y-3 border-t pt-6">

@@ -72,11 +72,11 @@ export async function decideHoldAction(messageId: string, accept: boolean): Prom
   return {};
 }
 
-export async function shareMediaAction(convId: string, propertyId: string): Promise<{ error?: string }> {
+export async function shareMediaAction(convId: string, propertyId: string, keys: string[] = []): Promise<{ error?: string }> {
   const user = await requireUser();
   if (!uuid.safeParse(convId).success || !uuid.safeParse(propertyId).success) return { error: "Không hợp lệ" };
   try {
-    await shareMediaPack(user.id, convId, propertyId);
+    await shareMediaPack(user.id, convId, propertyId, keys.filter((k) => typeof k === "string").slice(0, 60));
   } catch (e) {
     if (e instanceof ChatError) return { error: e.message };
     console.error(e);

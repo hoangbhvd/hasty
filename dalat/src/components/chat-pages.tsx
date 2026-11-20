@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { Avatar } from "@/components/avatar";
 import { prisma } from "@/lib/db";
 import { getConversation, getMessages, listConversations, markRead, type ChatRole } from "@/lib/chat";
-import { ChatView, type HoldOption } from "@/components/chat-view";
+import { ChatView, type HoldOption, type MediaOption } from "@/components/chat-view";
 import { formatDateTimeVi } from "@/lib/format";
 
 const base = (r: ChatRole) => (r === "HOST" ? "/host" : "/broker");
@@ -54,7 +54,21 @@ export async function ChatConversationPage({ userId, id, viewer }: { userId: str
   const holdOptions: HoldOption[] = viewer === "BROKER"
     ? props.map((p) => ({ id: p.id, name: p.name, allowWhole: p.allowWholeUnit, allowRooms: p.allowIndividualRooms, rooms: p.rooms.map((r) => ({ id: r.id, name: r.name, maxGuests: r.maxGuests })) }))
     : [];
-  const mediaOptions = viewer === "HOST" ? props.map((p) => ({ id: p.id, name: p.name })) : [];
+  let mediaOptions: MediaOption[] = [];
+  if (viewer === "HOST" && props.length > 0) {
+    const ids = props.map((p) => p.id);
+    const [albums, generalCounts] = await Promise.all([
+      prisma.propertyAlbum.findMany({ where: { propertyId: { in: ids } }, orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }], select: { id: true, name: true, propertyId: true, _count: { select: { media: true } } } }),
+      prisma.propertyMedia.groupBy({ by: ["propertyId"], where: { propertyId: { in: ids }, albumId: null }, _count: { _all: true } }),
+    ]);
+    mediaOptions = props.map((p) => ({
+      id: p.id, name: p.name,
+      groups: [
+        { key: "general", name: "Ảnh chung", count: generalCounts.find((g) => g.propertyId === p.id)?._count._all ?? 0 },
+        ...albums.filter((a) => a.propertyId === p.id).map((a) => ({ key: a.id, name: a.name, count: a._count.media })),
+      ].filter((g) => g.count > 0),
+    })).filter((o) => o.groups.length > 0);
+  }
 
   // Nút "Đề xuất giá Net" cho CTV: booking của căn chủ nhà, còn mặc cả được, chưa có đề xuất chờ
   let netOption: { bookingId: string; current: number; max: number } | null = null;

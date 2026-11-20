@@ -70,7 +70,7 @@ export function BillCard({ m, role }: { m: MessageDto; role: ChatRole }) {
 }
 
 export function MediaPackCard({ m, role }: { m: MessageDto; role: ChatRole }) {
-  const x = m.metadata as { propertyId: string; propertyName: string; total: number; items: { id: string; url: string; type: string }[] };
+  const x = m.metadata as { propertyId: string; propertyName: string; total: number; albums?: { key: string; name: string; count: number }[]; items: { id: string; url: string; type: string }[] };
   return (
     <div className={card}>
       <b>🖼 Bộ ảnh {x.propertyName}</b>
@@ -85,7 +85,12 @@ export function MediaPackCard({ m, role }: { m: MessageDto; role: ChatRole }) {
         ))}
       </div>
       <div className="text-muted-foreground">{x.total} ảnh/video</div>
-      <Link href={`/${role === "HOST" ? "host" : "broker"}/properties/${x.propertyId}`} className="brutal-btn inline-flex h-10 items-center gap-1 bg-primary px-3 text-black">
+      {x.albums && x.albums.length > 0 && (
+        <ul className="flex flex-wrap gap-1">
+          {x.albums.map((a) => <li key={a.key} className="rounded-full border border-black bg-white px-2 py-0.5 text-xs">{a.name} <span className="money-num opacity-70">{a.count}</span></li>)}
+        </ul>
+      )}
+      <Link href={`/${role === "HOST" ? "host" : "broker"}/properties/${x.propertyId}${x.albums?.[0] ? `?album=${x.albums[0].key}` : ""}`} className="brutal-btn inline-flex h-10 items-center gap-1 bg-primary px-3 text-black">
         <Download className="size-4" /> Xem &amp; tải ảnh sạch
       </Link>
     </div>

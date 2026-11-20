@@ -224,18 +224,31 @@ export async function decideHoldRequest(userId: string, messageId: string, accep
 }
 
 // ───────── Thẻ ACTION_MEDIA_PACK: Host gửi bộ ảnh/video sạch ─────────
-export async function shareMediaPack(userId: string, convId: string, propertyId: string) {
+/** `keys`: các bộ ảnh cần gửi ("general" = Ảnh chung, hoặc id album); bỏ trống = cả căn. */
+export async function shareMediaPack(userId: string, convId: string, propertyId: string, keys: string[] = []) {
   const c = await mustConv(userId, convId);
   if (c.role !== "HOST") throw new ChatError("Chỉ chủ nhà mới gửi bộ ảnh");
   const property = await prisma.property.findFirst({ where: { id: propertyId, sourceType: "HOST_MANAGED", hostId: userId } });
   if (!property) throw new ChatError("Không tìm thấy căn");
-  const media = await prisma.propertyMedia.findMany({ where: { propertyId }, orderBy: { sortOrder: "asc" } });
-  if (media.length === 0) throw new ChatError("Căn chưa có ảnh/video");
+  const [albums, media] = await Promise.all([
+    prisma.propertyAlbum.findMany({ where: { propertyId }, orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }], select: { id: true, name: true } }),
+    prisma.propertyMedia.findMany({ where: { propertyId }, orderBy: { sortOrder: "asc" }, select: { id: true, url: true, thumbUrl: true, mediaType: true, albumId: true } }),
+  ]);
+  const valid = new Set(["general", ...albums.map((a) => a.id)]);
+  if (keys.some((k) => !valid.has(k))) throw new ChatError("Bộ ảnh không hợp lệ");
+  const chosen = keys.length > 0 ? new Set(keys) : valid;
+  const picked = media.filter((m) => chosen.has(m.albumId ?? "general"));
+  if (picked.length === 0) throw new ChatError("Bộ ảnh đã chọn chưa có ảnh/video");
+  const groups = [{ key: "general", name: "Ảnh chung" }, ...albums.map((a) => ({ key: a.id, name: a.name }))]
+    .filter((g) => chosen.has(g.key))
+    .map((g) => ({ key: g.key, name: g.name, count: picked.filter((m) => (m.albumId ?? "general") === g.key).length }))
+    .filter((g) => g.count > 0);
   const metadata = {
-    propertyId, propertyName: property.name, total: media.length,
-    items: media.slice(0, 6).map((m) => ({ id: m.id, url: m.url, type: m.mediaType })),
+    propertyId, propertyName: property.name, total: picked.length, albums: groups,
+    items: picked.slice(0, 6).map((m) => ({ id: m.id, url: m.thumbUrl ?? m.url, type: m.mediaType })),
   };
-  const dto = await createMessage(userId, c, { msgType: "ACTION_MEDIA_PACK", content: `Bộ ảnh ${property.name} (${media.length} file)`, metadata });
-  await notifyUsers([c.conv.brokerId], `Chủ nhà gửi bộ ảnh ${property.name}`, `/broker/chat/${convId}`, { skipToast: true });
+  const label = groups.length === 1 ? `“${groups[0].name}”` : `${groups.length} bộ`;
+  const dto = await createMessage(userId, c, { msgType: "ACTION_MEDIA_PACK", content: `Bộ ảnh ${property.name} · ${label} (${picked.length} file)`, metadata });
+  await notifyUsers([c.conv.brokerId], `Chủ nhà gửi bộ ảnh ${property.name} · ${label}`, `/broker/chat/${convId}`, { skipToast: true });
   return dto;
 }

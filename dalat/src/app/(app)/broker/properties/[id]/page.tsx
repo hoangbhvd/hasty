@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/session";
 import { getBrokerVisibleProperty } from "@/lib/access";
-import { MediaManager } from "@/components/media-manager";
+import { GalleryManager } from "@/components/gallery-manager";
+import { loadGallery } from "@/lib/albums";
 import { ImageUploader } from "@/components/image-uploader";
 import { PropertyCover } from "@/components/avatar";
 import { ActionButton } from "@/components/action-button";
@@ -19,8 +20,8 @@ import { EditExternalButton } from "@/components/add-external-button";
 
 type Amen = { bbQ?: boolean; ac?: boolean; pet_friendly?: boolean; karaoke?: boolean; views?: string[] };
 
-export default async function BrokerPropertyPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+export default async function BrokerPropertyPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ album?: string }> }) {
+  const [{ id }, sp] = await Promise.all([params, searchParams]);
   const user = await requireUser();
   if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
   const visible = await getBrokerVisibleProperty(user.id, id);
@@ -31,6 +32,7 @@ export default async function BrokerPropertyPage({ params }: { params: Promise<{
     prisma.room.findMany({ where: { propertyId: id }, orderBy: { name: "asc" } }),
     prisma.propertyMedia.findMany({ where: { propertyId: id }, orderBy: { sortOrder: "asc" }, include: { room: true } }),
   ]);
+  const gallery = (await loadGallery(id))!;
   const external = p.sourceType === "BROKER_EXTERNAL";
   const rawBookings = external
     ? await prisma.booking.findMany({ where: { propertyId: id, brokerId: user.id }, orderBy: { checkIn: "desc" }, take: 100, include: bookingInclude })
@@ -119,14 +121,7 @@ export default async function BrokerPropertyPage({ params }: { params: Promise<{
             <ImageUploader kind="cover" propertyId={id} label={p.coverImageUrl ? "Đổi ảnh đại diện căn" : "Tải ảnh đại diện căn"} r2Ready={r2Configured()} />
           </div>
         ) : p.coverImageUrl ? <PropertyCover url={p.coverImageUrl} name={p.name} className="w-40" /> : null}
-        <MediaManager
-          coverUrl={p.coverImageUrl}
-          propertyId={id}
-          canEdit={external}
-          r2Ready={r2Configured()}
-          rooms={[]}
-          items={media.map((m) => ({ id: m.id, url: m.url, type: m.mediaType, roomName: m.room?.name ?? null }))}
-        />
+        <GalleryManager gallery={gallery} rooms={rooms.map((r) => ({ id: r.id, name: r.name }))} canEdit={external} r2Ready={r2Configured()} coverUrl={p.coverImageUrl} initialKey={sp.album} />
       </section>
 
       {external && (

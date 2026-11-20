@@ -16,6 +16,7 @@ import { useSafeForm } from "@/lib/use-safe-form";
 import { holdRequestAction, shareMediaAction } from "@/app/(app)/chat-actions";
 import type { ChatRole, MessageDto } from "@/lib/chat";
 
+export type MediaOption = { id: string; name: string; groups: { key: string; name: string; count: number }[] };
 export type HoldOption = { id: string; name: string; allowWhole: boolean; allowRooms: boolean; rooms: { id: string; name: string; maxGuests: number }[] };
 
 const time = (iso: string) => new Intl.DateTimeFormat("vi-VN", { timeZone: "Asia/Ho_Chi_Minh", hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" }).format(new Date(iso));
@@ -51,11 +52,35 @@ function HoldForm({ convId, options, onDone }: { convId: string; options: HoldOp
   );
 }
 
+/** Chọn căn rồi tick 1 hoặc nhiều bộ ảnh để gửi (không tick = gửi cả căn). */
+function MediaPackForm({ convId, options, onDone }: { convId: string; options: MediaOption[]; onDone: () => void }) {
+  const [pid, setPid] = useState(options[0]?.id ?? "");
+  const [picked, setPicked] = useState<string[]>([]);
+  const p = options.find((o) => o.id === pid);
+  return (
+    <div className="space-y-3">
+      {options.length > 1 && (
+        <Field label="Căn" htmlFor="mp-prop"><Select id="mp-prop" value={pid} onChange={(e) => { setPid(e.target.value); setPicked([]); }} options={options.map((o) => ({ value: o.id, label: o.name }))} /></Field>
+      )}
+      <fieldset className="space-y-1">
+        <legend className="text-sm font-medium">Bộ ảnh cần gửi <span className="font-normal text-muted-foreground">(không chọn = gửi tất cả)</span></legend>
+        {p?.groups.map((g) => (
+          <label key={g.key} className="flex min-h-11 items-center gap-2 rounded border border-black bg-white px-3 text-sm">
+            <input type="checkbox" className="size-5 accent-foreground" checked={picked.includes(g.key)} onChange={(e) => setPicked((cur) => (e.target.checked ? [...cur, g.key] : cur.filter((k) => k !== g.key)))} />
+            <span className="flex-1">{g.name}</span><span className="money-num text-xs text-muted-foreground">{g.count}</span>
+          </label>
+        ))}
+      </fieldset>
+      <ActionButton action={async () => { const r = await shareMediaAction(convId, pid, picked); if (!r.error) onDone(); return r; }} className="h-12 w-full justify-center bg-primary">Gửi {picked.length > 0 ? `${picked.length} bộ đã chọn` : "tất cả"}</ActionButton>
+    </div>
+  );
+}
+
 export function ChatView({
   conversationId, role, myId, initial, holdOptions, mediaOptions, bookingPath, netOption,
 }: {
   conversationId: string; role: ChatRole; myId: string; initial: MessageDto[];
-  holdOptions: HoldOption[]; mediaOptions: { id: string; name: string }[]; bookingPath: string | null;
+  holdOptions: HoldOption[]; mediaOptions: MediaOption[]; bookingPath: string | null;
   /** CTV + booking còn mặc cả được và chưa có đề xuất chờ */
   netOption: { bookingId: string; current: number; max: number } | null;
 }) {
@@ -139,18 +164,7 @@ export function ChatView({
         <div className="flex flex-wrap gap-2">
           {role === "BROKER" && <Modal trigger="⏱ Xin giữ phòng" title="Xin giữ phòng 30 phút">{(close) => <HoldForm convId={conversationId} options={holdOptions} onDone={close} />}</Modal>}
           {role === "HOST" && mediaOptions.length > 0 && (
-            <Modal trigger="🖼 Gửi bộ ảnh" title="Gửi bộ ảnh cho CTV">
-              {(close) => (
-                <ul className="space-y-2">
-                  {mediaOptions.map((p) => (
-                    <li key={p.id} className="flex items-center justify-between gap-2 rounded border border-black p-2">
-                      <span className="text-sm font-medium">{p.name}</span>
-                      <ActionButton action={async () => { const r = await shareMediaAction(conversationId, p.id); if (!r.error) close(); return r; }} className="bg-primary">Gửi</ActionButton>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </Modal>
+            <Modal trigger="🖼 Gửi bộ ảnh" title="Gửi bộ ảnh cho CTV">{(close) => <MediaPackForm convId={conversationId} options={mediaOptions} onDone={close} />}</Modal>
           )}
           {role === "BROKER" && netOption && !netSent && (
             <Modal trigger="✏️ Đề xuất giá Net" title="Đề xuất sửa giá Net">

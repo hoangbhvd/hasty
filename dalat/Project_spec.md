@@ -321,3 +321,85 @@ Khi Host bấm xem hồ sơ một Broker (hoặc xem trong danh sách Chờ duy�
 3. **Hiển thị UI (Chuẩn Gumroad):**
    - **User Avatar:** Khung tròn `rounded-full border border-black object-cover`. Nếu người dùng chưa up ảnh, tự động hiển thị chữ cái đầu của tên (Initials) trên nền `bg-secondary` (Host) hoặc `bg-primary` (Broker). Hiển thị tại Header, Khung chat Booking, và Thẻ hồ sơ uy tín CTV (`Broker Trust Card`).
    - **Property Cover:** Khung `border border-black object-cover` (tỷ lệ `aspect-[4/3]`). Nếu là `BROKER_EXTERNAL` chưa up ảnh, hiển thị placeholder gọn gàng theo phong cách Gumroad (nền kem `#F4F4F0` + icon ngôi nhà viền đen).
+
+
+   ### Bổ sung: Quản lý Bộ ảnh theo Album (Property Media Albums)
+
+Cho phép Chủ nhà phân loại kho ảnh/video sạch của từng Căn thành nhiều **Bộ ảnh (Album)** có đặt tên riêng (VD: *"Khung cảnh & Sân vườn BBQ"*, *"Phòng khách & Bếp"*, *"Phòng Áp Mái"*, *"Đường đi & Bãi đậu xe"*).
+
+#### 1. Cập nhật Database
+- **Thêm bảng `property_albums`:**
+  - `id` (UUID, PK)
+  - `property_id` (FK -> `properties`, onDelete: Cascade)
+  - `room_id` (FK -> `rooms`, **nullable** — nếu gắn với 1 phòng lẻ cụ thể, sẽ tự động hiển thị khi Broker xem chi tiết phòng đó; nếu để null là bộ ảnh chung như cảnh quan, BBQ, bếp).
+  - `name` (String — Tên bộ ảnh, VD: *"Sân BBQ & View rừng thông"*).
+  - `sort_order` (Int, default `0`).
+  - `created_at` (TIMESTAMP).
+- **Cập nhật bảng `property_media`:**
+  - Thêm `album_id` (FK -> `property_albums`, nullable — ảnh chưa phân loại vào album nào sẽ nằm ở mục *"Ảnh chung"*).
+  - Giữ `url`, `media_type` (`IMAGE`/`VIDEO`), `sort_order`.
+
+#### 2. Giao diện Quản lý cho Chủ nhà (Host Mode)
+Trong trang **Quản lý Căn -> Tab "Kho Ảnh & Video"**:
+- Nút **`+ Tạo bộ ảnh mới`** -> Nhập tên bộ ảnh + (Tùy chọn) Gắn vào 1 Phòng lẻ cụ thể.
+- Cho phép **đổi tên**, **sắp xếp thứ tự**, hoặc **xóa bộ ảnh** (khi xóa bộ ảnh, có tùy chọn xóa luôn ảnh bên trong hoặc chuyển ảnh về *"Ảnh chung"*).
+- Hỗ trợ kéo thả / chọn nhiều ảnh & video cùng lúc để upload trực tiếp vào đúng bộ ảnh đang mở (nén nhẹ trên client trước khi đẩy lên Cloudflare R2).
+- Trên mỗi ảnh có nút nhanh: **[Đặt làm ảnh đại diện Căn]** (`properties.cover_image_url`).
+
+#### 3. Trải nghiệm cho Broker (Broker Mode)
+- Khi xem chi tiết Căn (đã được duyệt cộng tác), ảnh được chia theo **các tab/pill tên Bộ ảnh** (chuẩn Gumroad: viền đen, active tô hồng `#FF90E8`) để xem cực nhanh.
+- **Tải ảnh thông minh:**
+  - Nút **[Tải bộ ảnh này]** trên từng Album (tải file `.zip` hoặc tải từng ảnh trên mobile) để Broker chỉ lấy đúng bộ ảnh khách cần.
+  - Nút **[Tải toàn bộ ảnh]** của cả Căn.
+- **Tích hợp vào Chat Booking:** Khi Host dùng thẻ `ACTION_MEDIA_PACK` trong khung chat, có thể chọn gửi nhanh **1 hoặc nhiều bộ ảnh cụ thể** cho Broker.
+
+#### 3. Trải nghiệm Xem trực tiếp trên App (Lightbox) & Chia sẻ không cần tải
+- **Xem trực tiếp toàn màn hình (In-app Lightbox Gallery):**
+  - Khi bấm vào bất kỳ ảnh/video nào trong bộ ảnh, mở trình xem toàn màn hình (Lightbox) ngay trên app.
+  - Hỗ trợ **vuốt trái/phải mượt mà trên điện thoại**, phóng to/thu nhỏ (pinch-to-zoom), phát video trực tiếp, hiển thị tên bộ ảnh & số thứ tự (`3 / 12`), và chuyển nhanh giữa các bộ ảnh bằng thanh tab phía trên.
+  - Tự động tải ảnh theo cơ chế **lazy-load** (hiển thị thumbnail nhẹ ở lưới ngoài, chỉ tải ảnh nét khi mở xem trực tiếp) để lướt cực nhanh bằng 4G.
+- **Tùy chọn chia sẻ không tốn bộ nhớ máy (Rất tiện cho Broker):**
+  - Bên cạnh nút **[Tải ảnh]** (tải lẻ 1 tấm hoặc cả bộ khi cần), thêm nút **[Copy Link xem ảnh sạch]** cho từng bộ ảnh (hoặc cả Căn).
+  - Broker chỉ cần gửi 1 đường link public sạch (ẩn hoàn toàn giá Net và SĐT chủ nhà) qua Zalo để khách du lịch tự mở xem trực tiếp toàn bộ ảnh/video đẹp trên trình duyệt mà **cả Broker lẫn khách đều không cần tải nặng máy**.
+
+
+  ### Bổ sung: Lịch Trống Tổng Quan cho CTV & Phân quyền Co-host / Quản gia
+
+#### 1. Cập nhật Database (`host_broker_links`)
+Mở rộng bảng `host_broker_links` để phân quyền chi tiết cho từng đối tác:
+- `access_role` (ENUM, default `BROKER`):
+  - `BROKER`: Cộng tác viên thông thường.
+  - `CO_HOST`: Đồng quản lý (được xem lịch chi tiết và **đặt phòng chốt ngay không cần chủ duyệt**).
+  - `CARETAKER`: Quản gia (xem lịch ra/vào để đón khách & dọn phòng, **ẩn hoàn toàn giá Net và doanh thu**).
+- `allow_instant_book` (Boolean, default `false`): Tự động `true` nếu là `CO_HOST`, hoặc Chủ nhà có thể bật riêng cho CTV ruột.
+- `assigned_property_ids` (JSONB / String[], nullable): Nếu `null` thì áp dụng quyền cho toàn bộ căn của Host; nếu có danh sách ID thì chỉ áp dụng quyền `CO_HOST` / `CARETAKER` cho các căn được chỉ định.
+
+---
+
+#### 2. Lịch Trống Tổng Quan cho CTV (Broker Availability Matrix)
+Trong **Broker Mode**, thêm màn hình **"Lịch trống các căn"** (nằm ngay cạnh mục Tìm kiếm):
+- **Giao diện (Gantt / Timeline Matrix chuẩn Gumroad):**
+  - **Trục dọc:** Danh sách toàn bộ Homestay đã được duyệt cộng tác (`APPROVED`) — bấm mũi tên để xổ ra các Phòng lẻ bên trong.
+  - **Trục ngang:** Các ngày liên tiếp bắt đầu **từ HÔM NAY (`TODAY` theo `Asia/Ho_Chi_Minh`) trở về sau** (hỗ trợ cuộn ngang xem trước 30–60 ngày và bộ lọc nhanh theo Khu vực / Nguyên căn / Xe 7–16 chỗ).
+- **Quy tắc bảo mật dữ liệu (Bắt buộc):**
+  - **Không xem được quá khứ:** API và UI chặn tuyệt đối mọi dữ liệu ngày `< TODAY` đối với `BROKER` (chỉ hiển thị từ hôm nay trở đi).
+  - **Ẩn thông tin khách của người khác:** Với `access_role = 'BROKER'`, các ô đã có khách (của Host hoặc của Broker khác) **chỉ hiển thị trạng thái**: `Đã đặt` (đỏ/xám), `Đang giữ` (vàng), hoặc `Khóa chéo` (`bg-cross-locked`). Tuyệt đối **không trả về** tên khách, SĐT hay giá của đơn không phải do Broker đó tạo.
+- **Thao tác nhanh:** Bấm trực tiếp vào ô trống trên lịch -> Mở nhanh Drawer **[Giữ phòng 30p]** hoặc **[Đặt ngay]** (nếu có quyền Instant Book).
+
+---
+
+#### 3. Quyền hạn chi tiết của `CO_HOST` và `CARETAKER` (Quản gia)
+
+| Quyền hạn | `BROKER` (Thường) | `CO_HOST` (Đồng quản lý) | `CARETAKER` (Quản gia) |
+| :--- | :---: | :---: | :---: |
+| Xem lịch trống từ hôm nay trở đi | Có (chỉ thấy trạng thái) | Có (thấy đủ thông tin đơn) | Có (lịch Check-in/out) |
+| Xem lịch sử quá khứ | **Không** | Có | Chỉ 7 ngày gần nhất |
+| Tạo booking **chốt ngay (`CONFIRMED`)** không cần chủ duyệt | Không (phải giữ 30p/chờ duyệt) | **Có** (vẫn chạy lock chống trùng lịch) | Không |
+| Cập nhật trạng thái Check-in / Check-out / Đã dọn phòng | Không | Có | **Có** |
+| Xem số tiền cần thu nốt của khách lúc nhận nhà | Chỉ đơn của mình | Có | **Có** |
+| Xem Giá Net & Báo cáo doanh thu của Chủ nhà | Chỉ giá Net của mình | Tùy Host bật/tắt | **Ẩn hoàn toàn** |
+
+- **Lưu ý kỹ thuật khi `CO_HOST` đặt phòng (Instant Book):**
+  - Bỏ qua trạng thái `HOLDING` và không cần chờ Host bấm duyệt, booking vào thẳng trạng thái `CONFIRMED`.
+  - **Vẫn bắt buộc** chạy trong PostgreSQL Transaction (`SELECT ... FOR UPDATE` trên `properties`) để đảm bảo khóa chéo Nguyên căn ⇄ Phòng lẻ và chống Overbooking tuyệt đối.
+  - Hệ thống vẫn tự động bắn thông báo (Telegram/In-app) cho Chủ nhà biết: *"Co-host [Tên] vừa chốt đơn mới tại [Tên căn] ngày [Check-in - Check-out]"*.
