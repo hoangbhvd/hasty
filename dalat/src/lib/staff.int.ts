@@ -21,7 +21,7 @@ const rejects = (p: Promise<unknown>) => assert.rejects(p, BookingError);
 before(async () => {
   const u = (x: string) => prisma.user.create({ data: { email: `${tag}-${x}@t.local`, fullName: x } });
   [host, plain, instant, coHost, care, outsider] = (await Promise.all(["host", "plain", "instant", "cohost", "care", "out"].map(u))).map((x) => x.id);
-  const prop = (name: string) => prisma.property.create({ data: { sourceType: "HOST_MANAGED", hostId: host, name: `${tag}-${name}`, area: "TUYEN_LAM", baseWeekdayNet: 1_000_000, baseWeekendNet: 1_000_000, allowIndividualRooms: true } });
+  const prop = (name: string) => prisma.property.create({ data: { sourceType: "HOST_MANAGED", hostId: host, name: `${tag}-${name}`, area: "TUYEN_LAM_PRENN_MIMOSA", baseWeekdayNet: 1_000_000, baseWeekendNet: 1_000_000, allowIndividualRooms: true } });
   pA = (await prop("A")).id; pB = (await prop("B")).id;
   roomA = (await prisma.room.create({ data: { propertyId: pA, name: "P1", maxGuests: 4 } })).id;
   const link = (brokerId: string, data: Record<string, unknown> = {}) => prisma.hostBrokerLink.create({ data: { hostId: host, brokerId, status: "APPROVED", ...data } as never });
@@ -121,6 +121,24 @@ test("Lịch trống: Co-host thấy đủ đơn (kể cả tổng tiền, còn 
 
 test("Lịch trống: bộ lọc khu vực / hình thức", async () => {
   assert.equal((await availabilityMatrix(instant, undefined, 30, { area: "TRUNG_TAM" })).properties.length, 0);
-  assert.equal((await availabilityMatrix(instant, undefined, 30, { area: "TUYEN_LAM" })).properties.length, 2);
+  assert.equal((await availabilityMatrix(instant, undefined, 30, { area: "TUYEN_LAM_PRENN_MIMOSA" })).properties.length, 2);
   assert.equal((await availabilityMatrix(outsider, undefined, 30)).properties.length, 0); // chưa liên kết
+});
+
+test("Co-host chỉ thấy giá Net khi chủ nhà bật; quản gia và Co-host mặc định không bao giờ thấy", async () => {
+  const net = (m: Awaited<ReturnType<typeof availabilityMatrix>>) => JSON.stringify(m);
+  const off = await availabilityMatrix(coHost, todayVn(), 60);
+  assert.ok(!net(off).includes("hostNet") && !net(off).includes("2000000"));
+  await prisma.hostBrokerLink.updateMany({ where: { hostId: host, brokerId: coHost }, data: { coHostSeesNet: true } });
+  const on = (await availabilityMatrix(coHost, todayVn(), 60)).properties.find((p) => p.id === pA)!;
+  const d = on.row.blocks.map((b) => b.detail).filter(Boolean);
+  assert.ok(d.length > 0 && d.every((x) => typeof x!.hostNet === "number" && x!.hostNet > 0));
+  // chỉ ở căn Co-host được giao; căn B (chỉ là CTV thường) vẫn ẩn
+  const b = (await availabilityMatrix(coHost, todayVn(), 60)).properties.find((p) => p.id === pB)!;
+  assert.ok(!JSON.stringify(b).includes("hostNet"));
+  // quản gia: dù bật cờ cũng không thấy
+  await prisma.hostBrokerLink.updateMany({ where: { hostId: host, brokerId: care }, data: { coHostSeesNet: true } });
+  assert.ok(!JSON.stringify(await availabilityMatrix(care, todayVn(), 60)).includes("hostNet"));
+  // CTV thường thì không
+  assert.ok(!JSON.stringify(await availabilityMatrix(plain, todayVn(), 60)).includes("hostNet"));
 });

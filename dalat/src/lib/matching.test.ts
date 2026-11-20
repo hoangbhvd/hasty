@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { matchProperty, type Candidate, type Criteria } from "./matching";
 
 const prop = (over: Partial<Candidate> = {}): Candidate => ({
-  id: "p", area: "TUYEN_LAM", roadAccess: "CAR_16", allowWholeUnit: true, allowIndividualRooms: true,
+  id: "p", area: "TUYEN_LAM_PRENN_MIMOSA", roadAccess: "CAR_16", allowWholeUnit: true, allowIndividualRooms: true,
   rooms: [{ id: "a", maxGuests: 2 }, { id: "b", maxGuests: 3 }], ...over,
 });
 const crit = (over: Partial<Criteria> = {}): Criteria => ({ area: null, roadAccess: null, guestCount: 4, maxBudgetPerNight: null, ...over });
@@ -16,7 +16,7 @@ test("không ràng buộc: nguyên căn trống → khớp", () => {
 });
 
 test("khu vực: chỉ khớp đúng khu vực yêu cầu", () => {
-  assert.ok(matchProperty(prop(), crit({ area: "TUYEN_LAM" }), [], 1, 1));
+  assert.ok(matchProperty(prop(), crit({ area: "TUYEN_LAM_PRENN_MIMOSA" }), [], 1, 1));
   assert.equal(matchProperty(prop(), crit({ area: "TRUNG_TAM" }), [], 1, 1), null);
 });
 

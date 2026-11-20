@@ -15,6 +15,8 @@ export type BlockDetail = {
   remaining?: number;
   /** Tổng tiền khách trả — chỉ Co-host */
   total?: number;
+  /** Giá Net chủ nhà thu — chỉ Co-host khi chủ nhà bật quyền xem Net */
+  hostNet?: number;
   cleaned?: boolean;
 };
 export type MatrixBlock = { key: string; start: number; end: number; status: BlockStatus; partial?: boolean; detail?: BlockDetail };
@@ -80,7 +82,7 @@ export async function availabilityMatrix(userId: string, fromReq: string | undef
     orderBy: { checkIn: "asc" },
     select: {
       id: true, bookingCode: true, propertyId: true, brokerId: true, bookingType: true, status: true, checkIn: true, checkOut: true,
-      guestName: true, guestPhone: true, guestCount: true, guestTotalPrice: true, extraFees: true, cleanedAt: true,
+      guestName: true, guestPhone: true, guestCount: true, guestTotalPrice: true, hostNetPrice: true, extraFees: true, cleanedAt: true,
       rooms: { select: { roomId: true } },
       addons: { select: { quantity: true, guestPrice: true } },
       transactions: { where: { status: "CONFIRMED", OR: [{ payerRole: "GUEST" }, { receiverRole: "GUEST" }] }, select: { amount: true, receiverRole: true } },
@@ -99,8 +101,8 @@ export async function availabilityMatrix(userId: string, fromReq: string | undef
       const block: MatrixBlock = { key, start, end, status, ...(partial ? { partial } : {}) };
       const own = b.brokerId === userId;
       if (status === "CROSS_LOCKED") return block; // ô khoá chéo chỉ là trạng thái
-      if (role === "BROKER" && own) block.detail = detailOf(b, "BROKER");
-      else if (role !== "BROKER") block.detail = detailOf(b, role);
+      if (role === "BROKER" && own) block.detail = detailOf(b, "BROKER", false);
+      else if (role !== "BROKER") block.detail = detailOf(b, role, !!eff.seesNet);
       return block;
     };
     const visible = (b: (typeof bookings)[number]) => role !== "BROKER" || b.status !== "CHECKED_OUT";
@@ -126,10 +128,10 @@ export async function availabilityMatrix(userId: string, fromReq: string | undef
   return { from, days: dayList, properties };
 }
 
-function detailOf(b: { id: string; bookingCode: string; guestName: string; guestPhone: string | null; guestCount: number; checkIn: Date; checkOut: Date; status: string; guestTotalPrice: unknown; extraFees: unknown; cleanedAt: Date | null; addons: { quantity: number; guestPrice: unknown }[]; transactions: { amount: unknown; receiverRole: string }[] }, role: AccessRole): BlockDetail {
+function detailOf(b: { hostNetPrice: unknown; id: string; bookingCode: string; guestName: string; guestPhone: string | null; guestCount: number; checkIn: Date; checkOut: Date; status: string; guestTotalPrice: unknown; extraFees: unknown; cleanedAt: Date | null; addons: { quantity: number; guestPrice: unknown }[]; transactions: { amount: unknown; receiverRole: string }[] }, role: AccessRole, seesNet: boolean): BlockDetail {
   const base: BlockDetail = { bookingId: b.id, code: b.bookingCode, guestName: b.guestName, guestPhone: null, guestCount: b.guestCount, checkIn: iso(b.checkIn), checkOut: iso(b.checkOut), status: b.status };
   if (role === "BROKER") return base; // đơn của chính CTV: chi tiết xem ở trang booking
   const total = Number(b.guestTotalPrice) + Number(b.extraFees) + b.addons.reduce((s, a) => s + a.quantity * Number(a.guestPrice), 0);
   const paid = b.transactions.reduce((s, t) => s + (t.receiverRole === "GUEST" ? -1 : 1) * Number(t.amount), 0);
-  return { ...base, guestPhone: b.guestPhone, remaining: Math.max(total - paid, 0), cleaned: !!b.cleanedAt, ...(role === "CO_HOST" ? { total } : {}) };
+  return { ...base, guestPhone: b.guestPhone, remaining: Math.max(total - paid, 0), cleaned: !!b.cleanedAt, ...(role === "CO_HOST" ? { total } : {}), ...(role === "CO_HOST" && seesNet ? { hostNet: Number(b.hostNetPrice) } : {}) };
 }

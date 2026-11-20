@@ -2,14 +2,14 @@
 import { prisma } from "@/lib/db";
 
 export type AccessRole = "BROKER" | "CO_HOST" | "CARETAKER";
-export type LinkLite = { accessRole: AccessRole; allowInstantBook: boolean; assignedPropertyIds: unknown };
+export type LinkLite = { accessRole: AccessRole; allowInstantBook: boolean; assignedPropertyIds: unknown; coHostSeesNet?: boolean };
 
 /** Danh sách id căn được chỉ định; null = áp dụng cho mọi căn của chủ nhà. */
 export function assignedIds(v: unknown): string[] | null {
   return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : null;
 }
 
-export type Effective = { role: AccessRole; /** được tạo booking CONFIRMED ngay (vẫn chạy khoá chống trùng) */ instant: boolean; /** quản gia ngoài phạm vi được chỉ định: không có quyền gì với căn này */ none?: boolean };
+export type Effective = { role: AccessRole; /** Co-host được chủ nhà bật quyền xem giá Net */ seesNet?: boolean; /** được tạo booking CONFIRMED ngay (vẫn chạy khoá chống trùng) */ instant: boolean; /** quản gia ngoài phạm vi được chỉ định: không có quyền gì với căn này */ none?: boolean };
 
 /**
  * Quyền hiệu lực của 1 liên kết (đã APPROVED) trên 1 căn.
@@ -18,7 +18,7 @@ export type Effective = { role: AccessRole; /** được tạo booking CONFIRMED
 export function effectiveAccess(link: LinkLite, propertyId: string): Effective {
   const ids = assignedIds(link.assignedPropertyIds);
   const inScope = ids === null || ids.includes(propertyId);
-  if (link.accessRole === "CO_HOST" && inScope) return { role: "CO_HOST", instant: true };
+  if (link.accessRole === "CO_HOST" && inScope) return { role: "CO_HOST", instant: true, seesNet: !!link.coHostSeesNet };
   if (link.accessRole === "CARETAKER") return inScope ? { role: "CARETAKER", instant: false } : { role: "CARETAKER", instant: false, none: true };
   return { role: "BROKER", instant: link.allowInstantBook };
 }

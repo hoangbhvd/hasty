@@ -7,7 +7,7 @@ export const optText = z.preprocess(emptyToUndef, z.string().trim().max(2000).op
 export const optUrl = z.preprocess(emptyToUndef, z.url("Link không hợp lệ").max(500).optional());
 export const optPhone = z.preprocess(emptyToUndef, z.string().trim().regex(/^[0-9+\s.\-]{8,15}$/, "SĐT không hợp lệ").optional());
 
-export const AreaEnum = z.enum(["TRUNG_TAM", "TUYEN_LAM", "TRAI_MAT", "TA_NUNG", "DA_PHU", "PHUONG_11", "KHAC"]);
+export const AreaEnum = z.enum(["TRUNG_TAM", "CAN_TRUNG_TAM", "HUNG_VUONG_TRAI_MAT", "TUYEN_LAM_PRENN_MIMOSA", "AN_SON_TRIEU_VIET_VUONG", "TA_NUNG_CAM_LY", "DA_PHU_LANGBIANG", "KHAC"]);
 export const RoadEnum = z.enum(["MOTORBIKE", "CAR_7", "CAR_16", "BUS_29"]);
 export const SlopeEnum = z.enum(["FLAT", "MILD_SLOPE", "STEEP"]);
 export const TierEnum = z.enum(["STANDARD", "VIP", "AGENCY"]);

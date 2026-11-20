@@ -12,7 +12,7 @@ import { PartnerAccess } from "@/components/partner-access";
 export function PartnerRow({
   link, properties,
 }: {
-  link: { id: string; brokerId: string; name: string; phone: string | null; tier: keyof typeof TIER_LABEL; status: keyof typeof LINK_STATUS_LABEL; accessRole: "BROKER" | "CO_HOST" | "CARETAKER"; allowInstantBook: boolean; assignedPropertyIds: string[] | null };
+  link: { id: string; brokerId: string; name: string; phone: string | null; tier: keyof typeof TIER_LABEL; status: keyof typeof LINK_STATUS_LABEL; accessRole: "BROKER" | "CO_HOST" | "CARETAKER"; allowInstantBook: boolean; coHostSeesNet: boolean; assignedPropertyIds: string[] | null };
   properties: { id: string; name: string }[];
 }) {
   const [pending, start] = useTransition();
@@ -26,7 +26,7 @@ export function PartnerRow({
         </div>
         <Badge tone={LINK_TONE[link.status]}>{LINK_STATUS_LABEL[link.status]}</Badge>
       </div>
-      {link.status === "APPROVED" && <PartnerAccess linkId={link.id} name={link.name} role={link.accessRole} instant={link.allowInstantBook} assigned={link.assignedPropertyIds} properties={properties} />}
+      {link.status === "APPROVED" && <PartnerAccess linkId={link.id} name={link.name} role={link.accessRole} instant={link.allowInstantBook} seesNet={link.coHostSeesNet} assigned={link.assignedPropertyIds} properties={properties} />}
       <div className="flex flex-wrap items-center gap-2">
         <select
           aria-label="Hạng đối tác"

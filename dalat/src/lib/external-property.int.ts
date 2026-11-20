@@ -37,10 +37,10 @@ test("tạo rồi sửa: các trường được cập nhật, SĐT chuẩn hoá
   assert.equal(p.hostId, null);
 
   const u = await updateExternalProperty(owner, extId, parseExternalInput(form({
-    name: `${tag}-nha-go-moi`, area: "TUYEN_LAM", baseWeekdayNet: "1000000", externalHostPhone: "0922 111 222", googleMapsUrl: "", checkinGuide: "",
+    name: `${tag}-nha-go-moi`, area: "TUYEN_LAM_PRENN_MIMOSA", baseWeekdayNet: "1000000", externalHostPhone: "0922 111 222", googleMapsUrl: "", checkinGuide: "",
   })));
   assert.equal(u.name, `${tag}-nha-go-moi`);
-  assert.equal(u.area, "TUYEN_LAM");
+  assert.equal(u.area, "TUYEN_LAM_PRENN_MIMOSA");
   assert.equal(Number(u.baseWeekdayNet), 1_000_000);
   assert.equal(Number(u.baseWeekendNet), 1_200_000); // giữ nguyên vì form vẫn gửi giá trị cũ
   assert.equal(u.externalHostPhone, "0922111222");

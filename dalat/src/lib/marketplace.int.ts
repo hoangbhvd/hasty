@@ -15,7 +15,7 @@ before(async () => {
   const u = (x: string) => prisma.user.create({ data: { email: `${tag}-${x}@t.local`, fullName: x } });
   host = (await u("host")).id; broker = (await u("broker")).id; other = (await u("other")).id;
   const p = (name: string, extra: Record<string, unknown>) => prisma.property.create({
-    data: { sourceType: "HOST_MANAGED", hostId: host, name: `${tag}-${name}`, area: "TUYEN_LAM", baseWeekdayNet: 1_234_000, baseWeekendNet: 1_500_000, caretakerPhone: "0900000001", address: "Hẻm bí mật 12", publicPriceRange: "2.000k - 3.500k/đêm", ...extra },
+    data: { sourceType: "HOST_MANAGED", hostId: host, name: `${tag}-${name}`, area: "TUYEN_LAM_PRENN_MIMOSA", baseWeekdayNet: 1_234_000, baseWeekendNet: 1_500_000, caretakerPhone: "0900000001", address: "Hẻm bí mật 12", publicPriceRange: "2.000k - 3.500k/đêm", ...extra },
   });
   pubId = (await p("pub", {})).id;
   hiddenId = (await p("hidden", { isPublicDirectory: false })).id;

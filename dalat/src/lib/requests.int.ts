@@ -24,7 +24,7 @@ before(async () => {
   await prisma.hostBrokerLink.create({ data: { hostId: hostA, brokerId: broker, status: "APPROVED", allowInstantBook: true } });
   await prisma.hostBrokerLink.create({ data: { hostId: hostC, brokerId: broker, status: "BLOCKED" } });
   const mkProp = (hostId: string, name: string, extra = {}) =>
-    prisma.property.create({ data: { sourceType: "HOST_MANAGED", hostId, name: `${tag}-${name}`, area: "TUYEN_LAM", roadAccess: "CAR_16", baseWeekdayNet: 1_000_000, baseWeekendNet: 1_000_000, ...extra } });
+    prisma.property.create({ data: { sourceType: "HOST_MANAGED", hostId, name: `${tag}-${name}`, area: "TUYEN_LAM_PRENN_MIMOSA", roadAccess: "CAR_16", baseWeekdayNet: 1_000_000, baseWeekendNet: 1_000_000, ...extra } });
   propA = (await mkProp(hostA, "A")).id; propB = (await mkProp(hostB, "B")).id; propC = (await mkProp(hostC, "C")).id;
 });
 
@@ -53,7 +53,7 @@ test("tạo yêu cầu: kiểm tra đầu vào", async () => {
 });
 
 test("yêu cầu chỉ tới Host đã duyệt + có căn trống khớp; Host chưa liên kết / bị chặn không thấy", async () => {
-  const r = await createRoomRequest(broker, base({ area: "TUYEN_LAM", roadAccess: "CAR_7", maxBudget: 2_000_000 }));
+  const r = await createRoomRequest(broker, base({ area: "TUYEN_LAM_PRENN_MIMOSA", roadAccess: "CAR_7", maxBudget: 2_000_000 }));
   assert.equal(r.matchedHosts, 1);
   const a = await listRequestsForHost(hostA);
   assert.equal(a.length, 1);

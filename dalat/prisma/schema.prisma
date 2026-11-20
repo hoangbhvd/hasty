@@ -33,14 +33,16 @@ enum SourceType {
   BROKER_EXTERNAL
 }
 
-enum Area {
-  TRUNG_TAM
-  TUYEN_LAM
-  TRAI_MAT
-  TA_NUNG
-  DA_PHU
-  PHUONG_11
-  KHAC
+/// Khu vực Đà Lạt (dùng chung cho properties.area và room_requests.area)
+enum DalatArea {
+  TRUNG_TAM               // Trung tâm (Chợ ĐL / Hồ Xuân Hương)
+  CAN_TRUNG_TAM           // Cận trung tâm (bán kính 2–4km)
+  HUNG_VUONG_TRAI_MAT     // Hùng Vương – Trại Mát – Cầu Đất (săn mây / nhà lồng)
+  TUYEN_LAM_PRENN_MIMOSA  // Hồ Tuyền Lâm – Đèo Prenn – Mimosa (rừng thông)
+  AN_SON_TRIEU_VIET_VUONG // An Sơn – Triệu Việt Vương – Đống Đa (view đồi gần chợ)
+  TA_NUNG_CAM_LY          // Cam Ly – Tà Nùng (cung đường check-in)
+  DA_PHU_LANGBIANG        // Đồi Đa Phú – Suối Vàng – Langbiang (cắm trại / săn mây)
+  KHAC                    // Khu vực khác
 }
 
 enum RoadAccess {
@@ -221,6 +223,8 @@ model HostBrokerLink {
   accessRole  LinkAccessRole @default(BROKER) @map("access_role")
   /// Cho phép tạo booking CONFIRMED ngay không cần giữ 30p (tự động có với CO_HOST)
   allowInstantBook Boolean  @default(false) @map("allow_instant_book")
+  /// Chủ nhà cho phép Co-host xem giá Net của các đơn (mặc định ẩn)
+  coHostSeesNet Boolean    @default(false) @map("co_host_sees_net")
   /// null = áp dụng cho mọi căn của chủ nhà; có danh sách id = chỉ các căn đó (cho CO_HOST / CARETAKER)
   assignedPropertyIds Json?  @map("assigned_property_ids")
   host        User       @relation("LinkHost", fields: [hostId], references: [id])
@@ -244,7 +248,7 @@ model Property {
   allowWholeUnit       Boolean @default(true) @map("allow_whole_unit")
   allowIndividualRooms Boolean @default(false) @map("allow_individual_rooms")
 
-  area               Area       @default(KHAC)
+  area               DalatArea  @default(KHAC)
   distanceToMarketKm Float?     @map("distance_to_market_km")
   roadAccess         RoadAccess @default(MOTORBIKE) @map("road_access")
   slopeLevel         SlopeLevel @default(FLAT) @map("slope_level")
@@ -499,7 +503,7 @@ model RoomRequest {
   checkIn    DateTime      @map("check_in") @db.Date
   checkOut   DateTime      @map("check_out") @db.Date
   guestCount Int           @map("guest_count")
-  area       Area?
+  area       DalatArea?
   roadAccess RoadAccess?   @map("road_access")
   maxBudget  Decimal?      @map("max_budget") @db.Decimal(12, 0)
   note       String?

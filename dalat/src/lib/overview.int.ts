@@ -29,7 +29,7 @@ before(async () => {
   host = (await u("host")).id; host2 = (await u("host2")).id; broker = (await u("broker")).id; broker2 = (await u("broker2")).id;
   await prisma.hostBrokerLink.create({ data: { hostId: host, brokerId: broker, status: "APPROVED", allowInstantBook: true } });
   await prisma.hostBrokerLink.create({ data: { hostId: host, brokerId: broker2, status: "PENDING" } });
-  const p = (hostId: string, name: string) => prisma.property.create({ data: { sourceType: "HOST_MANAGED", hostId, name: `${tag}-${name}`, area: "TUYEN_LAM", baseWeekdayNet: 1_000_000, baseWeekendNet: 1_000_000 } });
+  const p = (hostId: string, name: string) => prisma.property.create({ data: { sourceType: "HOST_MANAGED", hostId, name: `${tag}-${name}`, area: "TUYEN_LAM_PRENN_MIMOSA", baseWeekdayNet: 1_000_000, baseWeekendNet: 1_000_000 } });
   prop = (await p(host, "A")).id; prop2 = (await p(host2, "B")).id;
 });
 

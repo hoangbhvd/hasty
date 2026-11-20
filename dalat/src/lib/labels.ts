@@ -1,11 +1,12 @@
 export const AREA_LABEL = {
-  TRUNG_TAM: "Trung tâm",
-  TUYEN_LAM: "Hồ Tuyền Lâm",
-  TRAI_MAT: "Trại Mát",
-  TA_NUNG: "Tà Nùng",
-  DA_PHU: "Đa Phú",
-  PHUONG_11: "Phường 11",
-  KHAC: "Khác",
+  TRUNG_TAM: "Trung tâm (Chợ ĐL / Hồ Xuân Hương)",
+  CAN_TRUNG_TAM: "Cận trung tâm (2–4km)",
+  HUNG_VUONG_TRAI_MAT: "Hùng Vương – Trại Mát – Cầu Đất",
+  TUYEN_LAM_PRENN_MIMOSA: "Hồ Tuyền Lâm – Đèo Prenn – Mimosa",
+  AN_SON_TRIEU_VIET_VUONG: "An Sơn – Triệu Việt Vương – Đống Đa",
+  TA_NUNG_CAM_LY: "Cam Ly – Tà Nùng",
+  DA_PHU_LANGBIANG: "Đa Phú – Suối Vàng – Langbiang",
+  KHAC: "Khu vực khác",
 } as const;
 
 export const ROAD_LABEL = {

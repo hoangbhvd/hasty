@@ -51,7 +51,7 @@ export default async function PartnersPage() {
       ) : rest.length === 0 ? null : (
         <ul className="divide-y divide-black rounded border border-black bg-white">
           {rest.map((l) => (
-            <PartnerRow key={l.id} properties={props} link={{ id: l.id, brokerId: l.brokerId, name: l.broker.fullName, phone: l.broker.phone, tier: l.tier, status: l.status, accessRole: l.accessRole, allowInstantBook: l.allowInstantBook, assignedPropertyIds: assignedIds(l.assignedPropertyIds) }} />
+            <PartnerRow key={l.id} properties={props} link={{ id: l.id, brokerId: l.brokerId, name: l.broker.fullName, phone: l.broker.phone, tier: l.tier, status: l.status, accessRole: l.accessRole, allowInstantBook: l.allowInstantBook, coHostSeesNet: l.coHostSeesNet, assignedPropertyIds: assignedIds(l.assignedPropertyIds) }} />
           ))}
         </ul>
       )}

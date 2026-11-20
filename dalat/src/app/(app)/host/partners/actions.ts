@@ -50,7 +50,7 @@ export async function rejectRequestAction(linkId: string): Promise<{ error?: str
 const AccessRoleEnum = z.enum(["BROKER", "CO_HOST", "CARETAKER"]);
 
 /** Vai trò + đặt ngay + phạm vi căn của 1 đối tác. Co-host luôn được đặt ngay; ids rỗng/null = mọi căn. */
-export async function setLinkAccessAction(linkId: string, input: { accessRole: string; allowInstantBook: boolean; assignedPropertyIds: string[] | null }): Promise<{ error?: string }> {
+export async function setLinkAccessAction(linkId: string, input: { accessRole: string; allowInstantBook: boolean; assignedPropertyIds: string[] | null; coHostSeesNet?: boolean }): Promise<{ error?: string }> {
   const user = await requireUser();
   const role = AccessRoleEnum.safeParse(input.accessRole);
   if (!role.success) return { error: "Vai trò không hợp lệ" };
@@ -64,7 +64,7 @@ export async function setLinkAccessAction(linkId: string, input: { accessRole: s
   }
   await prisma.hostBrokerLink.update({
     where: { id: link.id },
-    data: { accessRole: role.data, allowInstantBook: role.data === "CO_HOST" ? true : role.data === "CARETAKER" ? false : input.allowInstantBook, assignedPropertyIds: role.data === "BROKER" ? Prisma.DbNull : ids === null ? Prisma.DbNull : ids },
+    data: { accessRole: role.data, coHostSeesNet: role.data === "CO_HOST" && !!input.coHostSeesNet, allowInstantBook: role.data === "CO_HOST" ? true : role.data === "CARETAKER" ? false : input.allowInstantBook, assignedPropertyIds: role.data === "BROKER" ? Prisma.DbNull : ids === null ? Prisma.DbNull : ids },
   });
   revalidatePath("/host/partners");
   return {};

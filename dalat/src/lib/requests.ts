@@ -13,7 +13,7 @@ export type RequestInput = {
   area?: string | null; roadAccess?: string | null; maxBudget?: number | null; note?: string | null; hoursValid: number;
 };
 
-const AREAS = ["TRUNG_TAM", "TUYEN_LAM", "TRAI_MAT", "TA_NUNG", "DA_PHU", "PHUONG_11", "KHAC"];
+const AREAS = ["TRUNG_TAM", "CAN_TRUNG_TAM", "HUNG_VUONG_TRAI_MAT", "TUYEN_LAM_PRENN_MIMOSA", "AN_SON_TRIEU_VIET_VUONG", "TA_NUNG_CAM_LY", "DA_PHU_LANGBIANG", "KHAC"];
 const ROADS = ["MOTORBIKE", "CAR_7", "CAR_16", "BUS_29"];
 
 type Req = { id: string; brokerId: string; checkIn: Date; checkOut: Date; guestCount: number; area: string | null; roadAccess: string | null; maxBudget: unknown };

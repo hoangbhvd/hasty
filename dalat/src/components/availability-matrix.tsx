@@ -58,6 +58,7 @@ function BookingDrawer({ p, d, onClose }: { p: MatrixProperty; d: BlockDetail; o
         <div className="flex justify-between gap-3"><dt className="text-muted-foreground">Nhận → trả</dt><dd className="money-num font-semibold">{d.checkIn} → {d.checkOut}</dd></div>
         <div className="flex justify-between gap-3"><dt className="text-muted-foreground">Trạng thái</dt><dd className="font-semibold">{STATUS_VI[d.status] ?? d.status}</dd></div>
         {d.total !== undefined && <div className="flex justify-between gap-3"><dt className="text-muted-foreground">Tổng tiền khách</dt><dd className="money-num font-semibold">{formatVnd(d.total)}</dd></div>}
+        {d.hostNet !== undefined && <div className="flex justify-between gap-3"><dt className="text-muted-foreground">Giá Net chủ thu</dt><dd className="money-num font-semibold">{formatVnd(d.hostNet)}</dd></div>}
         {d.remaining !== undefined && <div className="flex justify-between gap-3"><dt className="text-muted-foreground">Còn phải thu</dt><dd className="money-num text-base font-extrabold">{formatVnd(d.remaining)}</dd></div>}
       </dl>
       {tel && <a href={`tel:${tel}`} className="brutal-btn inline-flex h-11 w-full items-center justify-center gap-2 bg-white text-sm text-black"><Phone className="size-4" /> Gọi {d.guestPhone}</a>}

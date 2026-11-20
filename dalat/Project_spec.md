@@ -403,3 +403,19 @@ Trong **Broker Mode**, thêm màn hình **"Lịch trống các căn"** (nằm ng
   - Bỏ qua trạng thái `HOLDING` và không cần chờ Host bấm duyệt, booking vào thẳng trạng thái `CONFIRMED`.
   - **Vẫn bắt buộc** chạy trong PostgreSQL Transaction (`SELECT ... FOR UPDATE` trên `properties`) để đảm bảo khóa chéo Nguyên căn ⇄ Phòng lẻ và chống Overbooking tuyệt đối.
   - Hệ thống vẫn tự động bắn thông báo (Telegram/In-app) cho Chủ nhà biết: *"Co-host [Tên] vừa chốt đơn mới tại [Tên căn] ngày [Check-in - Check-out]"*.
+
+  ### Cập nhật Danh sách Khu vực Đà Lạt (`DalatArea` ENUM)
+
+Áp dụng thống nhất cho cả cột `properties.area` và `room_requests.area`:
+
+```prisma
+enum DalatArea {
+  TRUNG_TAM                // Trung tâm (Chợ ĐL / Hồ Xuân Hương)
+  CAN_TRUNG_TAM            // Cận trung tâm (Bán kính 2–4km)
+  HUNG_VUONG_TRAI_MAT      // Hùng Vương – Trại Mát – Cầu Đất (Săn mây / Nhà lồng)
+  TUYEN_LAM_PRENN_MIMOSA   // Hồ Tuyền Lâm – Đèo Prenn – Mimosa (Rừng thông)
+  AN_SON_TRIEU_VIET_VUONG  // An Sơn – Triệu Việt Vương – Đống Đa (View đồi gần chợ)
+  TA_NUNG_CAM_LY           // Cam Ly – Tà Nung (Cung đường check-in)
+  DA_PHU_LANGBIANG         // Đồi Đa Phú – Suối Vàng – Langbiang (Cắm trại / Săn mây)
+  KHAC                     // Khu vực khác
+}

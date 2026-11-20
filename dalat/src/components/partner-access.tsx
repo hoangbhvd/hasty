@@ -10,10 +10,11 @@ import { setLinkAccessAction } from "@/app/(app)/host/partners/actions";
 
 type Role = keyof typeof ACCESS_ROLE_LABEL;
 
-function AccessForm({ linkId, role: r0, instant: i0, assigned: a0, properties, onDone }: { linkId: string; role: Role; instant: boolean; assigned: string[] | null; properties: { id: string; name: string }[]; onDone: () => void }) {
+function AccessForm({ linkId, role: r0, instant: i0, seesNet: n0, assigned: a0, properties, onDone }: { linkId: string; role: Role; instant: boolean; seesNet: boolean; assigned: string[] | null; properties: { id: string; name: string }[]; onDone: () => void }) {
   const router = useRouter();
   const [role, setRole] = useState<Role>(r0);
   const [instant, setInstant] = useState(i0);
+  const [seesNet, setSeesNet] = useState(n0);
   const [all, setAll] = useState(a0 === null);
   const [ids, setIds] = useState<string[]>(a0 ?? []);
   const [busy, setBusy] = useState(false);
@@ -21,7 +22,7 @@ function AccessForm({ linkId, role: r0, instant: i0, assigned: a0, properties, o
   return (
     <form className="space-y-3" onSubmit={async (e) => {
       e.preventDefault(); setBusy(true); setError(undefined);
-      const res = await setLinkAccessAction(linkId, { accessRole: role, allowInstantBook: instant, assignedPropertyIds: role === "BROKER" || all ? null : ids });
+      const res = await setLinkAccessAction(linkId, { accessRole: role, allowInstantBook: instant, coHostSeesNet: seesNet, assignedPropertyIds: role === "BROKER" || all ? null : ids });
       setBusy(false);
       if (res.error) return setError(res.error);
       router.refresh(); onDone();
@@ -31,6 +32,9 @@ function AccessForm({ linkId, role: r0, instant: i0, assigned: a0, properties, o
       </Field>
       {role === "BROKER" && (
         <label className="flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" className="size-5 accent-foreground" checked={instant} onChange={(e) => setInstant(e.target.checked)} />Cho phép đặt ngay (chốt đơn không cần giữ phòng 30 phút)</label>
+      )}
+      {role === "CO_HOST" && (
+        <label className="flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" className="size-5 accent-foreground" checked={seesNet} onChange={(e) => setSeesNet(e.target.checked)} />Cho Co-host xem giá Net của các đơn (mặc định ẩn)</label>
       )}
       {role !== "BROKER" && (
         <fieldset className="space-y-1">
@@ -51,11 +55,11 @@ function AccessForm({ linkId, role: r0, instant: i0, assigned: a0, properties, o
 }
 
 /** Dòng tóm tắt + nút mở hộp thoại phân quyền Co-host / Quản gia cho 1 đối tác đã duyệt. */
-export function PartnerAccess(props: { linkId: string; name: string; role: Role; instant: boolean; assigned: string[] | null; properties: { id: string; name: string }[] }) {
+export function PartnerAccess(props: { linkId: string; name: string; role: Role; instant: boolean; seesNet: boolean; assigned: string[] | null; properties: { id: string; name: string }[] }) {
   const scope = props.role === "BROKER" ? "" : props.assigned === null ? " · mọi căn" : ` · ${props.assigned.length} căn`;
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <span className="rounded border border-black bg-white px-2 py-1 text-xs font-semibold">{ACCESS_ROLE_LABEL[props.role]}{scope}{props.role === "BROKER" && props.instant ? " · đặt ngay" : ""}</span>
+      <span className="rounded border border-black bg-white px-2 py-1 text-xs font-semibold">{ACCESS_ROLE_LABEL[props.role]}{scope}{props.role === "BROKER" && props.instant ? " · đặt ngay" : ""}{props.role === "CO_HOST" && props.seesNet ? " · xem Net" : ""}</span>
       <Modal trigger="Phân quyền" title={`Phân quyền: ${props.name}`}>{(close) => <AccessForm {...props} onDone={close} />}</Modal>
     </div>
   );
