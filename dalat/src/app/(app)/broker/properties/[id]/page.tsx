@@ -12,6 +12,7 @@ import { VoucherConfigForm } from "@/components/voucher-config-form";
 import { parseVoucherConfig } from "@/lib/voucher-config";
 import { deleteExternalPropertyAction } from "../actions";
 import { openChatAction } from "@/app/(app)/chat-actions";
+import { BookingList, bookingInclude, toRow } from "@/components/booking-list";
 import { EditExternalButton } from "@/components/add-external-button";
 
 type Amen = { bbQ?: boolean; ac?: boolean; pet_friendly?: boolean; karaoke?: boolean; views?: string[] };
@@ -29,7 +30,13 @@ export default async function BrokerPropertyPage({ params }: { params: Promise<{
     prisma.propertyMedia.findMany({ where: { propertyId: id }, orderBy: { sortOrder: "asc" }, include: { room: true } }),
   ]);
   const external = p.sourceType === "BROKER_EXTERNAL";
-  const recentBookings = external ? await prisma.booking.findMany({ where: { propertyId: id }, orderBy: { createdAt: "desc" }, take: 8, select: { voucherToken: true, bookingCode: true, guestName: true } }) : [];
+  const rawBookings = external
+    ? await prisma.booking.findMany({ where: { propertyId: id, brokerId: user.id }, orderBy: { checkIn: "desc" }, take: 100, include: bookingInclude })
+    : [];
+  const bookings = rawBookings.map(toRow);
+  const recentBookings = [...rawBookings].sort((x, y) => y.createdAt.getTime() - x.createdAt.getTime()).slice(0, 8);
+  const upcoming = bookings.filter((b) => ["HOLDING", "CONFIRMED", "CHECKED_IN"].includes(b.status)).reverse();
+  const past = bookings.filter((b) => ["CHECKED_OUT", "CANCELLED"].includes(b.status));
   const am = (p.amenities ?? {}) as Amen;
   const tags = [am.bbQ && "BBQ", am.ac && "Máy lạnh", am.pet_friendly && "Thú cưng", am.karaoke && "Karaoke", ...(am.views ?? []).map((v) => `View ${v}`)].filter(Boolean) as string[];
 
@@ -42,6 +49,10 @@ export default async function BrokerPropertyPage({ params }: { params: Promise<{
           {AREA_LABEL[p.area]} · {ROAD_LABEL[p.roadAccess]} · {SLOPE_LABEL[p.slopeLevel]}
           {external ? ` · Chủ: ${p.externalHostName ?? "—"} ${p.externalHostPhone ?? ""}` : ` · Chủ: ${p.host?.fullName ?? ""}`}
         </p>
+      </div>
+
+      <div>
+        <Link href={`/broker/book/${id}`} className="brutal-btn inline-flex h-12 items-center bg-primary px-5 text-base font-semibold text-black">➕ Tạo booking</Link>
       </div>
 
       {external && (
@@ -69,6 +80,20 @@ export default async function BrokerPropertyPage({ params }: { params: Promise<{
         {p.checkinGuide && <div className="sm:col-span-2"><dt className="text-muted-foreground">Hướng dẫn check-in</dt><dd className="whitespace-pre-line">{p.checkinGuide}</dd></div>}
         {p.houseRules && <div className="sm:col-span-2"><dt className="text-muted-foreground">Nội quy</dt><dd className="whitespace-pre-line">{p.houseRules}</dd></div>}
       </dl>
+
+      {external && (
+        <section className="space-y-3">
+          <h2 className="font-semibold">Booking của căn này</h2>
+          {upcoming.length > 0 && <BookingList rows={upcoming} viewer="BROKER" showProperty={false} />}
+          {bookings.length === 0 && <p className="text-sm text-muted-foreground">Chưa có booking. Bấm “Tạo booking” để ghi nhận khách đầu tiên.</p>}
+          {past.length > 0 && (
+            <details>
+              <summary className="cursor-pointer text-sm font-medium">Đã xong / đã huỷ ({past.length})</summary>
+              <div className="pt-2"><BookingList rows={past} viewer="BROKER" showProperty={false} /></div>
+            </details>
+          )}
+        </section>
+      )}
 
       {rooms.length > 0 && (
         <section className="space-y-2">

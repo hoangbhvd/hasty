@@ -34,11 +34,11 @@ export function BookingCreateForm({
         <Field label="SĐT khách" htmlFor="guestPhone"><Input id="guestPhone" name="guestPhone" type="tel" inputMode="tel" className="h-11 text-base" /></Field>
         <Field label="Số khách" htmlFor="guestCount"><Input id="guestCount" name="guestCount" type="number" min="1" defaultValue={2} inputMode="numeric" className="h-11 text-base" required /></Field>
         <Field label={as === "HOST" ? "Tổng tiền khách (đ)" : "Giá bán cho khách (đ)"} htmlFor="guestTotalPrice" hint={as === "BROKER" ? "Chênh lệch so với giá Net là hoa hồng của bạn" : undefined}>
-          <Input id="guestTotalPrice" name="guestTotalPrice" type="number" min="0" step="1000" inputMode="numeric" defaultValue={defaultGuestTotal} className="h-11 text-base" required={external || defaultGuestTotal === undefined} />
+          <Input id="guestTotalPrice" name="guestTotalPrice" type="number" min="0" step="1" inputMode="numeric" defaultValue={defaultGuestTotal} className="h-11 text-base" required={external || defaultGuestTotal === undefined} />
         </Field>
         {external && (
           <>
-            <Field label="Giá chủ thu về - Net (đ)" htmlFor="hostNetPrice"><Input id="hostNetPrice" name="hostNetPrice" type="number" min="0" step="1000" inputMode="numeric" className="h-11 text-base" required /></Field>
+            <Field label="Giá chủ thu về - Net (đ)" htmlFor="hostNetPrice"><Input id="hostNetPrice" name="hostNetPrice" type="number" min="0" step="1" inputMode="numeric" defaultValue={defaultGuestTotal} className="h-11 text-base" required /></Field>
             <Field label="Phòng / hạng phòng" htmlFor="manualRoomInfo"><Input id="manualRoomInfo" name="manualRoomInfo" className="h-11 text-base" /></Field>
           </>
         )}
