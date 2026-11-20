@@ -130,11 +130,14 @@ export async function sendText(userId: string, convId: string, text: string) {
 }
 
 /** Mở (hoặc tạo) cuộc trò chuyện trực tiếp Host ↔ Broker. Chỉ khi 2 bên đã liên kết (APPROVED). */
-export async function openDirectConversation(userId: string, otherId: string) {
+/** `as`: vai trò người mở (2 tài khoản có thể liên kết hai chiều — phải mở đúng chiều mà họ đang xem, nếu không trang chat sẽ 404). */
+export async function openDirectConversation(userId: string, otherId: string, as?: ChatRole) {
   if (userId === otherId) throw new ChatError("Không thể nhắn cho chính mình");
-  const link = await prisma.hostBrokerLink.findFirst({
-    where: { status: "APPROVED", OR: [{ hostId: userId, brokerId: otherId }, { hostId: otherId, brokerId: userId }] },
-  });
+  const sides = [
+    ...(as !== "BROKER" ? [{ hostId: userId, brokerId: otherId }] : []),
+    ...(as !== "HOST" ? [{ hostId: otherId, brokerId: userId }] : []),
+  ];
+  const link = await prisma.hostBrokerLink.findFirst({ where: { status: "APPROVED", OR: sides } });
   if (!link) throw new ChatError("Hai bên chưa liên kết đối tác");
   const existing = await prisma.conversation.findFirst({ where: { bookingId: null, hostId: link.hostId, brokerId: link.brokerId } });
   if (existing) return existing;

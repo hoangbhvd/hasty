@@ -44,6 +44,7 @@ test("mở chat trực tiếp: cần liên kết APPROVED, mở 2 chiều đều
   await rejects(openDirectConversation(hostId, pendingBrokerId)); // mới PENDING
   await rejects(openDirectConversation(hostId, strangerId));
   await rejects(openDirectConversation(hostId, hostId));
+  await rejects(openDirectConversation(hostId, brokerId, "BROKER")); // không có liên kết chiều ngược (broker làm host)
 });
 
 test("gửi tin: 2 bên nhận được, người ngoài không đọc/gửi được", async () => {

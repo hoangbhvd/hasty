@@ -19,7 +19,7 @@ export async function openChatAction(otherUserId: string, as: "HOST" | "BROKER")
   if (!uuid.safeParse(otherUserId).success) return;
   let id: string;
   try {
-    id = (await openDirectConversation(user.id, otherUserId)).id;
+    id = (await openDirectConversation(user.id, otherUserId, as)).id;
   } catch (e) {
     if (e instanceof ChatError) return;
     throw e;
