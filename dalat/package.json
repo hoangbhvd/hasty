@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "NODE_ENV=production tsx server.ts",
     "lint": "eslint",
-    "test": "tsx --test --test-force-exit src/lib/*.test.ts",
+    "test": "tsx --test --test-force-exit src/lib/*.test.ts src/lib/*.test.tsx",
     "worker": "tsx worker/index.ts",
     "test:int": "tsx --test --test-force-exit --test-concurrency=1 src/lib/*.int.ts"
   },

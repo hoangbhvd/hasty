@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Check, Field, Select, Textarea } from "@/components/form-fields";
 import { useSafeForm } from "@/lib/use-safe-form";
 import { saveVoucherConfigAction } from "@/app/(app)/voucher-actions";
-import { SAMPLE_TEXTS, type VoucherConfig } from "@/lib/voucher-config";
+import { SAMPLE_TEXTS, TEMPLATE_IDS, TEMPLATE_LABEL, type VoucherConfig } from "@/lib/voucher-config";
 
 const BLOCKS: [keyof VoucherConfig["blocks"], string][] = [
   ["show_cover_image", "Ảnh bìa"], ["show_price_table", "Bảng giá"], ["show_vietqr", "Mã VietQR thanh toán"],
@@ -37,8 +37,8 @@ export function VoucherConfigForm({
     <form ref={setRef} onSubmit={onSubmit} className="space-y-5">
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Mẫu giao diện" htmlFor="template_id">
-          <Select id="template_id" name="template_id" defaultValue={config.template_id === "DALAT_BOUTIQUE" || config.template_id === "GUMROAD_BRUTAL" ? config.template_id : "DALAT_BOUTIQUE"}
-            options={[{ value: "DALAT_BOUTIQUE", label: "Đà Lạt Boutique (mặc định)" }, { value: "GUMROAD_BRUTAL", label: "Gumroad Brutal (vé / biên lai)" }]} />
+          <Select id="template_id" name="template_id" defaultValue={config.template_id}
+            options={TEMPLATE_IDS.map((id) => ({ value: id, label: TEMPLATE_LABEL[id] }))} />
         </Field>
         <Field label="Tên thương hiệu" htmlFor="brand_name"><Input id="brand_name" name="brand_name" defaultValue={b.brand_name} maxLength={60} className="h-11 text-base" /></Field>
         <Field label="Tiêu đề phiếu" htmlFor="header_title"><Input id="header_title" name="header_title" defaultValue={config.custom_texts.header_title} maxLength={80} className="h-11 text-base" /></Field>
@@ -47,7 +47,7 @@ export function VoucherConfigForm({
         </Field>
         <Field label="Màu chủ đạo" htmlFor="primary_color"><input id="primary_color" name="primary_color" type="color" defaultValue={b.primary_color} className="brutal-input h-11 w-full p-1" /></Field>
         <Field label="Màu nền phiếu" htmlFor="background_color"><input id="background_color" name="background_color" type="color" defaultValue={b.background_color} className="brutal-input h-11 w-full p-1" /></Field>
-        <Field label="Kiểu chữ" htmlFor="font_style">
+        <Field label="Kiểu chữ" htmlFor="font_style" hint="Mẫu Receipt Compact luôn dùng chữ biên lai (mono)">
           <Select id="font_style" name="font_style" defaultValue={b.font_style} options={[{ value: "MODERN", label: "Hiện đại (Sans)" }, { value: "CLASSIC", label: "Cổ điển (Serif)" }, { value: "MONO", label: "Biên lai (Mono)" }]} />
         </Field>
       </div>

@@ -1,8 +1,15 @@
 import { z } from "zod";
 
 export const TEMPLATE_IDS = ["DALAT_BOUTIQUE", "GUMROAD_BRUTAL", "LUXURY_MINIMAL", "RECEIPT_COMPACT"] as const;
-/** Các mẫu đã có giao diện. Mẫu còn lại tạm dùng mẫu mặc định. */
-export const AVAILABLE_TEMPLATES = ["DALAT_BOUTIQUE", "GUMROAD_BRUTAL"] as const;
+/** Cả 4 mẫu đều đã có giao diện (xem components/voucher-view.tsx). */
+export const AVAILABLE_TEMPLATES = TEMPLATE_IDS;
+
+export const TEMPLATE_LABEL: Record<(typeof TEMPLATE_IDS)[number], string> = {
+  DALAT_BOUTIQUE: "Đà Lạt Boutique (mặc định)",
+  GUMROAD_BRUTAL: "Gumroad Brutal (vé / biên lai đậm)",
+  LUXURY_MINIMAL: "Luxury Minimal (tối giản, sang trọng)",
+  RECEIPT_COMPACT: "Receipt Compact (biên lai gọn)",
+};
 export const FRAME_STYLES = ["ARCH", "RECTANGLE", "ROUNDED"] as const;
 export const FONT_STYLES = ["MODERN", "CLASSIC", "MONO"] as const;
 

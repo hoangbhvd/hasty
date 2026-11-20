@@ -33,6 +33,9 @@ export default async function VoucherPage({ params }: { params: Promise<{ token:
           #voucher-capture img.aspect-\\[4\\/5\\] { aspect-ratio: 6 / 1 !important; }
           #voucher-capture img[alt*="VietQR"] { width: 28mm !important; }
           #voucher-capture section { padding-top: 2mm !important; }
+          /* gọn khoảng cách bên trong khối (mẫu Luxury dùng khoảng cách rộng trên màn hình) */
+          #voucher-capture section > * { margin-block: 0.8mm !important; }
+          #voucher-capture footer { padding-top: 2mm !important; }
         }
       `}</style>
     </main>
