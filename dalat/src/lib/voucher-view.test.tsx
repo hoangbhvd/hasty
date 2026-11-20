@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import { renderToStaticMarkup } from "react-dom/server";
 import { VoucherView } from "../components/voucher-view";
 import { AVAILABLE_TEMPLATES, DEFAULT_VOUCHER_CONFIG, SAMPLE_TEXTS, TEMPLATE_IDS, parseVoucherConfig } from "./voucher-config";
+import { qrPath } from "./qr-svg";
 import type { VoucherData } from "./voucher";
 
 const data = (template: string, over: Partial<VoucherData["config"]["blocks"]> = {}, extra: Partial<VoucherData> = {}): VoucherData => ({
@@ -67,6 +68,17 @@ test("tắt khối trong cấu hình thì mẫu nào cũng ẩn khối đó", ()
     assert.ok(!h.includes("0911222333"), `${t}: vẫn có SĐT quản gia`);
     assert.ok(h.includes("Điều khoản hủy booking"), `${t}: mất khối không tắt`);
   }
+});
+
+test("Boutique: QR là link vị trí Google Maps của cơ sở (SVG nội tuyến), tắt khối bản đồ thì mất", () => {
+  const on = html(data("DALAT_BOUTIQUE"));
+  assert.ok(on.includes('aria-label="Mã QR chỉ đường đến homestay"') && on.includes("<svg") && on.includes("Quét để xem vị trí"));
+  const off = html(data("DALAT_BOUTIQUE", { show_google_maps: false }));
+  assert.ok(!off.includes("Mã QR chỉ đường") && !off.includes("maps.example"));
+  const a = qrPath("https://maps.example/x"), b = qrPath("https://maps.example/x"), c2 = qrPath("https://maps.example/y");
+  assert.equal(a.d, b.d);
+  assert.notEqual(a.d, c2.d);
+  assert.ok(a.size >= 21 && (a.size - 17) % 4 === 0); // kích thước QR hợp lệ (phiên bản 1+)
 });
 
 test("booking đã huỷ / hết QR: hiển thị trạng thái huỷ, không có QR", () => {

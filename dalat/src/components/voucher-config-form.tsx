@@ -10,7 +10,7 @@ import { SAMPLE_TEXTS, TEMPLATE_IDS, TEMPLATE_LABEL, type VoucherConfig } from "
 
 const BLOCKS: [keyof VoucherConfig["blocks"], string][] = [
   ["show_cover_image", "Ảnh bìa"], ["show_price_table", "Bảng giá"], ["show_vietqr", "Mã VietQR thanh toán"],
-  ["show_google_maps", "Nút Google Maps"], ["show_caretaker_phone", "SĐT quản gia"], ["show_surcharge_policy", "Chính sách phụ thu"],
+  ["show_google_maps", "Bản đồ (nút / QR vị trí)"], ["show_caretaker_phone", "SĐT quản gia"], ["show_surcharge_policy", "Chính sách phụ thu"],
   ["show_terms_conditions", "Điều khoản & điều kiện"], ["show_cancellation_policy", "Điều khoản huỷ"],
 ];
 

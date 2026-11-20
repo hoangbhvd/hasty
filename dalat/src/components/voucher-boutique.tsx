@@ -1,6 +1,7 @@
 import { MapPin } from "lucide-react";
 import { formatDateVi, formatVnd } from "@/lib/format";
 import type { VoucherData } from "@/lib/voucher";
+import { MapQr } from "@/components/map-qr";
 import { VoucherQr } from "@/components/voucher-qr";
 
 const FONT = { MODERN: "font-sans", CLASSIC: "font-serif", MONO: "font-mono" } as const;
@@ -135,11 +136,15 @@ export function BoutiqueView({ v, token }: { v: VoucherData; token: string }) {
             )}
             <div className="flex items-end justify-center gap-5">
               {c.blocks.show_google_maps && v.mapsUrl && (
-                <a href={v.mapsUrl} target="_blank" rel="noopener noreferrer" aria-label="Mở Google Maps" className="pb-2" style={{ color: ink }}>
-                  <MapPin className="size-9" strokeWidth={1.6} />
+                <a href={v.mapsUrl} target="_blank" rel="noopener noreferrer" aria-label="Mở vị trí trên Google Maps" className="flex flex-col items-center gap-1 text-center" style={{ color: ink }}>
+                  <span className="flex items-end gap-2">
+                    <MapPin className="mb-1 size-8" strokeWidth={1.6} />
+                    <MapQr url={v.mapsUrl} className="w-28" color="#000" />
+                  </span>
+                  <span className="text-[10px] font-semibold">Quét để xem vị trí</span>
                 </a>
               )}
-              {c.blocks.show_vietqr && v.hasQr && <VoucherQr token={token} code={v.bookingCode} className="w-36" />}
+              {c.blocks.show_vietqr && v.hasQr && <VoucherQr token={token} code={v.bookingCode} className="w-28" />}
             </div>
           </div>
         </section>
