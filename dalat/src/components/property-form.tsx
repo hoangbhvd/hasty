@@ -9,7 +9,7 @@ import type { FormState } from "@/app/(auth)/actions";
 
 export type PropertyDefaults = {
   name?: string; description?: string | null; area?: string; distanceToMarketKm?: number | null;
-  roadAccess?: string; slopeLevel?: string; googleMapsUrl?: string | null; checkinGuide?: string | null;
+  roadAccess?: string; slopeLevel?: string; address?: string | null; googleMapsUrl?: string | null; checkinGuide?: string | null;
   caretakerPhone?: string | null; houseRules?: string | null; allowWholeUnit?: boolean; allowIndividualRooms?: boolean;
   baseWeekdayNet?: number | null; baseWeekendNet?: number | null;
   amenities?: { bbQ?: boolean; ac?: boolean; pet_friendly?: boolean; karaoke?: boolean; views?: string[] };
@@ -91,6 +91,9 @@ export function PropertyForm({
 
       <section className="space-y-4">
         <h2 className="font-semibold">Vận hành</h2>
+        <Field label="Địa chỉ (hiện trên phiếu xác nhận)" htmlFor="address">
+          <Input id="address" name="address" defaultValue={defaults.address ?? ""} maxLength={300} className="h-11 text-base" />
+        </Field>
         <Field label="Link Google Maps" htmlFor="googleMapsUrl">
           <Input id="googleMapsUrl" name="googleMapsUrl" type="url" defaultValue={defaults.googleMapsUrl ?? ""} className="h-11 text-base" />
         </Field>

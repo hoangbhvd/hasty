@@ -32,6 +32,18 @@ export default async function VoucherPage({ params }: { params: Promise<{ token:
       <VoucherView v={v} token={token} />
       <VoucherActions code={v.bookingCode} />
       {/* In ra A4 1 trang: bỏ khung/đổ bóng, thu nhỏ chữ, ẩn nút bấm */}
+      {v.config.template_id === "DALAT_BOUTIQUE" ? (
+        // Mẫu Boutique là 1 tờ A4 tràn lề (có dải màu sát mép) nên không chừa lề trang
+        <style>{`
+          @page { size: A4; margin: 0; }
+          @media print {
+            html, body { background: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .no-print { display: none !important; }
+            main { padding: 0 !important; }
+            #voucher-capture { max-width: none !important; width: 210mm !important; min-height: 296mm !important; margin: 0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          }
+        `}</style>
+      ) : (
       <style>{`
         @page { size: A4; margin: 8mm; }
         @media print {
@@ -49,6 +61,7 @@ export default async function VoucherPage({ params }: { params: Promise<{ token:
           #voucher-capture footer { padding-top: 2mm !important; }
         }
       `}</style>
+      )}
     </main>
   );
 }

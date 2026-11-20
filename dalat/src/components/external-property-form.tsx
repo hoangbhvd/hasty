@@ -10,7 +10,7 @@ import type { FormState } from "@/app/(auth)/actions";
 
 export type ExternalDefaults = {
   name?: string; area?: string; googleMapsUrl?: string | null; externalHostName?: string | null; externalHostPhone?: string | null;
-  baseWeekdayNet?: number | null; baseWeekendNet?: number | null; caretakerPhone?: string | null; checkinGuide?: string | null;
+  address?: string | null; baseWeekdayNet?: number | null; baseWeekendNet?: number | null; caretakerPhone?: string | null; checkinGuide?: string | null;
 };
 
 /** Dùng cho cả thêm mới (action = createExternalPropertyAction) và sửa (action đã bind id). */
@@ -37,8 +37,9 @@ export function ExternalPropertyForm({
         <Field label="Link Google Maps"><Input name="googleMapsUrl" type="url" defaultValue={defaults.googleMapsUrl ?? ""} className="h-11 text-base" /></Field>
         <Field label="Tên chủ nhà"><Input name="externalHostName" defaultValue={defaults.externalHostName ?? ""} className="h-11 text-base" /></Field>
         <Field label="SĐT chủ nhà"><Input name="externalHostPhone" type="tel" defaultValue={defaults.externalHostPhone ?? ""} className="h-11 text-base" /></Field>
-        <Field label="Net CN–T5 (đ)"><Input name="baseWeekdayNet" type="number" min="0" step="1000" inputMode="numeric" defaultValue={defaults.baseWeekdayNet ?? ""} className="h-11 text-base" /></Field>
-        <Field label="Net T6–T7 (đ)"><Input name="baseWeekendNet" type="number" min="0" step="1000" inputMode="numeric" defaultValue={defaults.baseWeekendNet ?? ""} className="h-11 text-base" /></Field>
+        <Field label="Net CN–T5 (đ)"><Input name="baseWeekdayNet" type="number" min="0" step="1" inputMode="numeric" defaultValue={defaults.baseWeekdayNet ?? ""} className="h-11 text-base" /></Field>
+        <Field label="Net T6–T7 (đ)"><Input name="baseWeekendNet" type="number" min="0" step="1" inputMode="numeric" defaultValue={defaults.baseWeekendNet ?? ""} className="h-11 text-base" /></Field>
+        <Field label="Địa chỉ"><Input name="address" defaultValue={defaults.address ?? ""} maxLength={300} className="h-11 text-base" /></Field>
         <Field label="SĐT quản gia"><Input name="caretakerPhone" type="tel" defaultValue={defaults.caretakerPhone ?? ""} className="h-11 text-base" /></Field>
       </div>
       <Field label="Hướng dẫn check-in"><Textarea name="checkinGuide" defaultValue={defaults.checkinGuide ?? ""} className="min-h-20" /></Field>

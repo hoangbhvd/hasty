@@ -1,6 +1,7 @@
 import { formatDateVi, formatVnd } from "@/lib/format";
 import type { VoucherData } from "@/lib/voucher";
 import type { VoucherConfig } from "@/lib/voucher-config";
+import { BoutiqueView } from "@/components/voucher-boutique";
 import { VoucherQr } from "@/components/voucher-qr";
 
 const FONT = { MODERN: "font-sans", CLASSIC: "font-serif", MONO: "font-mono" } as const;
@@ -75,6 +76,7 @@ function Policy({ look, title, text }: { look: Look; title: string; text: string
 
 /** Phiếu Booking Confirmation: 4 mẫu dùng chung nội dung. `id="voucher-capture"` là vùng xuất PNG/PDF. */
 export function VoucherView({ v, token }: { v: VoucherData; token: string }) {
+  if (v.config.template_id === "DALAT_BOUTIQUE") return <BoutiqueView v={v} token={token} />;
   const { config: c } = v;
   const variant = c.template_id;
   const brutal = variant === "GUMROAD_BRUTAL";

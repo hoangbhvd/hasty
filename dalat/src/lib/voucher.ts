@@ -17,7 +17,9 @@ export type VoucherData = {
   checkOut: string;
   nights: number;
   guestName: string;
+  guestPhone: string | null;
   guestCount: number;
+  address: string | null;
   pricePerNight: number; // giá khách trả trung bình 1 đêm (tiền phòng)
   roomTotal: number;
   extraFees: number;
@@ -43,10 +45,10 @@ async function loadByToken(token: string) {
     where: { voucherToken: token },
     select: {
       bookingCode: true, status: true, voucherExpiresAt: true, bookingType: true, manualRoomInfo: true,
-      checkIn: true, checkOut: true, guestName: true, guestCount: true,
+      checkIn: true, checkOut: true, guestName: true, guestPhone: true, guestCount: true,
       guestTotalPrice: true, extraFees: true,
       hostId: true, brokerId: true, // chỉ dùng nội bộ để tìm SĐT/ngân hàng, KHÔNG trả ra ngoài
-      property: { select: { name: true, googleMapsUrl: true, checkinGuide: true, houseRules: true, caretakerPhone: true, voucherConfig: true } },
+      property: { select: { name: true, address: true, googleMapsUrl: true, checkinGuide: true, houseRules: true, caretakerPhone: true, voucherConfig: true } },
       rooms: { select: { room: { select: { name: true } } } },
       addons: { select: { serviceName: true, quantity: true, guestPrice: true } }, // KHÔNG select netPrice
       // Khách trả (vào) và hoàn tiền cho khách (ra); chỉ giao dịch đã xác nhận
@@ -106,6 +108,8 @@ async function build(b: Loaded): Promise<VoucherData> {
     checkOut: b.checkOut.toISOString().slice(0, 10),
     nights: c.nights,
     guestName: b.guestName,
+    guestPhone: b.guestPhone,
+    address: b.property.address,
     guestCount: b.guestCount,
     pricePerNight: Math.round(c.roomTotal / c.nights),
     roomTotal: c.roomTotal,

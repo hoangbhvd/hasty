@@ -224,6 +224,7 @@ model Property {
   // { bbQ, ac, pet_friendly, karaoke, views: string[] }
   amenities          Json       @default("{}")
 
+  address        String? // địa chỉ hiển thị trên Booking Confirmation
   googleMapsUrl  String? @map("google_maps_url")
   checkinGuide   String? @map("checkin_guide")
   caretakerPhone String? @map("caretaker_phone")

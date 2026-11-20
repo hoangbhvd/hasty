@@ -59,7 +59,7 @@ export default async function BrokerPropertyPage({ params }: { params: Promise<{
         <EditExternalButton
           id={id}
           defaults={{
-            name: p.name, area: p.area, googleMapsUrl: p.googleMapsUrl, externalHostName: p.externalHostName, externalHostPhone: p.externalHostPhone,
+            name: p.name, area: p.area, address: p.address, googleMapsUrl: p.googleMapsUrl, externalHostName: p.externalHostName, externalHostPhone: p.externalHostPhone,
             baseWeekdayNet: p.baseWeekdayNet ? Number(p.baseWeekdayNet) : null, baseWeekendNet: p.baseWeekendNet ? Number(p.baseWeekendNet) : null,
             caretakerPhone: p.caretakerPhone, checkinGuide: p.checkinGuide,
           }}

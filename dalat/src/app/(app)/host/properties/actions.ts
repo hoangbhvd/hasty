@@ -31,6 +31,7 @@ function propertyData(fd: FormData) {
       roadAccess: v.roadAccess,
       slopeLevel: v.slopeLevel,
       amenities: amenitiesFromForm(fd),
+      address: v.address ?? null,
       googleMapsUrl: v.googleMapsUrl ?? null,
       checkinGuide: v.checkinGuide ?? null,
       caretakerPhone: phoneOrUndef(v.caretakerPhone),

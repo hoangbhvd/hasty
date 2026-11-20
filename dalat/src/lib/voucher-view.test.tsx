@@ -8,7 +8,7 @@ import type { VoucherData } from "./voucher";
 
 const data = (template: string, over: Partial<VoucherData["config"]["blocks"]> = {}, extra: Partial<VoucherData> = {}): VoucherData => ({
   bookingCode: "DL-2611-889", status: "CONFIRMED", propertyName: "Villa Đồi Thông", roomLabel: "Nguyên căn",
-  checkIn: "2026-12-04", checkOut: "2026-12-06", nights: 2, guestName: "Nguyễn Văn Khách", guestCount: 4,
+  checkIn: "2026-12-04", checkOut: "2026-12-06", nights: 2, guestName: "Nguyễn Văn Khách", guestPhone: "0352508031", address: "Hẻm 54 Hùng Vương, P.9, Đà Lạt", guestCount: 4,
   pricePerNight: 2_200_000, roomTotal: 4_400_000, extraFees: 100_000, addons: [{ name: "Thuê xe máy", quantity: 2, guestPrice: 150_000 }],
   grandTotal: 4_800_000, paid: 2_000_000, remaining: 2_800_000, mapsUrl: "https://maps.example/x", checkinGuide: "Rẽ trái ở ngã ba thông",
   houseRules: null, caretakerPhone: "0911222333", supportPhone: "0966000002", supportLabel: "Người đặt phòng (CTV)", hasQr: true,
@@ -39,7 +39,8 @@ test("mỗi mẫu hiển thị đủ thông tin khách cần: tên, ngày, tiề
     for (const money of ["4.800.000", "2.000.000", "2.800.000", "2.200.000"]) assert.ok(h.includes(money), `${t}: thiếu ${money}`);
     assert.ok(h.includes("Chính sách phụ thu phát sinh") && h.includes("Các điều khoản và điều kiện") && h.includes("Điều khoản hủy booking"), `${t}: thiếu chính sách`);
     assert.ok(h.includes("/api/voucher/11111111-1111-4111-8111-111111111111/qr"), `${t}: thiếu QR`);
-    assert.ok(h.includes('href="https://maps.example/x"') && h.includes("no-print"), `${t}: thiếu nút bản đồ`);
+    // Boutique: biểu tượng ghim bản đồ (vẫn bấm được trong PDF); các mẫu khác: nút "Mở Google Maps" ẩn khi in
+    assert.ok(h.includes('href="https://maps.example/x"') && (t === "DALAT_BOUTIQUE" || h.includes("no-print")), `${t}: thiếu nút bản đồ`);
   }
 });
 
@@ -49,9 +50,11 @@ test("các mẫu thực sự KHÁC nhau về cấu trúc (không phải cùng 1 
   assert.ok(out.RECEIPT_COMPACT.includes("font-mono") && out.RECEIPT_COMPACT.includes("border-dotted") && !out.RECEIPT_COMPACT.includes("<table"));
   assert.ok(out.LUXURY_MINIMAL.includes("tracking-[0.3em]") && out.LUXURY_MINIMAL.includes("font-serif"));
   assert.ok(out.GUMROAD_BRUTAL.includes("shadow-[6px_6px_0px_0px_#000]"));
-  assert.ok(out.DALAT_BOUTIQUE.includes("<table") && !out.DALAT_BOUTIQUE.includes("border-dotted"));
+  // Boutique: bố cục A4 2 cột theo container query, màu đậm/nhạt suy ra từ màu chủ đạo, bảng giá 4 ô dạng lưới
+  assert.ok(out.DALAT_BOUTIQUE.includes("@container") && out.DALAT_BOUTIQUE.includes("color-mix") && !out.DALAT_BOUTIQUE.includes("border-dotted"));
+  assert.ok(out.DALAT_BOUTIQUE.includes("grid-cols-4") && out.DALAT_BOUTIQUE.includes("Giá 1 đêm"));
   // bảng giá 4 cột chỉ ở các mẫu có bảng; mẫu biên lai dùng dòng chấm
-  for (const t of ["DALAT_BOUTIQUE", "GUMROAD_BRUTAL", "LUXURY_MINIMAL"]) assert.ok(out[t].includes("Giá 1 đêm") && out[t].includes("<table"), t);
+  for (const t of ["GUMROAD_BRUTAL", "LUXURY_MINIMAL"]) assert.ok(out[t].includes("Giá 1 đêm") && out[t].includes("<table"), t);
 });
 
 test("tắt khối trong cấu hình thì mẫu nào cũng ẩn khối đó", () => {
@@ -104,7 +107,8 @@ test("giờ nhận/trả phòng: mặc định 14:00/12:00, giá trị sai bị 
     const v = data(t);
     v.config = parseVoucherConfig({ ...v.config, stay_times: { checkin_time: "13:15", checkout_time: "10:45" } });
     const out = html(v);
-    assert.match(out, /13:15/, t);
-    assert.match(out, /10:45/, t);
+    // Boutique ghi giờ kiểu phiếu giấy (13H15); các mẫu khác ghi 13:15
+    if (t === "DALAT_BOUTIQUE") { assert.match(out, /13H15/, t); assert.match(out, /10H45/, t); }
+    else { assert.match(out, /13:15/, t); assert.match(out, /10:45/, t); }
   }
 });
