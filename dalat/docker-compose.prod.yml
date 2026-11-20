@@ -18,8 +18,18 @@ x-app: &app
     REDIS_URL: redis://redis:6379
     BETTER_AUTH_URL: ${APP_URL}
     NEXT_PUBLIC_APP_URL: ${APP_URL}
+    # Xuất Booking Confirmation (PDF/PNG) qua Gotenberg: gotenberg gọi ngược về web theo mạng nội bộ Docker
+    GOTENBERG_URL: http://gotenberg:3000
+    VOUCHER_RENDER_BASE_URL: http://web:3000
 
 services:
+  # Chromium headless dựng PDF A4 vector và ảnh PNG sắc nét (thay html-to-image phía trình duyệt). Không mở cổng ra ngoài.
+  gotenberg:
+    image: gotenberg/gotenberg:8
+    restart: unless-stopped
+    environment:
+      TZ: Asia/Ho_Chi_Minh
+
   db:
     image: postgres:16-alpine
     restart: unless-stopped

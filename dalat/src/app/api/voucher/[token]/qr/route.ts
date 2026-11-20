@@ -1,7 +1,7 @@
 import { getVoucherQrUrl } from "@/lib/voucher";
 
 /**
- * Proxy ảnh VietQR cùng origin: html-to-image cần ảnh cùng origin (hoặc CORS) mới xuất PNG được.
+ * Proxy ảnh VietQR cùng origin (không lộ URL chứa số tài khoản ra trang, và Gotenberg tải được qua mạng nội bộ).
  * Không cần đăng nhập — token voucher chính là quyền truy cập.
  */
 export async function GET(_: Request, ctx: { params: Promise<{ token: string }> }) {
