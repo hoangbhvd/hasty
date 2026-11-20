@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { prisma } from "@/lib/db";
+import { occupyingWhere } from "@/lib/availability";
 import { normalizePhone } from "@/lib/phone";
 import { AreaEnum, optMoney, optPhone, optText, optUrl } from "@/lib/validators";
 
@@ -59,4 +60,13 @@ export async function updateExternalProperty(brokerId: string, propertyId: strin
   });
   if (!owned) throw new ExternalPropertyError("Không tìm thấy homestay");
   return prisma.property.update({ where: { id: propertyId }, data: toData(v) });
+}
+
+/** Booking còn hiệu lực trùng khoảng ngày (căn ngoài không bị chặn, chỉ cảnh báo để CTV tự cân nhắc). */
+export async function findOverlappingBookings(propertyId: string, checkIn: Date, checkOut: Date, now = new Date()) {
+  return prisma.booking.findMany({
+    where: { propertyId, ...occupyingWhere(checkIn, checkOut, now) },
+    orderBy: { checkIn: "asc" },
+    select: { id: true, bookingCode: true, guestName: true, status: true, checkIn: true, checkOut: true },
+  });
 }

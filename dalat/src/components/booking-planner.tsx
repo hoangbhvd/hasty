@@ -2,10 +2,11 @@ import { prisma } from "@/lib/db";
 import { getBrokerVisibleProperty, getHostProperty } from "@/lib/access";
 import { buildQuote, fetchOccupying, specialRows } from "@/lib/bookings";
 import { freeRoomIds, roomsAvailable, wholeUnitAvailable } from "@/lib/availability";
-import { formatVnd, parseDateOnly, todayVn } from "@/lib/format";
+import { formatDateVi, formatVnd, parseDateOnly, todayVn } from "@/lib/format";
 import { Field, Select } from "@/components/form-fields";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { findOverlappingBookings } from "@/lib/external-property";
 import { BookingCreateForm } from "@/components/booking-create-form";
 
 export type PlannerParams = { propertyId?: string; checkIn?: string; checkOut?: string; type?: string; rooms?: string[] };
@@ -46,13 +47,28 @@ export async function BookingPlanner({
     const free = external
       ? true
       : type === "WHOLE_UNIT" ? wholeUnitAvailable(occ) : roomIds.length > 0 && roomsAvailable(occ, roomIds);
+    const overlaps = external ? await findOverlappingBookings(property.id, checkIn, checkOut) : [];
     const q = buildQuote(property, await specialRows(prisma, property.id, checkIn, checkOut), tier, checkIn, checkOut, targetType, roomIds);
     const quoteOk = q.missing.length === 0 && q.total > 0;
 
     result = (
       <section className="space-y-4 rounded border border-black bg-white shadow-brutal-sm md:brutal-card p-4">
         {external ? (
-          <p className="text-sm text-muted-foreground">Homestay ngoài hệ thống: không kiểm tra lịch trống.</p>
+          overlaps.length > 0 ? (
+            <div role="alert" className="space-y-1 rounded border-2 border-black bg-status-holding p-3 text-sm">
+              <p className="font-semibold">⚠ Trùng ngày với {overlaps.length} booking đã ghi nhận</p>
+              <ul className="list-disc pl-5">
+                {overlaps.map((o) => (
+                  <li key={o.id}>
+                    <a href={`/broker/bookings/${o.id}`} className="underline">{o.bookingCode}</a> · {o.guestName} · {formatDateVi(o.checkIn)} → {formatDateVi(o.checkOut)}
+                  </li>
+                ))}
+              </ul>
+              <p className="text-muted-foreground">Hệ thống không chặn vì homestay ngoài do bạn tự quản lý. Chỉ tạo tiếp nếu bạn chắc chắn không bị đặt trùng.</p>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">Homestay ngoài hệ thống: chưa có booking nào trùng ngày này (chỉ đối chiếu với booking bạn đã ghi trong app).</p>
+          )
         ) : type === "ROOMS" && roomIds.length === 0 ? (
           <p className="text-sm text-muted-foreground">Chọn ít nhất một phòng ở trên rồi bấm “Kiểm tra”.</p>
         ) : free ? (

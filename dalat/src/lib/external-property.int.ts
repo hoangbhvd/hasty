@@ -3,7 +3,7 @@ import "dotenv/config";
 import { test, after, before } from "node:test";
 import assert from "node:assert/strict";
 import { prisma } from "./db";
-import { ExternalPropertyError, createExternalProperty, parseExternalInput, updateExternalProperty } from "./external-property";
+import { ExternalPropertyError, createExternalProperty, findOverlappingBookings, parseExternalInput, updateExternalProperty } from "./external-property";
 import { createBooking } from "./bookings";
 
 const tag = `ext${Date.now()}`;
@@ -76,4 +76,20 @@ test("sửa homestay không làm hỏng các booking đã có", async () => {
   assert.equal(Number(after.hostNetPrice), 1_000_000); // giá của booking cũ không đổi theo giá nền mới
   assert.equal(Number(after.guestTotalPrice), 1_300_000);
   assert.equal(after.status, "CONFIRMED");
+});
+
+test("cảnh báo trùng ngày: chỉ booking còn hiệu lực và thật sự giao nhau (đêm check-out không tính)", async () => {
+  const mk = (inn: string, out: string) => createBooking({
+    actorId: owner, as: "BROKER", propertyId: extId, mode: "CONFIRM", bookingType: "WHOLE_UNIT", roomIds: [],
+    checkIn: new Date(`${inn}T00:00:00Z`), checkOut: new Date(`${out}T00:00:00Z`), guestName: "T", guestCount: 2,
+    hostNetPrice: 1_000_000, guestTotalPrice: 1_200_000,
+  });
+  const a = await mk("2036-05-10", "2036-05-12");
+  const gone = await mk("2036-05-20", "2036-05-22");
+  await prisma.booking.update({ where: { id: gone.id }, data: { status: "CANCELLED" } });
+  const d = (s: string) => new Date(`${s}T00:00:00Z`);
+  assert.deepEqual((await findOverlappingBookings(extId, d("2036-05-11"), d("2036-05-13"))).map((x) => x.id), [a.id]);
+  assert.equal((await findOverlappingBookings(extId, d("2036-05-12"), d("2036-05-14"))).length, 0); // nhận đúng ngày người trước trả
+  assert.equal((await findOverlappingBookings(extId, d("2036-05-08"), d("2036-05-10"))).length, 0);
+  assert.equal((await findOverlappingBookings(extId, d("2036-05-20"), d("2036-05-22"))).length, 0); // đã huỷ
 });
