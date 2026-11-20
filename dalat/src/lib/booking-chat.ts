@@ -19,7 +19,7 @@ export async function postSystemMessage(db: Db, bookingId: string, content: stri
   await db.conversation.update({ where: { id: conv.id }, data: { lastMessageAt: new Date() } });
 }
 
-type CardType = "ACTION_HOLD_REQ" | "ACTION_BILL_UPLOAD" | "ACTION_MEDIA_PACK";
+type CardType = "ACTION_HOLD_REQ" | "ACTION_BILL_UPLOAD" | "ACTION_MEDIA_PACK" | "ACTION_NET_PRICE_REQ";
 
 /** Đăng thẻ hành động (sender = null → thẻ hệ thống) vào khung chat của booking. */
 export async function postCard(db: Db, bookingId: string, msgType: CardType, content: string, metadata: Prisma.InputJsonValue) {

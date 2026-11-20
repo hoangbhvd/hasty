@@ -12,7 +12,7 @@ export type ChatRole = "HOST" | "BROKER";
 
 export type MessageDto = {
   id: string; conversationId: string; senderId: string | null; senderName: string | null;
-  msgType: "TEXT" | "IMAGE" | "ACTION_HOLD_REQ" | "ACTION_BILL_UPLOAD" | "ACTION_MEDIA_PACK";
+  msgType: "TEXT" | "IMAGE" | "ACTION_HOLD_REQ" | "ACTION_BILL_UPLOAD" | "ACTION_MEDIA_PACK" | "ACTION_NET_PRICE_REQ";
   content: string | null; metadata: Record<string, unknown> | null; createdAt: string;
 };
 

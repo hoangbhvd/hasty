@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/modal";
 import { ActionButton } from "@/components/action-button";
 import { Check, Field, Select } from "@/components/form-fields";
-import { BillCard, HoldRequestCard, MediaPackCard } from "@/components/chat-cards";
+import { BillCard, HoldRequestCard, MediaPackCard, NetPriceCard } from "@/components/chat-cards";
 import { getSocket } from "@/lib/socket-client";
 import { useUnread } from "@/components/realtime-provider";
 import { useSafeForm } from "@/lib/use-safe-form";
@@ -122,6 +122,7 @@ export function ChatView({
               ) : m.msgType === "ACTION_HOLD_REQ" ? <HoldRequestCard m={m} role={role} />
               : m.msgType === "ACTION_BILL_UPLOAD" ? <BillCard m={m} role={role} />
               : m.msgType === "ACTION_MEDIA_PACK" ? <MediaPackCard m={m} role={role} />
+              : m.msgType === "ACTION_NET_PRICE_REQ" ? <NetPriceCard m={m} role={role} />
               : null}
               <span className="money-num px-1 text-[10px] text-muted-foreground">{time(m.createdAt)}</span>
             </div>

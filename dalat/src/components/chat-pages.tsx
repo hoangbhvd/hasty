@@ -6,7 +6,7 @@ import { ChatView, type HoldOption } from "@/components/chat-view";
 import { formatDateTimeVi } from "@/lib/format";
 
 const base = (r: ChatRole) => (r === "HOST" ? "/host" : "/broker");
-const PREVIEW: Record<string, string> = { ACTION_HOLD_REQ: "⏱ Yêu cầu giữ phòng", ACTION_BILL_UPLOAD: "💸 Bill chuyển khoản", ACTION_MEDIA_PACK: "🖼 Bộ ảnh", IMAGE: "🖼 Ảnh" };
+const PREVIEW: Record<string, string> = { ACTION_HOLD_REQ: "⏱ Yêu cầu giữ phòng", ACTION_BILL_UPLOAD: "💸 Bill chuyển khoản", ACTION_MEDIA_PACK: "🖼 Bộ ảnh", ACTION_NET_PRICE_REQ: "🤝 Đề xuất giá Net", IMAGE: "🖼 Ảnh" };
 
 export async function ChatListPage({ userId, viewer }: { userId: string; viewer: ChatRole }) {
   const all = await listConversations(userId);

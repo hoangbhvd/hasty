@@ -98,6 +98,14 @@ enum MsgType {
   ACTION_HOLD_REQ
   ACTION_BILL_UPLOAD
   ACTION_MEDIA_PACK
+  ACTION_NET_PRICE_REQ
+}
+
+enum NetNegotiationStatus {
+  NONE
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 enum RequestStatus {
@@ -327,6 +335,9 @@ model Booking {
   hostNetPrice      Decimal @map("host_net_price") @db.Decimal(12, 0)
   extraFees         Decimal @default(0) @map("extra_fees") @db.Decimal(12, 0)
   commissionAmount  Decimal @default(0) @map("commission_amount") @db.Decimal(12, 0)
+  /// Giá Net Broker/Host đang đề xuất (chưa có hiệu lực) — mục 4.6
+  pendingNetPrice   Decimal? @map("pending_net_price") @db.Decimal(12, 0)
+  netPriceNegotiationStatus NetNegotiationStatus @default(NONE) @map("net_price_negotiation_status")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")

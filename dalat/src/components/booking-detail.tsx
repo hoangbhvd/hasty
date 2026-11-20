@@ -11,6 +11,8 @@ import { formatDateTimeVi, formatDateVi, formatVnd } from "@/lib/format";
 import { r2Configured } from "@/lib/r2";
 import { confirmerRole } from "@/lib/tx-roles";
 import { openBookingChatAction } from "@/app/(app)/chat-actions";
+import { pendingNetCard } from "@/lib/net-negotiation";
+import { NetResponseButtons, ProposeNetForm } from "@/components/net-price-ui";
 
 const TYPE_LABEL = { DEPOSIT: "Cọc", BALANCE: "Thanh toán", COMMISSION_SETTLEMENT: "Quyết toán hoa hồng", REFUND: "Hoàn tiền" } as const;
 const DIR_LABEL = {
@@ -41,6 +43,8 @@ export async function BookingDetail({ userId, bookingId, viewer }: { userId: str
   const voucherUrl = `${base}/voucher/${b.voucherToken}`;
   const canExtra = ["CONFIRMED", "CHECKED_IN", "CHECKED_OUT"].includes(b.status) && (viewer === "HOST" || external);
   const hasBoth = !!b.hostId && !!b.brokerId;
+  const negotiable = hasBoth && !external && ["HOLDING", "CONFIRMED", "CHECKED_IN"].includes(b.status);
+  const netCard = negotiable ? await pendingNetCard(b.id) : null;
   const dirs = directionsFor(!!b.hostId, !!b.brokerId).map((d) => ({ value: d, label: DIR_LABEL[d] }));
   const types = (Object.keys(TYPE_LABEL) as (keyof typeof TYPE_LABEL)[]).map((t) => ({ value: t, label: TYPE_LABEL[t] }));
   const backHref = viewer === "HOST" ? "/host/calendar" : "/broker/bookings";
@@ -128,6 +132,22 @@ export async function BookingDetail({ userId, bookingId, viewer }: { userId: str
           </dl>
         )}
       </section>
+
+      {negotiable && (
+        <section className="space-y-2 rounded border border-black bg-white p-4 shadow-brutal-sm md:brutal-card">
+          <h2 className="font-bold">Giá Net (mặc cả)</h2>
+          {netCard ? (
+            <div className="space-y-1 text-sm">
+              <p>{netCard.meta.proposedBy === "BROKER" ? "CTV đề xuất" : "Chủ nhà đề xuất giá chốt"}: <span className="money-num text-muted-foreground line-through">{formatVnd(netCard.meta.old_net_price)}</span> → <b className="money-num">{formatVnd(netCard.meta.proposed_net_price)}</b></p>
+              {netCard.meta.reason && <p className="text-muted-foreground">“{netCard.meta.reason}”</p>}
+              <NetResponseButtons messageId={netCard.id} bookingId={b.id} meta={netCard.meta} role={viewer} />
+              {viewer === (netCard.meta.proposedBy === "BROKER" ? "BROKER" : "HOST") && <p className="text-xs text-muted-foreground">Đang chờ bên kia phản hồi (thông báo đã gửi, xem trong chat booking).</p>}
+            </div>
+          ) : viewer === "BROKER" ? (
+            <ProposeNetForm bookingId={b.id} current={Number(b.hostNetPrice)} max={Number(b.guestTotalPrice)} />
+          ) : <p className="text-sm text-muted-foreground">Chưa có đề xuất sửa giá Net. CTV có thể đề xuất; bạn sẽ nhận thông báo và phản hồi tại đây hoặc trong chat.</p>}
+        </section>
+      )}
 
       <section className="space-y-3">
         <h2 className="font-bold">Dịch vụ đi kèm</h2>

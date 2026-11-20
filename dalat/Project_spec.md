@@ -116,6 +116,27 @@ và giao thời gian: `(check_in < req_check_out AND check_out > req_check_in)`.
 - Hiển thị: Tên Homestay, Hạng phòng/Nguyên căn, Ngày Check-in/out, Số khách, Dịch vụ đi kèm, Tổng tiền khách trả, Đã cọc, Còn lại cần thanh toán + mã VietQR động, nút mở Google Maps, hướng dẫn đường đi, SĐT hỗ trợ (Broker/Quản gia).
 - Có nút **[Tải ảnh xác nhận (PNG)]** sử dụng `html-to-image`.
 
+### 4.6. Luồng Mặc cả / Đề xuất sửa giá Net (Net Price Negotiation)
+Áp dụng cho các đơn `HOST_MANAGED` đang ở trạng thái `HOLDING`, `CONFIRMED`, hoặc `CHECKED_IN` (chưa chốt đối soát).
+
+#### 1. Cập nhật Database
+- **Bảng `bookings`:** Thêm 2 cột tùy chọn (nullable):
+  - `pending_net_price` (Decimal, nullable — giá Net Broker đang đề xuất, chưa có hiệu lực).
+  - `net_price_negotiation_status` (ENUM: `NONE`, `PENDING`, `APPROVED`, `REJECTED`).
+- **Bảng `messages`:** Bổ sung thêm `msg_type = 'ACTION_NET_PRICE_REQ'` để lưu thẻ tương tác ngay trong khung chat của booking (làm bằng chứng lịch sử thỏa thuận).
+  - `metadata` (JSONB): `{ "old_net_price": 5000000, "proposed_net_price": 4600000, "reason": "Khách ở 2 đêm ngày thường, chị hỗ trợ giảm em 400k nhé", "status": "PENDING" }`.
+
+#### 2. Quy trình thao tác (2 chiều)
+1. **Broker gửi yêu cầu:** Trong màn hình Chi tiết Booking hoặc khung Chat Booking, Broker bấm nút **[Đề xuất sửa giá Net]** -> Nhập mức giá Net mong muốn + Lý do -> Hệ thống cập nhật `pending_net_price`, tạo thẻ `ACTION_NET_PRICE_REQ` trong chat và bắn thông báo (Telegram/Push) cho Chủ nhà.
+2. **Chủ nhà phản hồi ngay trên thẻ chat (3 lựa chọn):**
+   - **[Đồng ý]:** Hệ thống tự động cập nhật `bookings.host_net_price = proposed_net_price`, tự động tính lại `commission_amount` và số dư công nợ giữa Host ↔ Broker. Xóa `pending_net_price` và đổi trạng thái thẻ sang `APPROVED`.
+   - **[Từ chối]:** Giữ nguyên `host_net_price` cũ, xóa `pending_net_price`, đổi trạng thái thẻ sang `REJECTED`.
+   - **[Đề xuất giá khác (Counter-offer)]:** Chủ nhà nhập mức giá chốt cuối cùng (VD: chỉ giảm 200k thành `4.800.000`) -> Bắn ngược lại thẻ cho Broker bấm **[Chấp nhận]**.
+
+#### 3. Quy tắc bảo mật & Tài chính
+- Việc sửa `host_net_price` **không làm thay đổi** `guest_total_price` (giá bán cho khách) và **không ảnh hưởng** đến trang Booking Confirmation của khách.
+- Toàn bộ lịch sử mặc cả được lưu cố định trong luồng chat của Booking để tránh tranh chấp khi đối soát công nợ cuối tháng.
+
 ---
 
 ## 5. LỘ TRÌNH THỰC HIỆN TỪNG GIAI ĐOẠN (EXECUTION PHASES)

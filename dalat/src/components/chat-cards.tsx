@@ -6,6 +6,8 @@ import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { ActionButton } from "@/components/action-button";
 import { TxDecision } from "@/components/booking-finance-forms";
 import { decideHoldAction } from "@/app/(app)/chat-actions";
+import { NetResponseButtons } from "@/components/net-price-ui";
+import type { NetCardMeta } from "@/lib/net-negotiation";
 import { formatVnd } from "@/lib/format";
 import { confirmerRole } from "@/lib/tx-roles";
 import type { MessageDto, ChatRole } from "@/lib/chat";
@@ -86,6 +88,30 @@ export function MediaPackCard({ m, role }: { m: MessageDto; role: ChatRole }) {
       <Link href={`/${role === "HOST" ? "host" : "broker"}/properties/${x.propertyId}`} className="brutal-btn inline-flex h-10 items-center gap-1 bg-primary px-3 text-black">
         <Download className="size-4" /> Xem &amp; tải ảnh sạch
       </Link>
+    </div>
+  );
+}
+
+const NET_TONE: Record<string, BadgeTone> = { PENDING: "holding", PROCESSING: "holding", APPROVED: "confirmed", REJECTED: "cancelled", COUNTERED: "neutral", FAILED: "cancelled" };
+const NET_LABEL: Record<string, string> = { PENDING: "Chờ phản hồi", PROCESSING: "Đang xử lý…", APPROVED: "Đã đồng ý", REJECTED: "Đã từ chối", COUNTERED: "Đã đề xuất giá khác", FAILED: "Không áp dụng được" };
+
+/** Thẻ mặc cả giá Net (mục 4.6): lưu lịch sử thoả thuận ngay trong chat booking. */
+export function NetPriceCard({ m, role }: { m: MessageDto; role: ChatRole }) {
+  const x = m.metadata as unknown as NetCardMeta;
+  return (
+    <div className={card}>
+      <div className="flex items-center justify-between gap-2">
+        <b>🤝 {x.proposedBy === "BROKER" ? "CTV đề xuất sửa giá Net" : "Chủ nhà đề xuất giá Net chốt"}</b>
+        <Badge tone={NET_TONE[x.status] ?? "neutral"}>{NET_LABEL[x.status] ?? x.status}</Badge>
+      </div>
+      <div className="money-num">
+        <span className="text-muted-foreground line-through">{formatVnd(x.old_net_price)}</span> → <b className="text-lg font-extrabold">{formatVnd(x.proposed_net_price)}</b>
+      </div>
+      {x.reason && <p className="text-muted-foreground">“{x.reason}”</p>}
+      {x.status === "COUNTERED" && x.counter_price != null && <p className="font-medium">Chủ nhà đề xuất lại {formatVnd(x.counter_price)}</p>}
+      {x.status === "FAILED" && <p className="font-medium text-red-700">{x.failReason}</p>}
+      <NetResponseButtons messageId={m.id} bookingId={x.bookingId} meta={x} role={role} />
+      <Link href={`/${role === "HOST" ? "host" : "broker"}/bookings/${x.bookingId}`} className="block font-medium underline">Mở booking {x.bookingCode}</Link>
     </div>
   );
 }
