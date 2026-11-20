@@ -21,8 +21,9 @@ export const NAV: Record<Mode, NavItem[]> = {
   broker: [
     { href: "/broker", label: "Tổng quan", icon: LayoutDashboard, ready: true },
     { href: "/broker/search", label: "Tìm phòng", icon: Search, ready: true, bottom: 1 },
-    { href: "/broker/bookings", label: "Booking", icon: ClipboardList, ready: true, bottom: 2 },
-    { href: "/broker/requests", label: "Tìm gấp", icon: Flame, ready: true, bottom: 3 },
+    { href: "/broker/calendar", label: "Lịch", icon: CalendarDays, ready: true, bottom: 2 },
+    { href: "/broker/bookings", label: "Booking", icon: ClipboardList, ready: true, bottom: 3 },
+    { href: "/broker/requests", label: "Tìm gấp", icon: Flame, ready: true },
     { href: "/broker/chat", label: "Chat", icon: MessageCircle, ready: true, bottom: 4, badge: "chat" },
     { href: "/broker/properties", label: "Homestay", icon: Building2, ready: true },
     { href: "/broker/finance", label: "Hoa hồng", icon: Wallet, ready: true },
