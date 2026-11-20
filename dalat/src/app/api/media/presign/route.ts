@@ -3,11 +3,12 @@ import { z } from "zod";
 import { getCurrentUser } from "@/lib/session";
 import { getManagedProperty } from "@/lib/access";
 import { getBookingForParty } from "@/lib/booking-finance";
-import { ALLOWED_TYPES, IMAGE_EXT, avatarKey, billPrefix, coverKey, logoKey, keyPrefix, presignFixed, presignUpload, r2Configured } from "@/lib/r2";
+import { ALLOWED_TYPES, IMAGE_EXT, avatarKey, bcTemplateKey, billPrefix, coverKey, logoKey, keyPrefix, presignFixed, presignUpload, r2Configured } from "@/lib/r2";
 
 const body = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("media").default("media"), propertyId: z.uuid(), contentType: z.string(), size: z.number().int().positive() }),
   z.object({ kind: z.literal("avatar"), contentType: z.string(), size: z.number().int().positive() }),
+  z.object({ kind: z.literal("bcpdf"), propertyId: z.uuid(), contentType: z.string(), size: z.number().int().positive() }),
   z.object({ kind: z.literal("logo"), propertyId: z.uuid(), contentType: z.string(), size: z.number().int().positive() }),
   z.object({ kind: z.literal("cover"), propertyId: z.uuid(), contentType: z.string(), size: z.number().int().positive() }),
   z.object({ kind: z.literal("bill"), bookingId: z.uuid(), contentType: z.string(), size: z.number().int().positive() }),
@@ -23,6 +24,12 @@ export async function POST(req: Request) {
   if (!parsed.success) return NextResponse.json({ error: "Dữ liệu không hợp lệ" }, { status: 400 });
   const p = parsed.data;
 
+  if (p.kind === "bcpdf") {
+    if (p.contentType !== "application/pdf") return NextResponse.json({ error: "Chỉ nhận file PDF" }, { status: 400 });
+    if (p.size > 10 * 1024 * 1024) return NextResponse.json({ error: "PDF quá lớn (tối đa 10MB)" }, { status: 400 });
+    if (!(await getManagedProperty(user.id, p.propertyId))) return NextResponse.json({ error: "Không có quyền" }, { status: 403 });
+    return NextResponse.json(await presignFixed(bcTemplateKey(p.propertyId), p.contentType));
+  }
   if (p.kind === "avatar" || p.kind === "cover" || p.kind === "logo") {
     const ext = IMAGE_EXT[p.contentType];
     if (!ext) return NextResponse.json({ error: "Ảnh đại diện phải là WebP hoặc JPG" }, { status: 400 });

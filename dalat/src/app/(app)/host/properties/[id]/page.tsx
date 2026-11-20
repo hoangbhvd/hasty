@@ -13,7 +13,7 @@ import { ActionButton } from "@/components/action-button";
 import { formatVnd, parseDateOnly, todayVn, toDateOnly } from "@/lib/format";
 import { TIER_LABEL } from "@/lib/labels";
 import { r2Configured } from "@/lib/r2";
-import { VoucherConfigForm } from "@/components/voucher-config-form";
+import { VoucherStudio } from "@/components/voucher-studio";
 import { parseVoucherConfig } from "@/lib/voucher-config";
 import { deletePropertyAction, updatePropertyAction } from "../actions";
 
@@ -93,7 +93,7 @@ export default async function EditPropertyPage({ params }: { params: Promise<{ i
       <section className="space-y-3 border-t pt-6">
         <h2 className="text-lg font-semibold">Mẫu Booking Confirmation</h2>
         <p className="text-sm text-muted-foreground">Phiếu xác nhận gửi khách (xuất PNG / PDF A4). Không bao giờ hiển thị giá Net.</p>
-        <VoucherConfigForm
+        <VoucherStudio
           propertyId={id}
           config={parseVoucherConfig(p.voucherConfig)}
           images={media.filter((m) => m.mediaType === "IMAGE").map((m) => ({ url: m.url }))}

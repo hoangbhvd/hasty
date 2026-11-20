@@ -1,0 +1,113 @@
+// Chế độ 2 (CUSTOM_PDFME): ghép PDF nền (thiết kế từ Canva) với các ô biến động bằng pdfme, rồi (tuỳ chọn) rasterize trang 1 ra PNG.
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+import { generate } from "@pdfme/generator";
+import { barcodes, image, text } from "@pdfme/schemas";
+import { formatDateVi, formatVnd } from "@/lib/format";
+import { hourLabel } from "@/components/voucher-boutique";
+import { PDFME_FIELDS, type PdfmeConfig, type PdfmeSchema } from "@/lib/voucher-config";
+import type { VoucherData } from "@/lib/voucher";
+
+export class PdfmeError extends Error {}
+
+const FONT_FILES = {
+  BeVietnamPro: "BeVietnamPro-Regular.ttf",
+  "BeVietnamPro-Bold": "BeVietnamPro-Bold.ttf",
+  PlayfairDisplay: "PlayfairDisplay-Regular.ttf",
+} as const;
+
+let fontCache: Promise<Record<string, { data: ArrayBuffer; fallback?: boolean }>> | undefined;
+/** Font .ttf hỗ trợ đủ dấu tiếng Việt (đặt trong /public/fonts). BeVietnamPro-Regular là font mặc định (fallback). */
+export function loadFonts() {
+  return (fontCache ??= (async () => {
+    const dir = path.join(process.cwd(), "public", "fonts");
+    const out: Record<string, { data: ArrayBuffer; fallback?: boolean }> = {};
+    for (const [name, file] of Object.entries(FONT_FILES)) {
+      const b = await readFile(path.join(dir, file));
+      out[name] = { data: b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength) as ArrayBuffer, ...(name === "BeVietnamPro" ? { fallback: true } : {}) };
+    }
+    return out;
+  })());
+}
+
+/** Giá trị cho từng biến. CHỈ gồm thông tin khách được phép thấy (không giá Net / hoa hồng / công nợ). */
+export function pdfmeInputs(v: VoucherData, qrDataUri: string | null): Record<string, string> {
+  const d = (s: string) => formatDateVi(new Date(`${s}T00:00:00Z`));
+  const c = v.config.stay_times;
+  return {
+    guest_name: v.guestName,
+    guest_phone: v.guestPhone ?? "",
+    guest_count: `${v.guestCount} người lớn`,
+    booking_code: v.bookingCode,
+    room_info: v.roomLabel,
+    check_in_str: `${hourLabel(c.checkin_time)} ${d(v.checkIn)}`,
+    check_out_str: `${hourLabel(c.checkout_time)} ${d(v.checkOut)}`,
+    nights_count: String(v.nights),
+    price_per_night: formatVnd(v.pricePerNight),
+    guest_total_price: formatVnd(v.grandTotal),
+    deposit_paid: formatVnd(v.paid),
+    remaining_amount: formatVnd(Math.max(v.remaining, 0)),
+    caretaker_or_broker_phone: v.caretakerPhone ?? v.supportPhone ?? "",
+    property_address: v.address ?? "",
+    ...(qrDataUri ? { vietqr_image: qrDataUri } : {}),
+  };
+}
+
+const ALLOWED = new Set<string>(PDFME_FIELDS.map((f) => f.name));
+
+/** Toạ độ/kiểu lưu trong config → schema của pdfme. Chỉ biến cho phép; biến ảnh không có dữ liệu thì bỏ qua. */
+export function toPdfmeSchemas(schemas: PdfmeSchema[], inputs: Record<string, string>) {
+  return schemas
+    .filter((s) => ALLOWED.has(s.name) && inputs[s.name] !== undefined)
+    .map((s) => s.type === "image"
+      ? { name: s.name, type: "image", position: s.position, width: s.width, height: s.height }
+      : {
+          name: s.name, type: "text", position: s.position, width: s.width, height: s.height,
+          fontSize: s.fontSize ?? 12, fontColor: s.fontColor ?? "#000000", alignment: s.alignment ?? "left", fontName: s.fontName ?? "BeVietnamPro",
+          verticalAlignment: "middle", lineHeight: 1.2, characterSpacing: 0, fontColorOpacity: 1,
+        });
+}
+
+/** Tải PDF nền; chỉ chấp nhận URL thuộc bucket R2 của mình (chống SSRF). */
+export async function fetchBasePdf(url: string): Promise<Uint8Array> {
+  const pub = process.env.R2_PUBLIC_URL?.replace(/\/$/, "");
+  if (!pub || !url.startsWith(pub + "/")) throw new PdfmeError("PDF nền không thuộc kho lưu trữ");
+  const res = await fetch(url, { signal: AbortSignal.timeout(15_000) });
+  if (!res.ok) throw new PdfmeError("Không tải được PDF nền");
+  const buf = new Uint8Array(await res.arrayBuffer());
+  if (buf.length > 12 * 1024 * 1024) throw new PdfmeError("PDF nền quá lớn");
+  return buf;
+}
+
+export async function generatePdfme(cfg: PdfmeConfig, inputs: Record<string, string>, basePdf?: Uint8Array): Promise<Buffer> {
+  if (!cfg.base_pdf_url && !basePdf) throw new PdfmeError("Chưa có PDF nền");
+  const base = basePdf ?? (await fetchBasePdf(cfg.base_pdf_url!));
+  const schemas = toPdfmeSchemas(cfg.schemas, inputs);
+  const pdf = await generate({
+    template: { basePdf: base, schemas: [schemas] } as never,
+    inputs: [inputs],
+    plugins: { text, image, qrcode: barcodes.qrcode },
+    options: { font: await loadFonts() },
+  });
+  return Buffer.from(pdf);
+}
+
+/** Trang 1 của PDF → PNG sắc nét (scale 2). */
+export async function pdfToPng(pdf: Buffer): Promise<Buffer> {
+  const { pdf: open } = await import("pdf-to-img");
+  const doc = await open(pdf, { scale: 2 });
+  try { return await doc.getPage(1); } finally { await doc.destroy(); }
+}
+
+export { imageToA4Pdf } from "@/lib/pdf-wrap";
+
+/** Tải ảnh VietQR (URL nội bộ chứa số tài khoản — chỉ dùng phía server) và đổi thành data URI để nhúng vào PDF. Lỗi thì bỏ QR, không làm hỏng phiếu. */
+export async function qrDataUri(url: string | null): Promise<string | null> {
+  if (!url) return null;
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(6000) });
+    if (!res.ok) return null;
+    const type = res.headers.get("content-type")?.split(";")[0] ?? "image/png";
+    return `data:${type};base64,${Buffer.from(await res.arrayBuffer()).toString("base64")}`;
+  } catch { return null; }
+}

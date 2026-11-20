@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Chế độ 2 của Booking Confirmation: rasterize PDF → PNG dùng binary gốc (canvas), không để bundler gộp
+  serverExternalPackages: ["pdf-to-img", "pdfjs-dist", "@napi-rs/canvas"],
   async headers() {
     const security = [
       { key: "X-Content-Type-Options", value: "nosniff" },

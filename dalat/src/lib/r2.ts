@@ -75,3 +75,5 @@ export async function presignFixed(key: string, contentType: string) {
   );
   return { key, uploadUrl };
 }
+
+export const bcTemplateKey = (propertyId: string) => `${keyPrefix(propertyId)}bc-template.pdf`;

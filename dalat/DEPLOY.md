@@ -123,3 +123,9 @@ Nên thử quy trình này 1 lần trên máy khác để chắc chắn khoá v�
 | Sao lưu DB trên VPS | `backup-db` lỗi (mật khẩu DB đổi, hết đĩa) | `... logs backup-db` |
 | Sao lưu ra ngoài (R2) | sai khoá/bucket, mất mạng | `... logs backup-sync` |
 | Dung lượng đĩa | đầy đĩa (log Docker, backup) | dọn đĩa; `docker system df` |
+
+## Xuất Booking Confirmation (PDF/PNG) — Gotenberg
+- `docker-compose.prod.yml` đã có service `gotenberg` (Chromium headless, không mở cổng ra ngoài) và tự đặt `GOTENBERG_URL`, `VOUCHER_RENDER_BASE_URL` cho `web`; **không cần thêm biến nào vào `.env`**.
+- Lần cập nhật đầu tiên phải kéo image `gotenberg/gotenberg:8` (khoảng 1–2 GB) nên `./deploy/update.sh` lâu hơn bình thường.
+- Kiểm tra: mở một link voucher → bấm “Tải file in (PDF)” / “Tải ảnh gửi Zalo (PNG)”. Lỗi 503 = `web` chưa nhận biến Gotenberg; 502 = container `gotenberg` chưa chạy (`... logs gotenberg`).
+- Chế độ “Canva + kéo thả” (pdfme) dùng font `.ttf` trong `public/fonts/` và cần R2 để lưu PDF nền; PNG của chế độ này được dựng ngay trên `web` (không qua Gotenberg).

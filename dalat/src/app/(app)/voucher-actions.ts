@@ -4,9 +4,9 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/session";
 import { getManagedProperty } from "@/lib/access";
-import { AVAILABLE_TEMPLATES, parseVoucherConfig } from "@/lib/voucher-config";
+import { AVAILABLE_TEMPLATES, parsePdfme, parseVoucherConfig, type VoucherConfig } from "@/lib/voucher-config";
 import { configFromForm } from "@/lib/voucher-form";
-import { keyFromUrl, keyPrefix } from "@/lib/r2";
+import { bcTemplateKey, keyFromUrl, keyPrefix, publicUrlFor, r2Configured } from "@/lib/r2";
 import { regenerateVoucherToken, setVoucherExpiry, VoucherLinkError } from "@/lib/voucher-link";
 import type { FormState } from "@/app/(auth)/actions";
 
@@ -69,4 +69,41 @@ export async function regenerateVoucherLinkAction(bookingId: string): Promise<Fo
 export async function setVoucherExpiryAction(bookingId: string, days: number): Promise<FormState> {
   const user = await requireUser();
   return linkRun(() => setVoucherExpiry(user.id, bookingId, days === 0 ? null : days), bookingId);
+}
+
+async function ownedConfig(propertyId: string) {
+  const user = await requireUser();
+  const property = await getManagedProperty(user.id, propertyId);
+  if (!property) return null;
+  return { property, config: parseVoucherConfig(property.voucherConfig) };
+}
+
+async function savePdfme(propertyId: string, patch: (c: VoucherConfig) => VoucherConfig) {
+  const cur = await ownedConfig(propertyId);
+  if (!cur) return { error: "Không có quyền" };
+  await prisma.property.update({ where: { id: propertyId }, data: { voucherConfig: patch(cur.config) } });
+  revalidatePath(`/host/properties/${propertyId}`);
+  revalidatePath(`/broker/properties/${propertyId}`);
+  return {};
+}
+
+/** Ghi nhận PDF nền đã tải lên R2 (khoá cố định, ?v= để làm mới cache). */
+export async function registerPdfmeBaseAction(propertyId: string): Promise<{ error?: string }> {
+  if (!r2Configured()) return { error: "Chưa cấu hình Cloudflare R2" };
+  return savePdfme(propertyId, (c) => ({ ...c, pdfme_config: { ...c.pdfme_config, base_pdf_url: `${publicUrlFor(bcTemplateKey(propertyId))}?v=${Date.now()}` } }));
+}
+
+/** Lưu vị trí các ô biến động. `schemas` đi qua parsePdfme: chỉ giữ biến cho phép, kẹp toạ độ. */
+export async function savePdfmeSchemasAction(propertyId: string, schemas: unknown): Promise<{ error?: string }> {
+  return savePdfme(propertyId, (c) => ({ ...c, pdfme_config: parsePdfme({ base_pdf_url: c.pdfme_config.base_pdf_url, schemas }) }));
+}
+
+export async function setVoucherModeAction(propertyId: string, mode: string): Promise<{ error?: string }> {
+  const cur = await ownedConfig(propertyId);
+  if (!cur) return { error: "Không có quyền" };
+  if (mode !== "TEMPLATE" && mode !== "CUSTOM_PDFME") return { error: "Chế độ không hợp lệ" };
+  if (mode === "CUSTOM_PDFME" && (!cur.config.pdfme_config.base_pdf_url || cur.config.pdfme_config.schemas.length === 0)) {
+    return { error: "Hãy tải PDF nền và đặt ít nhất 1 ô biến động rồi lưu mẫu trước" };
+  }
+  return savePdfme(propertyId, (c) => ({ ...c, mode }));
 }

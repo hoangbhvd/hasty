@@ -10,7 +10,7 @@ import { ActionButton } from "@/components/action-button";
 import { AREA_LABEL, ROAD_LABEL, SLOPE_LABEL } from "@/lib/labels";
 import { formatVnd } from "@/lib/format";
 import { r2Configured } from "@/lib/r2";
-import { VoucherConfigForm } from "@/components/voucher-config-form";
+import { VoucherStudio } from "@/components/voucher-studio";
 import { parseVoucherConfig } from "@/lib/voucher-config";
 import { deleteExternalPropertyAction } from "../actions";
 import { openChatAction } from "@/app/(app)/chat-actions";
@@ -132,7 +132,7 @@ export default async function BrokerPropertyPage({ params }: { params: Promise<{
       {external && (
         <section className="space-y-3">
           <h2 className="font-semibold">Mẫu Booking Confirmation</h2>
-          <VoucherConfigForm
+          <VoucherStudio
             propertyId={id}
             config={parseVoucherConfig(p.voucherConfig)}
             images={media.filter((m) => m.mediaType === "IMAGE").map((m) => ({ url: m.url }))}

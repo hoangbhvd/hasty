@@ -140,7 +140,7 @@ export type PdfmeFieldName = (typeof PDFME_FIELDS)[number]["name"];
 
 const num = (v: unknown, d: number, lo: number, hi: number) => { const n = Number(v); return Number.isFinite(n) ? Math.min(Math.max(n, lo), hi) : d; };
 
-function parsePdfme(raw: unknown): PdfmeConfig {
+export function parsePdfme(raw: unknown): PdfmeConfig {
   const o = obj(raw);
   const url = typeof o.base_pdf_url === "string" && /^https:\/\//.test(o.base_pdf_url) && o.base_pdf_url.length <= 500 ? o.base_pdf_url : null;
   const names = new Map<string, boolean>(PDFME_FIELDS.map((f) => [f.name, "image" in f]));

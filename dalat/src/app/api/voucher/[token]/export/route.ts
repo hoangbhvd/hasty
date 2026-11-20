@@ -1,5 +1,6 @@
 import { headers } from "next/headers";
-import { getVoucherResult } from "@/lib/voucher";
+import { getVoucherQrUrl, getVoucherResult } from "@/lib/voucher";
+import { PdfmeError, generatePdfme, pdfToPng, pdfmeInputs, qrDataUri } from "@/lib/voucher-pdfme";
 import { RenderError, renderVoucher, type Format } from "@/lib/voucher-render";
 import { clientIp, hit } from "@/lib/rate-limit";
 
@@ -17,21 +18,30 @@ export async function GET(req: Request, ctx: { params: Promise<{ token: string }
   if (r.kind === "expired") return Response.json({ error: "Link đã hết hạn" }, { status: 410 });
 
   // Chromium tốn tài nguyên: giới hạn theo IP để không bị lạm dụng
-  const v = await hit(`rl:voucher-export:${clientIp(await headers())}`, { limit: 20, windowSec: 600 });
+  const v = await hit(`rl:voucher-export:${clientIp(await headers())}`, { limit: 60, windowSec: 600 });
   if (!v.allowed) return Response.json({ error: "Thao tác quá nhanh, vui lòng thử lại sau" }, { status: 429, headers: { "Retry-After": String(v.retryAfterSec) } });
 
+  const disposition = new URL(req.url).searchParams.get("inline") === "1" ? "inline" : "attachment";
+  const respond = (body: Buffer) => new Response(new Uint8Array(body), {
+    headers: {
+      "Content-Type": format === "pdf" ? "application/pdf" : "image/png",
+      "Content-Disposition": `${disposition}; filename="BC-${r.data.bookingCode}.${format}"`,
+      "Cache-Control": "private, no-store",
+      "Referrer-Policy": "no-referrer",
+    },
+  });
+
   try {
+    // Chế độ 2: PDF nền (Canva) + ô biến động kéo thả bằng pdfme
+    if (r.data.config.mode === "CUSTOM_PDFME" && r.data.config.pdfme_config.base_pdf_url) {
+      const qr = r.data.config.blocks.show_vietqr && r.data.hasQr ? await qrDataUri(await getVoucherQrUrl(token)) : null;
+      const pdf = await generatePdfme(r.data.config.pdfme_config, pdfmeInputs(r.data, qr));
+      return respond(format === "pdf" ? pdf : await pdfToPng(pdf));
+    }
     const layout = format === "png" && r.data.config.template_id !== "DALAT_BOUTIQUE" ? "card" : "a4";
-    const body = await renderVoucher(token, format, layout);
-    return new Response(new Uint8Array(body), {
-      headers: {
-        "Content-Type": format === "pdf" ? "application/pdf" : "image/png",
-        "Content-Disposition": `attachment; filename="BC-${r.data.bookingCode}.${format}"`,
-        "Cache-Control": "private, no-store",
-        "Referrer-Policy": "no-referrer",
-      },
-    });
+    return respond(await renderVoucher(token, format, layout));
   } catch (e) {
+    if (e instanceof PdfmeError) return Response.json({ error: e.message }, { status: 502 });
     if (e instanceof RenderError) return Response.json({ error: e.message }, { status: e.status });
     throw e;
   }

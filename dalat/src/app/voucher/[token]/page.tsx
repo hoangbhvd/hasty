@@ -30,9 +30,15 @@ export default async function VoucherPage({ params }: { params: Promise<{ token:
 
   return (
     <main className="min-h-dvh space-y-5 px-3 py-6">
-      <VoucherView v={v} token={token} />
+      {v.config.mode === "CUSTOM_PDFME" && v.config.pdfme_config.base_pdf_url ? (
+        // Chế độ 2: phiếu do server ghép từ PDF nền → hiển thị đúng bản sẽ tải về
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={`/api/voucher/${token}/export?format=png&inline=1`} alt={`Xác nhận đặt phòng ${v.bookingCode}`} className="mx-auto w-full max-w-[820px] border border-black bg-white" />
+      ) : (
+        <VoucherView v={v} token={token} />
+      )}
       <VoucherActions token={token} mapsUrl={v.config.blocks.show_google_maps ? v.mapsUrl : null} phone={v.supportPhone ?? v.caretakerPhone} />
-      <VoucherPrintStyle boutique={v.config.template_id === "DALAT_BOUTIQUE"} />
+      {v.config.mode !== "CUSTOM_PDFME" && <VoucherPrintStyle boutique={v.config.template_id === "DALAT_BOUTIQUE"} />}
     </main>
   );
 }
