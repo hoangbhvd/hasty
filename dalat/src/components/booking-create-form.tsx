@@ -7,7 +7,7 @@ import { Field, Textarea } from "@/components/form-fields";
 import { createBookingAction } from "@/app/(app)/bookings/actions";
 
 export function BookingCreateForm({
-  as, propertyId, bookingType, roomIds, checkIn, checkOut, defaultGuestTotal, external, canHold,
+  as, propertyId, bookingType, roomIds, checkIn, checkOut, defaultGuestTotal, external, canHold, canInstant = true,
 }: {
   as: "HOST" | "BROKER";
   propertyId: string;
@@ -18,6 +18,8 @@ export function BookingCreateForm({
   defaultGuestTotal?: number;
   external: boolean;
   canHold: boolean;
+  /** false: CTV thường — chỉ được "Giữ phòng 30 phút" */
+  canInstant?: boolean;
 }) {
   const { state, pending, disabled, ref, onSubmit } = useSafeForm(createBookingAction);
   return (
@@ -47,11 +49,13 @@ export function BookingCreateForm({
 
       {state?.error && <p role="alert" className="text-sm text-red-700">{state.error}</p>}
       <div className="flex flex-col gap-2 sm:flex-row">
-        <Button type="submit" name="mode" value="CONFIRM" size="lg" className="h-12 flex-1" disabled={disabled}>
-          {pending ? "Đang xử lý…" : "Tạo booking"}
-        </Button>
+        {canInstant && (
+          <Button type="submit" name="mode" value="CONFIRM" size="lg" className="h-12 flex-1" disabled={disabled}>
+            {pending ? "Đang xử lý…" : canHold ? "Đặt ngay" : "Tạo booking"}
+          </Button>
+        )}
         {canHold && (
-          <Button type="submit" name="mode" value="HOLD" variant="outline" size="lg" className="h-12 flex-1" disabled={disabled}>
+          <Button type="submit" name="mode" value={"HOLD"} variant={canInstant ? "outline" : "default"} size="lg" className="h-12 flex-1" disabled={disabled}>
             Giữ phòng 30 phút
           </Button>
         )}

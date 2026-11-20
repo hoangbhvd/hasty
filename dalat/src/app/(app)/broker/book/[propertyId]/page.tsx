@@ -9,7 +9,7 @@ export default async function BrokerBookPage({
   params, searchParams,
 }: {
   params: Promise<{ propertyId: string }>;
-  searchParams: Promise<{ checkIn?: string; checkOut?: string; type?: string; rooms?: string | string[] }>;
+  searchParams: Promise<{ intent?: string; checkIn?: string; checkOut?: string; type?: string; rooms?: string | string[] }>;
 }) {
   const { propertyId } = await params;
   const sp = await searchParams;

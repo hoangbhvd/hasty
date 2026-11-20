@@ -14,6 +14,13 @@ enum LinkTier {
   AGENCY
 }
 
+/// Vai trò của đối tác trong mạng lưới của chủ nhà (spec: Co-host / Quản gia)
+enum LinkAccessRole {
+  BROKER
+  CO_HOST
+  CARETAKER
+}
+
 enum LinkStatus {
   PENDING
   APPROVED
@@ -210,6 +217,12 @@ model HostBrokerLink {
   /// Lời nhắn giới thiệu khi CTV xin cộng tác (mục 9.1)
   requestNote String?    @map("request_note")
   respondedAt DateTime?  @map("responded_at")
+  /// BROKER: CTV thường · CO_HOST: đồng quản lý (chốt đơn ngay) · CARETAKER: quản gia (lịch ra/vào, ẩn giá Net)
+  accessRole  LinkAccessRole @default(BROKER) @map("access_role")
+  /// Cho phép tạo booking CONFIRMED ngay không cần giữ 30p (tự động có với CO_HOST)
+  allowInstantBook Boolean  @default(false) @map("allow_instant_book")
+  /// null = áp dụng cho mọi căn của chủ nhà; có danh sách id = chỉ các căn đó (cho CO_HOST / CARETAKER)
+  assignedPropertyIds Json?  @map("assigned_property_ids")
   host        User       @relation("LinkHost", fields: [hostId], references: [id])
   broker      User       @relation("LinkBroker", fields: [brokerId], references: [id])
 
@@ -378,6 +391,8 @@ model Booking {
   extraFees                 Decimal              @default(0) @map("extra_fees") @db.Decimal(12, 0)
   commissionAmount          Decimal              @default(0) @map("commission_amount") @db.Decimal(12, 0)
   /// Giá Net Broker/Host đang đề xuất (chưa có hiệu lực) — mục 4.6
+  /// Quản gia / Co-host bấm "Đã dọn phòng" sau khi khách check-out
+  cleanedAt DateTime? @map("cleaned_at")
   pendingNetPrice           Decimal?             @map("pending_net_price") @db.Decimal(12, 0)
   netPriceNegotiationStatus NetNegotiationStatus @default(NONE) @map("net_price_negotiation_status")
 

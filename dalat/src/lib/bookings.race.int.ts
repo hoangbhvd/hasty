@@ -63,7 +63,7 @@ before(async () => {
   const mk = (n: string) => prisma.user.create({ data: { email: `${tag}-${n}@t.local`, fullName: n } });
   hostId = (await mk("host")).id;
   brokerId = (await mk("broker")).id;
-  await prisma.hostBrokerLink.create({ data: { hostId, brokerId, status: "APPROVED" } });
+  await prisma.hostBrokerLink.create({ data: { hostId, brokerId, status: "APPROVED", allowInstantBook: true } });
   const mkProp = (name: string) =>
     prisma.property.create({
       data: { sourceType: "HOST_MANAGED", hostId, name: `${tag}-${name}`, allowWholeUnit: true, allowIndividualRooms: true, baseWeekdayNet: 1000, baseWeekendNet: 1000 },

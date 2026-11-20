@@ -30,7 +30,7 @@ export async function getBrokerVisibleProperty(brokerId: string, propertyId: str
         { sourceType: "BROKER_EXTERNAL", createdByBrokerId: brokerId },
         {
           sourceType: "HOST_MANAGED",
-          host: { hostLinks: { some: { brokerId, status: "APPROVED" } } },
+          host: { hostLinks: { some: { brokerId, status: "APPROVED", accessRole: { not: "CARETAKER" } } } },
         },
       ],
     },

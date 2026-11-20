@@ -30,7 +30,7 @@ const ledgerOf = async (id: string) => bookingLedger((await getBookingForParty(h
 before(async () => {
   const u = (n: string) => prisma.user.create({ data: { email: `${tag}-${n}@t.local`, fullName: n } });
   hostId = (await u("host")).id; brokerId = (await u("broker")).id; strangerId = (await u("stranger")).id;
-  await prisma.hostBrokerLink.create({ data: { hostId, brokerId, status: "APPROVED" } });
+  await prisma.hostBrokerLink.create({ data: { hostId, brokerId, status: "APPROVED", allowInstantBook: true } });
   propId = (await prisma.property.create({ data: { sourceType: "HOST_MANAGED", hostId, name: `${tag}-v`, baseWeekdayNet: 1_000_000, baseWeekendNet: 1_000_000 } })).id;
   extId = (await prisma.property.create({ data: { sourceType: "BROKER_EXTERNAL", createdByBrokerId: brokerId, name: `${tag}-e` } })).id;
 });

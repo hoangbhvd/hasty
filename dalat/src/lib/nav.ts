@@ -1,4 +1,4 @@
-import { Building2, CalendarDays, ClipboardList, Compass, Flame, Handshake, LayoutDashboard, MessageCircle, Search, Wallet } from "lucide-react";
+import { Building2, CalendarDays, ClipboardList, Compass, Flame, Grid3x3, Handshake, LayoutDashboard, MessageCircle, Search, Wallet } from "lucide-react";
 
 export type Mode = "host" | "broker";
 export type NavItem = {
@@ -21,8 +21,9 @@ export const NAV: Record<Mode, NavItem[]> = {
   broker: [
     { href: "/broker", label: "Tổng quan", icon: LayoutDashboard, ready: true },
     { href: "/broker/search", label: "Tìm phòng", icon: Search, ready: true, bottom: 1 },
-    { href: "/broker/calendar", label: "Lịch", icon: CalendarDays, ready: true, bottom: 2 },
+    { href: "/broker/availability", label: "Lịch trống", icon: Grid3x3, ready: true, bottom: 2 },
     { href: "/broker/bookings", label: "Booking", icon: ClipboardList, ready: true, bottom: 3 },
+    { href: "/broker/calendar", label: "Lịch (theo ngày)", icon: CalendarDays, ready: true },
     { href: "/broker/requests", label: "Tìm gấp", icon: Flame, ready: true },
     { href: "/broker/chat", label: "Chat", icon: MessageCircle, ready: true, bottom: 4, badge: "chat" },
     { href: "/broker/discover", label: "Khám phá", icon: Compass, ready: true },

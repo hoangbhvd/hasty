@@ -8,8 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { findOverlappingBookings } from "@/lib/external-property";
 import { BookingCreateForm } from "@/components/booking-create-form";
+import { accessOnProperty } from "@/lib/staff";
 
-export type PlannerParams = { propertyId?: string; checkIn?: string; checkOut?: string; type?: string; rooms?: string[] };
+export type PlannerParams = { intent?: string; propertyId?: string; checkIn?: string; checkOut?: string; type?: string; rooms?: string[] };
 
 /** Chọn căn/ngày/đối tượng → hiện tình trạng trống + giá → form tạo booking. */
 export async function BookingPlanner({
@@ -39,6 +40,11 @@ export async function BookingPlanner({
   if (property && as === "BROKER" && !external) {
     tier = (await prisma.hostBrokerLink.findFirst({ where: { hostId: property.hostId!, brokerId: userId, status: "APPROVED" } }))?.tier ?? null;
   }
+
+  // CTV thường chỉ được giữ phòng 30p; chốt ngay dành cho Co-host / CTV được chủ nhà bật "đặt ngay"; quản gia không đặt phòng
+  const access = as === "BROKER" && property && !external ? await accessOnProperty(userId, property.id) : null;
+  const canInstant = as === "HOST" || !!external || !!access?.instant;
+  const canHold = as === "BROKER" && !external && !!access && access.role !== "CARETAKER";
 
   let result: React.ReactNode = null;
   if (property && datesOk) {
@@ -89,13 +95,14 @@ export async function BookingPlanner({
                 {as === "HOST" || external ? " Hãy nhập giá thủ công bên dưới." : " Liên hệ chủ nhà."}
               </p>
             )}
-            {(as === "HOST" || external || quoteOk) && (
+            {as === "BROKER" && !external && !canHold && <p className="text-sm text-amber-700">Vai trò Quản gia không tạo được booking.</p>}
+            {(as === "HOST" || external || (quoteOk && canHold)) && (
               <BookingCreateForm
                 as={as} propertyId={property.id} bookingType={targetType} roomIds={roomIds}
                 checkIn={params.checkIn!} checkOut={params.checkOut!}
                 defaultGuestTotal={quoteOk ? q.total : undefined}
                 external={!!external}
-                canHold={as === "BROKER" && !external}
+                canHold={canHold && params.intent !== "instant"} canInstant={canInstant && params.intent !== "hold"}
               />
             )}
           </>

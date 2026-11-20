@@ -45,7 +45,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
         AND: [
           { OR: [
             { sourceType: "BROKER_EXTERNAL", createdByBrokerId: user.id },
-            { sourceType: "HOST_MANAGED", host: { hostLinks: { some: { brokerId: user.id, status: "APPROVED" } } } },
+            { sourceType: "HOST_MANAGED", host: { hostLinks: { some: { brokerId: user.id, status: "APPROVED", accessRole: { not: "CARETAKER" } } } } },
           ] },
           ...filters,
         ],
@@ -55,7 +55,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
     });
     const hosted = props.filter((p) => p.sourceType === "HOST_MANAGED");
     const occ = await fetchOccupying(prisma, hosted.map((p) => p.id), checkIn, checkOut);
-    const links = await prisma.hostBrokerLink.findMany({ where: { brokerId: user.id, status: "APPROVED" } });
+    const links = await prisma.hostBrokerLink.findMany({ where: { brokerId: user.id, status: "APPROVED", accessRole: { not: "CARETAKER" } } });
     const nights = Math.round((checkOut.getTime() - checkIn.getTime()) / 86_400_000);
     const qs = `checkIn=${sp.checkIn}&checkOut=${sp.checkOut}`;
 

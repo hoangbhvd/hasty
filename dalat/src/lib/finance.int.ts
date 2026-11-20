@@ -21,7 +21,7 @@ before(async () => {
   hostId = (await mk("host", { bankId: "VCB", bankAccountNo: "111222333", bankAccountName: "HOST NGUYEN" })).id;
   brokerId = (await mk("broker", { bankId: "MB", bankAccountNo: "999888777", bankAccountName: "BROKER TRAN" })).id;
   strangerId = (await mk("stranger")).id;
-  await prisma.hostBrokerLink.create({ data: { hostId, brokerId, status: "APPROVED" } });
+  await prisma.hostBrokerLink.create({ data: { hostId, brokerId, status: "APPROVED", allowInstantBook: true } });
   hostedProp = (await prisma.property.create({
     data: { sourceType: "HOST_MANAGED", hostId, name: `${tag}-villa`, baseWeekdayNet: NET / 2, baseWeekendNet: NET / 2, googleMapsUrl: "https://maps.example/x", caretakerPhone: "0900000000", checkinGuide: "Rẽ trái" },
   })).id;

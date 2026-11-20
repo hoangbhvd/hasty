@@ -18,7 +18,7 @@ export async function calendarProperties(brokerId: string): Promise<CalProperty[
   const [mine, linked] = await Promise.all([
     prisma.property.findMany({ where: { sourceType: "BROKER_EXTERNAL", createdByBrokerId: brokerId }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.property.findMany({
-      where: { sourceType: "HOST_MANAGED", host: { hostLinks: { some: { brokerId, status: "APPROVED" } } } },
+      where: { sourceType: "HOST_MANAGED", host: { hostLinks: { some: { brokerId, status: "APPROVED", accessRole: { not: "CARETAKER" } } } } },
       orderBy: { name: "asc" }, select: { id: true, name: true },
     }),
   ]);

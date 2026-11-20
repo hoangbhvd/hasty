@@ -20,7 +20,7 @@ const attempt = (i: CreateInput) => createBooking(i).then(() => "ok", (e) => (e 
 before(async () => {
   const mk = (n: string) => prisma.user.create({ data: { email: `${tag}-${n}@t.local`, fullName: n, phone: null } });
   hostId = (await mk("host")).id; brokerId = (await mk("broker")).id; otherBrokerId = (await mk("other")).id;
-  await prisma.hostBrokerLink.create({ data: { hostId, brokerId, status: "APPROVED", tier: "VIP" } });
+  await prisma.hostBrokerLink.create({ data: { hostId, brokerId, status: "APPROVED", allowInstantBook: true, tier: "VIP" } });
   const p = await prisma.property.create({
     data: { sourceType: "HOST_MANAGED", hostId, name: tag, allowWholeUnit: true, allowIndividualRooms: true, baseWeekdayNet: 1000, baseWeekendNet: 2000 },
   });

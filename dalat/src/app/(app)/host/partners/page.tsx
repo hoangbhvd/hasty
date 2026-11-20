@@ -3,6 +3,7 @@ import { requireUser } from "@/lib/session";
 import { PartnerRow } from "@/components/partner-row";
 import { CopyButton } from "@/components/copy-button";
 import { brokerTrust } from "@/lib/broker-trust";
+import { assignedIds } from "@/lib/staff";
 import { BrokerTrustCard } from "@/components/broker-trust-card";
 import { PendingActions } from "@/components/pending-request";
 
@@ -13,6 +14,7 @@ export default async function PartnersPage() {
     include: { broker: { select: { fullName: true, phone: true, avatarUrl: true, brokerBio: true } } },
     orderBy: [{ status: "asc" }, { id: "asc" }],
   });
+  const props = await prisma.property.findMany({ where: { hostId: user.id, sourceType: "HOST_MANAGED" }, orderBy: { name: "asc" }, select: { id: true, name: true } });
   const pending = links.filter((l) => l.status === "PENDING");
   const rest = links.filter((l) => l.status !== "PENDING");
   const trusts = await Promise.all(pending.map((l) => brokerTrust(l.brokerId)));
@@ -49,7 +51,7 @@ export default async function PartnersPage() {
       ) : rest.length === 0 ? null : (
         <ul className="divide-y divide-black rounded border border-black bg-white">
           {rest.map((l) => (
-            <PartnerRow key={l.id} link={{ id: l.id, brokerId: l.brokerId, name: l.broker.fullName, phone: l.broker.phone, tier: l.tier, status: l.status }} />
+            <PartnerRow key={l.id} properties={props} link={{ id: l.id, brokerId: l.brokerId, name: l.broker.fullName, phone: l.broker.phone, tier: l.tier, status: l.status, accessRole: l.accessRole, allowInstantBook: l.allowInstantBook, assignedPropertyIds: assignedIds(l.assignedPropertyIds) }} />
           ))}
         </ul>
       )}

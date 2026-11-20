@@ -20,7 +20,7 @@ const rejects = (p: Promise<unknown>) => assert.rejects(p, ChatError);
 before(async () => {
   const mk = (n: string) => prisma.user.create({ data: { email: `${tag}-${n}@t.local`, fullName: n } });
   hostId = (await mk("host")).id; brokerId = (await mk("broker")).id; strangerId = (await mk("stranger")).id; pendingBrokerId = (await mk("pending")).id;
-  await prisma.hostBrokerLink.create({ data: { hostId, brokerId, status: "APPROVED" } });
+  await prisma.hostBrokerLink.create({ data: { hostId, brokerId, status: "APPROVED", allowInstantBook: true } });
   await prisma.hostBrokerLink.create({ data: { hostId, brokerId: pendingBrokerId, status: "PENDING" } });
   propId = (await prisma.property.create({ data: { sourceType: "HOST_MANAGED", hostId, name: `${tag}-villa`, baseWeekdayNet: 1000, baseWeekendNet: 1000 } })).id;
   convId = (await openDirectConversation(hostId, brokerId)).id;

@@ -7,11 +7,13 @@ import { Badge, LINK_TONE } from "@/components/ui/badge";
 import { LINK_STATUS_LABEL, TIER_LABEL, enumOptions } from "@/lib/labels";
 import { setLinkStatusAction, setLinkTierAction } from "@/app/(app)/host/partners/actions";
 import { openChatAction } from "@/app/(app)/chat-actions";
+import { PartnerAccess } from "@/components/partner-access";
 
 export function PartnerRow({
-  link,
+  link, properties,
 }: {
-  link: { id: string; brokerId: string; name: string; phone: string | null; tier: keyof typeof TIER_LABEL; status: keyof typeof LINK_STATUS_LABEL };
+  link: { id: string; brokerId: string; name: string; phone: string | null; tier: keyof typeof TIER_LABEL; status: keyof typeof LINK_STATUS_LABEL; accessRole: "BROKER" | "CO_HOST" | "CARETAKER"; allowInstantBook: boolean; assignedPropertyIds: string[] | null };
+  properties: { id: string; name: string }[];
 }) {
   const [pending, start] = useTransition();
   const router = useRouter();
@@ -24,6 +26,7 @@ export function PartnerRow({
         </div>
         <Badge tone={LINK_TONE[link.status]}>{LINK_STATUS_LABEL[link.status]}</Badge>
       </div>
+      {link.status === "APPROVED" && <PartnerAccess linkId={link.id} name={link.name} role={link.accessRole} instant={link.allowInstantBook} assigned={link.assignedPropertyIds} properties={properties} />}
       <div className="flex flex-wrap items-center gap-2">
         <select
           aria-label="Hạng đối tác"

@@ -12,7 +12,7 @@ let host: string, broker: string, propId: string, roomId: string, albumA: string
 before(async () => {
   const u = (x: string) => prisma.user.create({ data: { email: `${tag}-${x}@t.local`, fullName: x, phone: x === "host" ? "0911000111" : undefined } });
   host = (await u("host")).id; broker = (await u("broker")).id;
-  await prisma.hostBrokerLink.create({ data: { hostId: host, brokerId: broker, status: "APPROVED" } });
+  await prisma.hostBrokerLink.create({ data: { hostId: host, brokerId: broker, status: "APPROVED", allowInstantBook: true } });
   const p = await prisma.property.create({ data: { sourceType: "HOST_MANAGED", hostId: host, name: `${tag}-villa`, address: "Hẻm bí mật 99", caretakerPhone: "0900123456", baseWeekdayNet: 1_777_000, googleMapsUrl: "https://maps.example/secret" } });
   propId = p.id; token = p.galleryToken;
   roomId = (await prisma.room.create({ data: { propertyId: propId, name: "Áp mái", maxGuests: 2 } })).id;

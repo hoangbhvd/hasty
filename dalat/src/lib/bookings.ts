@@ -1,3 +1,4 @@
+import { effectiveAccess, staffMay } from "@/lib/staff";
 import { prisma } from "@/lib/db";
 import { Prisma } from "@/generated/prisma/client";
 import { occupyingWhere, roomsAvailable, wholeUnitAvailable, type OccupyingBooking } from "@/lib/availability";
@@ -98,6 +99,10 @@ export async function createBooking(input: CreateInput) {
           where: { hostId: property.hostId!, brokerId: input.actorId, status: "APPROVED" },
         });
         if (!link) throw new BookingError("Bạn chưa được chủ nhà duyệt làm CTV của căn này");
+        const eff = effectiveAccess(link, property.id);
+        if (eff.role === "CARETAKER") throw new BookingError("Quản gia không tạo booking");
+        // CTV thường phải giữ phòng 30 phút; chốt ngay chỉ dành cho Co-host hoặc CTV được chủ nhà bật "đặt ngay"
+        if (input.mode === "CONFIRM" && !eff.instant) throw new BookingError("Bạn cần giữ phòng 30 phút (chủ nhà chưa bật đặt ngay cho bạn)");
         tier = link.tier;
       }
       if (input.mode === "HOLD" && (external || input.as !== "BROKER")) throw new BookingError("Chỉ CTV mới giữ phòng 30 phút trên căn của chủ nhà");
@@ -205,7 +210,12 @@ export type Transition = "CONFIRM" | "CHECK_IN" | "CHECK_OUT" | "CANCEL";
 export async function transitionBooking(actorId: string, bookingId: string, action: Transition) {
   return prisma.$transaction(async (tx) => {
     const b = await tx.booking.findUnique({ where: { id: bookingId }, include: { property: true } });
-    const allowed = b && (b.hostId === actorId || b.brokerId === actorId || b.property.createdByBrokerId === actorId);
+    let allowed = b && (b.hostId === actorId || b.brokerId === actorId || b.property.createdByBrokerId === actorId);
+    if (b && !allowed && b.property.sourceType === "HOST_MANAGED" && b.property.hostId) {
+      // Co-host / Quản gia của chủ nhà (chỉ ở các căn được chỉ định) làm được các thao tác trong quyền của vai trò
+      const link = await tx.hostBrokerLink.findFirst({ where: { hostId: b.property.hostId, brokerId: actorId, status: "APPROVED" } });
+      if (link) { const eff = effectiveAccess(link, b.propertyId); allowed = !eff.none && staffMay(eff.role, action); }
+    }
     if (!b || !allowed) throw new BookingError("Không tìm thấy booking");
 
     if (b.property.sourceType === "HOST_MANAGED") {
@@ -244,4 +254,19 @@ export async function transitionBooking(actorId: string, bookingId: string, acti
     await postSystemMessage(tx, bookingId, msg);
     return updated;
   });
+}
+
+/** "Đã dọn phòng" sau check-out: chủ nhà, Co-host hoặc Quản gia được giao căn. */
+export async function markCleaned(actorId: string, bookingId: string) {
+  const b = await prisma.booking.findUnique({ where: { id: bookingId }, include: { property: { select: { hostId: true, sourceType: true } } } });
+  if (!b) throw new BookingError("Không tìm thấy booking");
+  let ok = b.hostId === actorId;
+  if (!ok && b.property.sourceType === "HOST_MANAGED" && b.property.hostId) {
+    const link = await prisma.hostBrokerLink.findFirst({ where: { hostId: b.property.hostId, brokerId: actorId, status: "APPROVED" } });
+    if (link) { const eff = effectiveAccess(link, b.propertyId); ok = !eff.none && staffMay(eff.role, "CLEAN"); }
+  }
+  if (!ok) throw new BookingError("Không tìm thấy booking");
+  if (b.status !== "CHECKED_OUT") throw new BookingError("Chỉ đánh dấu dọn phòng sau khi khách đã check-out");
+  if (b.cleanedAt) return b;
+  return prisma.booking.update({ where: { id: bookingId }, data: { cleanedAt: new Date() } });
 }

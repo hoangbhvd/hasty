@@ -14,7 +14,7 @@ export default async function BrokerPropertiesPage() {
       orderBy: { createdAt: "desc" },
     }),
     prisma.property.findMany({
-      where: { sourceType: "HOST_MANAGED", host: { hostLinks: { some: { brokerId: user.id, status: "APPROVED" } } } },
+      where: { sourceType: "HOST_MANAGED", host: { hostLinks: { some: { brokerId: user.id, status: "APPROVED", accessRole: { not: "CARETAKER" } } } } },
       orderBy: { name: "asc" },
       include: { host: { select: { fullName: true } } },
     }),

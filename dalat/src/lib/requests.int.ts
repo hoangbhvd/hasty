@@ -21,7 +21,7 @@ before(async () => {
   hostA = (await mk("hostA")).id; hostB = (await mk("hostB")).id; hostC = (await mk("hostC")).id;
   broker = (await mk("broker")).id; broker2 = (await mk("broker2")).id;
   // hostA: đã duyệt · hostB: chưa liên kết · hostC: bị chặn
-  await prisma.hostBrokerLink.create({ data: { hostId: hostA, brokerId: broker, status: "APPROVED" } });
+  await prisma.hostBrokerLink.create({ data: { hostId: hostA, brokerId: broker, status: "APPROVED", allowInstantBook: true } });
   await prisma.hostBrokerLink.create({ data: { hostId: hostC, brokerId: broker, status: "BLOCKED" } });
   const mkProp = (hostId: string, name: string, extra = {}) =>
     prisma.property.create({ data: { sourceType: "HOST_MANAGED", hostId, name: `${tag}-${name}`, area: "TUYEN_LAM", roadAccess: "CAR_16", baseWeekdayNet: 1_000_000, baseWeekendNet: 1_000_000, ...extra } });

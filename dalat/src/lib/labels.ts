@@ -28,3 +28,10 @@ export const VIEW_OPTIONS = ["Đồi thông", "Thung lũng", "Thành phố", "H�
 
 export const enumOptions = <T extends Record<string, string>>(m: T) =>
   Object.entries(m).map(([value, label]) => ({ value, label }));
+
+export const ACCESS_ROLE_LABEL = { BROKER: "CTV thường", CO_HOST: "Co-host (đồng quản lý)", CARETAKER: "Quản gia" } as const;
+export const ACCESS_ROLE_HINT = {
+  BROKER: "Giữ phòng 30 phút; chỉ thấy trạng thái lịch của người khác.",
+  CO_HOST: "Chốt đơn ngay, xem đủ thông tin đơn, làm check-in/out. Không thấy giá Net của chủ nhà.",
+  CARETAKER: "Xem lịch ra/vào, số tiền thu nốt, check-in/out/dọn phòng. Ẩn hoàn toàn giá Net và doanh thu.",
+} as const;

@@ -13,7 +13,7 @@ before(async () => {
   const u = (n: string) => prisma.user.create({ data: { email: `${tag}-${n}@t.local`, fullName: n } });
   me = (await u("me")).id; rival = (await u("rival")).id; host = (await u("host")).id;
   const other = (await u("host2")).id;
-  await prisma.hostBrokerLink.create({ data: { hostId: host, brokerId: me, status: "APPROVED" } });
+  await prisma.hostBrokerLink.create({ data: { hostId: host, brokerId: me, status: "APPROVED", allowInstantBook: true } });
   const prop = (data: object) => prisma.property.create({ data: data as never }).then((p) => p.id);
   extMine = await prop({ sourceType: "BROKER_EXTERNAL", createdByBrokerId: me, name: `${tag}-ext-mine` });
   extRival = await prop({ sourceType: "BROKER_EXTERNAL", createdByBrokerId: rival, name: `${tag}-ext-rival` });
