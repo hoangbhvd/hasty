@@ -20,7 +20,7 @@ export default async function EditPropertyPage({ params }: { params: Promise<{ i
   const user = await requireUser();
   if (!/^[0-9a-f-]{36}$/.test(id) || !(await getHostProperty(user.id, id))) notFound();
 
-  const [p, rooms, media, specials, lastBooking] = await Promise.all([
+  const [p, rooms, media, specials, recentBookings] = await Promise.all([
     prisma.property.findUniqueOrThrow({ where: { id } }),
     prisma.room.findMany({ where: { propertyId: id }, orderBy: { name: "asc" } }),
     prisma.propertyMedia.findMany({ where: { propertyId: id }, orderBy: { sortOrder: "asc" }, include: { room: true } }),
@@ -30,7 +30,7 @@ export default async function EditPropertyPage({ params }: { params: Promise<{ i
       take: 200,
       include: { room: true },
     }),
-    prisma.booking.findFirst({ where: { propertyId: id }, orderBy: { createdAt: "desc" }, select: { voucherToken: true } }),
+    prisma.booking.findMany({ where: { propertyId: id }, orderBy: { createdAt: "desc" }, take: 8, select: { voucherToken: true, bookingCode: true, guestName: true } }),
   ]);
 
   const defaults: PropertyDefaults = {
@@ -90,7 +90,7 @@ export default async function EditPropertyPage({ params }: { params: Promise<{ i
           propertyId={id}
           config={parseVoucherConfig(p.voucherConfig)}
           images={media.filter((m) => m.mediaType === "IMAGE").map((m) => ({ url: m.url }))}
-          previewToken={lastBooking?.voucherToken ?? null}
+          previews={recentBookings.map((x) => ({ token: x.voucherToken, label: `${x.bookingCode} · ${x.guestName}` }))}
         />
       </section>
 

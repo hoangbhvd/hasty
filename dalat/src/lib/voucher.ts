@@ -42,7 +42,7 @@ async function loadByToken(token: string) {
   return prisma.booking.findUnique({
     where: { voucherToken: token },
     select: {
-      bookingCode: true, status: true, bookingType: true, manualRoomInfo: true,
+      bookingCode: true, status: true, voucherExpiresAt: true, bookingType: true, manualRoomInfo: true,
       checkIn: true, checkOut: true, guestName: true, guestCount: true,
       guestTotalPrice: true, extraFees: true,
       hostId: true, brokerId: true, // chỉ dùng nội bộ để tìm SĐT/ngân hàng, KHÔNG trả ra ngoài
@@ -74,9 +74,24 @@ function compute(b: Loaded) {
   return { nights, roomTotal, extraFees, addons, grandTotal, paid, remaining: grandTotal - paid };
 }
 
-export async function getVoucherData(token: string): Promise<VoucherData | null> {
+const isExpired = (b: { voucherExpiresAt: Date | null }, now = Date.now()) => !!b.voucherExpiresAt && b.voucherExpiresAt.getTime() <= now;
+
+export type VoucherResult = { kind: "ok"; data: VoucherData } | { kind: "expired" } | { kind: "missing" };
+
+/** Phân biệt link không tồn tại / đã bị thay bằng link mới (missing) với link đã hết hạn (expired). */
+export async function getVoucherResult(token: string): Promise<VoucherResult> {
   const b = await loadByToken(token);
-  if (!b) return null;
+  if (!b) return { kind: "missing" };
+  if (isExpired(b)) return { kind: "expired" };
+  return { kind: "ok", data: await build(b) };
+}
+
+export async function getVoucherData(token: string): Promise<VoucherData | null> {
+  const r = await getVoucherResult(token);
+  return r.kind === "ok" ? r.data : null;
+}
+
+async function build(b: Loaded): Promise<VoucherData> {
   const c = compute(b);
   const who = await collector(b);
   const cfg = parseVoucherConfig(b.property.voucherConfig);
@@ -113,7 +128,7 @@ export async function getVoucherData(token: string): Promise<VoucherData | null>
 /** URL VietQR (nội bộ server) — chứa số tài khoản nhận tiền nên không bao giờ được trả cho client dạng JSON. */
 export async function getVoucherQrUrl(token: string): Promise<string | null> {
   const b = await loadByToken(token);
-  if (!b || b.status === "CANCELLED") return null;
+  if (!b || b.status === "CANCELLED" || isExpired(b)) return null;
   const who = await collector(b);
   const { remaining } = compute(b);
   if (!who?.bankId || !who.bankAccountNo || remaining <= 0) return null;

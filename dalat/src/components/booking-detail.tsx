@@ -1,10 +1,11 @@
+import { isVoucherExpired } from "@/lib/voucher-link";
+import { VoucherLinkPanel } from "@/components/voucher-link-panel";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getBookingForParty, bookingLedger, directionsFor, type PartyRole } from "@/lib/booking-finance";
 import { BookingActions } from "@/components/booking-actions";
 import { Badge, BOOKING_TONE, type BadgeTone } from "@/components/ui/badge";
 import { STATUS_LABEL } from "@/components/booking-list";
-import { CopyButton } from "@/components/copy-button";
 import { AddonForm, DeleteAddonButton, ExtraFeeForm, TransactionForm, TxDecision } from "@/components/booking-finance-forms";
 import { formatDateTimeVi, formatDateVi, formatVnd } from "@/lib/format";
 import { r2Configured } from "@/lib/r2";
@@ -88,11 +89,7 @@ export async function BookingDetail({ userId, bookingId, viewer }: { userId: str
       <section className="space-y-2 rounded border border-black bg-white p-4 shadow-brutal-sm md:brutal-card">
         <h2 className="font-bold">Booking Confirmation gửi khách</h2>
         <p className="text-xs text-muted-foreground">Trang công khai, không hiển thị giá Net, hoa hồng hay công nợ.</p>
-        <div className="flex items-center gap-2">
-          <input readOnly value={voucherUrl} aria-label="Link voucher" className="brutal-input h-10 min-w-0 flex-1 bg-muted px-2 text-sm" />
-          <CopyButton text={voucherUrl} />
-          <a href={voucherUrl} target="_blank" rel="noopener noreferrer" className="brutal-btn inline-flex h-10 items-center bg-primary px-3 text-sm text-black">Mở</a>
-        </div>
+        <VoucherLinkPanel bookingId={b.id} url={voucherUrl} expiresAt={b.voucherExpiresAt?.toISOString() ?? null} expired={isVoucherExpired(b.voucherExpiresAt)} guestName={b.guestName} propertyName={b.property.name} code={b.bookingCode} />
       </section>
 
       <section className="space-y-2 rounded border border-black bg-white p-4 shadow-brutal-sm md:brutal-card">

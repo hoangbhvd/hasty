@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Check, Field, Select, Textarea } from "@/components/form-fields";
@@ -15,14 +15,15 @@ const BLOCKS: [keyof VoucherConfig["blocks"], string][] = [
 ];
 
 export function VoucherConfigForm({
-  propertyId, config, images, previewToken,
+  propertyId, config, images, previews,
 }: {
   propertyId: string;
   config: VoucherConfig;
   images: { url: string }[];
-  previewToken: string | null;
+  previews: { token: string; label: string }[];
 }) {
   const { state, pending, disabled, ref, onSubmit } = useSafeForm(saveVoucherConfigAction.bind(null, propertyId));
+  const [sel, setSel] = useState(previews[0]?.token ?? "");
   const formRef = useRef<HTMLFormElement | null>(null);
   const setRef = (el: HTMLFormElement | null) => { formRef.current = el; ref.current = el; };
 
@@ -41,6 +42,8 @@ export function VoucherConfigForm({
             options={TEMPLATE_IDS.map((id) => ({ value: id, label: TEMPLATE_LABEL[id] }))} />
         </Field>
         <Field label="Tên thương hiệu" htmlFor="brand_name"><Input id="brand_name" name="brand_name" defaultValue={b.brand_name} maxLength={60} className="h-11 text-base" /></Field>
+        <Field label="Giờ nhận phòng" htmlFor="checkin_time"><Input id="checkin_time" name="checkin_time" type="time" defaultValue={config.stay_times.checkin_time} required className="h-11 text-base" /></Field>
+        <Field label="Giờ trả phòng" htmlFor="checkout_time"><Input id="checkout_time" name="checkout_time" type="time" defaultValue={config.stay_times.checkout_time} required className="h-11 text-base" /></Field>
         <Field label="Tiêu đề phiếu" htmlFor="header_title"><Input id="header_title" name="header_title" defaultValue={config.custom_texts.header_title} maxLength={80} className="h-11 text-base" /></Field>
         <Field label="Khung ảnh" htmlFor="image_frame_style">
           <Select id="image_frame_style" name="image_frame_style" defaultValue={b.image_frame_style} options={[{ value: "ARCH", label: "Vòm cong" }, { value: "RECTANGLE", label: "Chữ nhật" }, { value: "ROUNDED", label: "Bo góc" }]} />
@@ -92,8 +95,13 @@ export function VoucherConfigForm({
       {state && !state.error && <p role="status" className="text-sm font-medium text-green-800">Đã lưu mẫu voucher</p>}
       <div className="flex flex-wrap items-center gap-3">
         <Button type="submit" size="lg" className="h-12" disabled={disabled}>{pending ? "Đang lưu…" : "Lưu mẫu voucher"}</Button>
-        {previewToken ? (
-          <a href={`/voucher/${previewToken}`} target="_blank" rel="noopener noreferrer" className="brutal-btn inline-flex h-12 items-center bg-white px-4 text-sm text-black">Xem thử (booking gần nhất)</a>
+        {previews.length > 0 ? (
+          <span className="inline-flex items-center gap-2">
+            <select aria-label="Booking xem thử" value={sel} onChange={(e) => setSel(e.target.value)} className="brutal-input h-12 max-w-56 bg-white px-2 text-sm">
+              {previews.map((p) => <option key={p.token} value={p.token}>{p.label}</option>)}
+            </select>
+            <a href={`/voucher/${sel || previews[0].token}`} target="_blank" rel="noopener noreferrer" className="brutal-btn inline-flex h-12 items-center bg-white px-4 text-sm text-black">Xem thử (lưu trước)</a>
+          </span>
         ) : <span className="text-xs text-muted-foreground">Tạo booking đầu tiên để xem thử phiếu.</span>}
       </div>
     </form>

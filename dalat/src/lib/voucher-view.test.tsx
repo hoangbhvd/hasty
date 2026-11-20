@@ -96,3 +96,15 @@ test("phiếu KHÔNG chứa giá Net/hoa hồng: dữ liệu đầu vào không 
     for (const k of ["hostnet", "net_price", "netprice", "commission", "hoa hồng", "công nợ"]) assert.ok(!h.includes(k), `${t}: lộ "${k}"`);
   }
 });
+
+test("giờ nhận/trả phòng: mặc định 14:00/12:00, giá trị sai bị bỏ, hiển thị trong phiếu", () => {
+  assert.deepEqual(parseVoucherConfig({}).stay_times, { checkin_time: "14:00", checkout_time: "12:00" });
+  assert.deepEqual(parseVoucherConfig({ stay_times: { checkin_time: "25:99", checkout_time: "11:30" } }).stay_times, { checkin_time: "14:00", checkout_time: "11:30" });
+  for (const t of TEMPLATE_IDS) {
+    const v = data(t);
+    v.config = parseVoucherConfig({ ...v.config, stay_times: { checkin_time: "13:15", checkout_time: "10:45" } });
+    const out = html(v);
+    assert.match(out, /13:15/, t);
+    assert.match(out, /10:45/, t);
+  }
+});

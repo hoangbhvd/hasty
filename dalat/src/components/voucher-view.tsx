@@ -152,8 +152,8 @@ export function VoucherView({ v, token }: { v: VoucherData; token: string }) {
       <Section look={look} title="Thông tin lưu trú">
         <dl className={`space-y-1.5 ${receipt ? "" : "text-sm"}`}>
           <Row look={look} k="Khách" v={v.guestName} />
-          <Row look={look} k="Nhận phòng" v={dateOf(v.checkIn)} />
-          <Row look={look} k="Trả phòng" v={dateOf(v.checkOut)} />
+          <Row look={look} k="Nhận phòng" v={`${dateOf(v.checkIn)} · từ ${v.config.stay_times.checkin_time}`} />
+          <Row look={look} k="Trả phòng" v={`${dateOf(v.checkOut)} · trước ${v.config.stay_times.checkout_time}`} />
           <Row look={look} k="Số khách" v={v.guestCount} />
         </dl>
       </Section>

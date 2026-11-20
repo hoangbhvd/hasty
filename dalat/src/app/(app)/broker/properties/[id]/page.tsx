@@ -29,7 +29,7 @@ export default async function BrokerPropertyPage({ params }: { params: Promise<{
     prisma.propertyMedia.findMany({ where: { propertyId: id }, orderBy: { sortOrder: "asc" }, include: { room: true } }),
   ]);
   const external = p.sourceType === "BROKER_EXTERNAL";
-  const lastBooking = external ? await prisma.booking.findFirst({ where: { propertyId: id }, orderBy: { createdAt: "desc" }, select: { voucherToken: true } }) : null;
+  const recentBookings = external ? await prisma.booking.findMany({ where: { propertyId: id }, orderBy: { createdAt: "desc" }, take: 8, select: { voucherToken: true, bookingCode: true, guestName: true } }) : [];
   const am = (p.amenities ?? {}) as Amen;
   const tags = [am.bbQ && "BBQ", am.ac && "Máy lạnh", am.pet_friendly && "Thú cưng", am.karaoke && "Karaoke", ...(am.views ?? []).map((v) => `View ${v}`)].filter(Boolean) as string[];
 
@@ -102,7 +102,7 @@ export default async function BrokerPropertyPage({ params }: { params: Promise<{
             propertyId={id}
             config={parseVoucherConfig(p.voucherConfig)}
             images={media.filter((m) => m.mediaType === "IMAGE").map((m) => ({ url: m.url }))}
-            previewToken={lastBooking?.voucherToken ?? null}
+            previews={recentBookings.map((x) => ({ token: x.voucherToken, label: `${x.bookingCode} · ${x.guestName}` }))}
           />
         </section>
       )}

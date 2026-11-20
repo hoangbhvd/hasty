@@ -33,6 +33,7 @@ export type VoucherConfig = {
     show_terms_conditions: boolean;
     show_cancellation_policy: boolean;
   };
+  stay_times: { checkin_time: string; checkout_time: string }; // "HH:mm"
   custom_texts: {
     header_title: string;
     surcharge_policy: string;
@@ -62,6 +63,7 @@ export const DEFAULT_VOUCHER_CONFIG: VoucherConfig = {
     show_terms_conditions: true,
     show_cancellation_policy: true,
   },
+  stay_times: { checkin_time: "14:00", checkout_time: "12:00" },
   custom_texts: {
     header_title: "XÁC NHẬN ĐẶT PHÒNG",
     surcharge_policy: "",
@@ -84,6 +86,8 @@ export const SAMPLE_TEXTS = {
 const HEX = /^#[0-9a-fA-F]{6}$/; // chỉ nhận hex — giá trị này được đưa vào style, không để chuỗi tuỳ ý lọt vào CSS
 const TEXT_MAX = 4000;
 
+const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
+const time = (v: unknown, d: string) => (typeof v === "string" && TIME.test(v) ? v : d);
 const bool = (v: unknown, d: boolean) => (typeof v === "boolean" ? v : d);
 const text = (v: unknown, d: string, max = TEXT_MAX) => (typeof v === "string" ? v.replace(/\r\n?/g, "\n").slice(0, max) : d);
 const oneOf = <T extends readonly string[]>(v: unknown, list: T, d: T[number]): T[number] =>
@@ -94,7 +98,7 @@ const obj = (v: unknown): Record<string, unknown> => (v && typeof v === "object"
 /** Đọc cấu hình từ DB/form: trường nào sai thì dùng mặc định, không bao giờ ném lỗi. */
 export function parseVoucherConfig(raw: unknown): VoucherConfig {
   const d = DEFAULT_VOUCHER_CONFIG;
-  const r = obj(raw), b = obj(r.branding), k = obj(r.blocks), t = obj(r.custom_texts);
+  const r = obj(raw), b = obj(r.branding), k = obj(r.blocks), t = obj(r.custom_texts), st = obj(r.stay_times);
   const cover = typeof b.cover_image_url === "string" && /^https:\/\//.test(b.cover_image_url) && b.cover_image_url.length <= 500 ? b.cover_image_url : null;
   return {
     template_id: oneOf(r.template_id, TEMPLATE_IDS, d.template_id),
@@ -109,6 +113,7 @@ export function parseVoucherConfig(raw: unknown): VoucherConfig {
     blocks: Object.fromEntries(
       (Object.keys(d.blocks) as (keyof VoucherConfig["blocks"])[]).map((key) => [key, bool(k[key], d.blocks[key])]),
     ) as VoucherConfig["blocks"],
+    stay_times: { checkin_time: time(st.checkin_time, d.stay_times.checkin_time), checkout_time: time(st.checkout_time, d.stay_times.checkout_time) },
     custom_texts: {
       header_title: text(t.header_title, d.custom_texts.header_title, 80),
       surcharge_policy: text(t.surcharge_policy, d.custom_texts.surcharge_policy),

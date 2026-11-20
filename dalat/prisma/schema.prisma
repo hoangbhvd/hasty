@@ -304,6 +304,8 @@ model Booking {
   id           String @id @default(uuid()) @db.Uuid
   bookingCode  String @unique @map("booking_code") // VD: DL-2611-889
   voucherToken String @unique @default(uuid()) @map("voucher_token") @db.Uuid
+  // Link voucher hết hạn vào thời điểm này (null = không giới hạn). Tạo lại link sẽ đổi voucherToken.
+  voucherExpiresAt DateTime? @map("voucher_expires_at")
 
   propertyId String  @map("property_id") @db.Uuid
   hostId     String? @map("host_id") @db.Uuid
