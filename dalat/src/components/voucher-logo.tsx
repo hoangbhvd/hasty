@@ -8,7 +8,7 @@ export function VoucherLogo({ config, className = "" }: { config: VoucherConfig;
   const justify = logo_position === "LEFT" ? "justify-start" : logo_position === "RIGHT" ? "justify-end" : "justify-center";
   return (
     <div className={`flex w-full ${justify} ${className}`}>
-      <img src={logo_url} alt="Logo" crossOrigin="anonymous" style={{ height: logo_size_px, width: "auto", maxWidth: "70%" }} className="object-contain" />
+      <img src={logo_url} alt="Logo" style={{ height: logo_size_px, width: "auto", maxWidth: "70%" }} className="object-contain" />
     </div>
   );
 }

@@ -42,7 +42,7 @@ export function BoutiqueView({ v }: { v: VoucherData }) {
       {/* ───── Dải tiêu đề ───── */}
       <header className="px-6 py-8 text-center text-white @[700px]:py-6" style={{ backgroundColor: dark }}>
         <VoucherLogo config={c} className="pb-3" />
-        <div className="font-serif text-4xl leading-tight font-light tracking-wide @[700px]:text-[44px]">{c.branding.brand_name || v.propertyName}</div>
+        {c.blocks.show_property_name && <div className="font-serif text-4xl leading-tight font-light tracking-wide @[700px]:text-[44px]">{c.branding.brand_name || v.propertyName}</div>}
         <h1 className="pt-4 text-2xl font-light tracking-wider uppercase @[700px]:pt-2">{c.custom_texts.header_title}</h1>
         <div className="flex items-center justify-center gap-2 pt-3 text-xs tracking-[0.2em] text-white/80">
           <span className="font-mono">{v.bookingCode}</span>
@@ -74,7 +74,7 @@ export function BoutiqueView({ v }: { v: VoucherData }) {
         {showCover && (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={c.branding.cover_image_url!} alt={v.propertyName} crossOrigin="anonymous"
+            src={c.branding.cover_image_url!} alt={v.propertyName}
             className={`mx-auto aspect-[4/5] w-56 border-[6px] @[700px]:w-48 object-cover @[700px]:mx-0 ${frame}`} style={{ borderColor: panel }}
           />
         )}

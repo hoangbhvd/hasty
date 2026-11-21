@@ -114,7 +114,7 @@ export function VoucherView({ v, token }: { v: VoucherData; token: string }) {
       {/* ───── Đầu phiếu ───── */}
       {luxury ? (
         <header className="space-y-3 text-center">
-          {c.branding.brand_name && <div className="text-[10px] font-medium tracking-[0.45em] uppercase" style={{ color: main }}>{c.branding.brand_name}</div>}
+          {c.blocks.show_property_name && c.branding.brand_name && <div className="text-[10px] font-medium tracking-[0.45em] uppercase" style={{ color: main }}>{c.branding.brand_name}</div>}
           <h1 className="font-serif text-2xl font-normal tracking-[0.12em] uppercase">{c.custom_texts.header_title}</h1>
           <div aria-hidden className="mx-auto h-px w-12" style={{ background: main }} />
           <div className="space-x-3 text-[11px] tracking-[0.25em] text-black/60">
@@ -124,13 +124,13 @@ export function VoucherView({ v, token }: { v: VoucherData; token: string }) {
         </header>
       ) : receipt ? (
         <header className="space-y-0.5 text-center">
-          {c.branding.brand_name && <div className="text-sm font-extrabold tracking-wider uppercase">{c.branding.brand_name}</div>}
+          {c.blocks.show_property_name && c.branding.brand_name && <div className="text-sm font-extrabold tracking-wider uppercase">{c.branding.brand_name}</div>}
           <h1 className="text-[13px] font-bold uppercase">{c.custom_texts.header_title}</h1>
           <div className="font-bold">{v.bookingCode} · {STATUS[v.status]}</div>
         </header>
       ) : (
         <header className="space-y-1 text-center">
-          {c.branding.brand_name && (
+          {c.blocks.show_property_name && c.branding.brand_name && (
             <div className="text-xs font-bold tracking-[0.3em] uppercase" style={{ color: brutal ? undefined : main }}>{c.branding.brand_name}</div>
           )}
           <h1 className="text-xl font-extrabold tracking-tight">{c.custom_texts.header_title}</h1>
@@ -144,14 +144,14 @@ export function VoucherView({ v, token }: { v: VoucherData; token: string }) {
       {c.blocks.show_cover_image && c.branding.cover_image_url && (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={c.branding.cover_image_url} alt={v.propertyName} crossOrigin="anonymous"
+          src={c.branding.cover_image_url} alt={v.propertyName}
           className={receipt ? "aspect-video w-full object-cover grayscale contrast-125" : `aspect-[4/5] w-full object-cover ${frame} ${brutal ? "border-2 border-black" : "border-2"}`}
           style={receipt || brutal ? undefined : { borderColor: luxury ? faint(main, "66") : main, ...(luxury ? { borderWidth: 1 } : {}) }}
         />
       )}
 
       <section className="space-y-1 text-center">
-        <div className={luxury ? "font-serif text-xl tracking-wide" : receipt ? "text-[13px] font-bold" : "text-lg font-bold"}>{v.propertyName}</div>
+        {c.blocks.show_property_name && <div className={luxury ? "font-serif text-xl tracking-wide" : receipt ? "text-[13px] font-bold" : "text-lg font-bold"}>{v.propertyName}</div>}
         <div className={luxury ? "text-xs tracking-[0.2em] text-black/60 uppercase" : "text-sm"}>{v.roomLabel}</div>
       </section>
 

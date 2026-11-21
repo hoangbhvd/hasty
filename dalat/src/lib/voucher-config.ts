@@ -71,6 +71,8 @@ export type VoucherConfig = {
   };
   blocks: {
     show_logo: boolean;
+    /** Hiện tên cơ sở (tên thương hiệu / tên căn) trên phiếu */
+    show_property_name: boolean;
     show_cover_image: boolean;
     show_caretaker_phone: boolean;
     show_price_table: boolean;
@@ -108,6 +110,7 @@ export const DEFAULT_VOUCHER_CONFIG: VoucherConfig = {
   },
   blocks: {
     show_logo: true,
+    show_property_name: true,
     show_cover_image: true,
     show_caretaker_phone: true,
     show_price_table: true,

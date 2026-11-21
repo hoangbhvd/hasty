@@ -14,7 +14,7 @@ import { compressImage } from "@/lib/image-compress";
 import { registerLogoAction } from "@/app/(app)/profile-actions";
 
 const BLOCKS: [keyof VoucherConfig["blocks"], string][] = [
-  ["show_logo", "Logo"], ["show_cover_image", "Ảnh bìa"], ["show_price_table", "Bảng giá"], ["show_vietqr", "Mã VietQR thanh toán"],
+  ["show_logo", "Logo"], ["show_property_name", "Tên cơ sở"], ["show_cover_image", "Ảnh bìa"], ["show_price_table", "Bảng giá"], ["show_vietqr", "Mã VietQR thanh toán"],
   ["show_google_maps", "Bản đồ (nút / QR vị trí)"], ["show_caretaker_phone", "SĐT quản gia"], ["show_surcharge_policy", "Chính sách phụ thu"],
   ["show_terms_conditions", "Điều khoản & điều kiện"], ["show_cancellation_policy", "Điều khoản huỷ"],
 ];

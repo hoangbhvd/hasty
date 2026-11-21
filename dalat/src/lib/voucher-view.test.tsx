@@ -125,3 +125,17 @@ test("giờ nhận/trả phòng: mặc định 14:00/12:00, giá trị sai bị 
     else { assert.match(out, /13:15/, t); assert.match(out, /10:45/, t); }
   }
 });
+
+test("tắt 'Tên cơ sở': không còn tên căn / tên thương hiệu trên phiếu ở mọi mẫu; bật thì có", () => {
+  for (const t of TEMPLATE_IDS) {
+    const on = html(data(t));
+    assert.ok(on.includes("Villa Đồi Thông") || on.includes("Cottown"), `${t}: thiếu tên khi bật`);
+    const off = html(data(t, { show_property_name: false }));
+    assert.ok(!off.includes("Cottown") && !off.includes(">Villa Đồi Thông<"), `${t}: vẫn còn tên khi tắt`);
+  }
+});
+
+test("logo không gắn crossOrigin (R2 không cho origin nội bộ của bộ dựng PDF → logo bị chặn)", () => {
+  const h = html(data("DALAT_BOUTIQUE", {}, { config: parseVoucherConfig({ template_id: "DALAT_BOUTIQUE", branding: { logo_url: "https://cdn.example/logo.png" } }) }));
+  assert.ok(h.includes("https://cdn.example/logo.png") && !h.includes("crossorigin"));
+});

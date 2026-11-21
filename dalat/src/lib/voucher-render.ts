@@ -31,7 +31,8 @@ export async function renderVoucher(token: string, format: Format, layout: Layou
 
   const fd = new FormData();
   fd.set("url", renderUrl(token, format, layout));
-  fd.set("waitForExpression", "document.fonts.status === 'loaded'");
+  // Chờ cả font lẫn ảnh (logo, ảnh bìa, QR) tải xong rồi mới chụp
+  fd.set("waitForExpression", "document.fonts.status === 'loaded' && Array.from(document.images).every((i) => i.complete)");
   fd.set("waitDelay", "300ms");
   let endpoint: string;
   if (format === "pdf") {
