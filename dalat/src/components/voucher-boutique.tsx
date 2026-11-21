@@ -51,7 +51,7 @@ export function BoutiqueView({ v }: { v: VoucherData }) {
       </header>
 
       {/* ───── Thông tin khách + ảnh ───── */}
-      <section className="grid gap-6 px-6 py-7 @[700px]:grid-cols-[1fr_auto] @[700px]:items-start @[700px]:gap-10 @[700px]:px-11 @[700px]:py-6">
+      <section className="grid gap-6 px-6 py-7 @[700px]:px-11 @[700px]:py-6">
         <div className="space-y-5 text-[13px] leading-6 font-bold tracking-wide uppercase @[700px]:space-y-2.5 @[700px]:text-[13.5px] @[700px]:leading-[22px]" style={{ color: ink }}>
           <div>
             <div>Tên khách: {v.guestName}</div>
@@ -71,13 +71,6 @@ export function BoutiqueView({ v }: { v: VoucherData }) {
           </div>
           {v.checkinGuide && <p className="text-[13px] leading-6 font-semibold whitespace-pre-line normal-case">{v.checkinGuide}</p>}
         </div>
-        {showCover && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={c.branding.cover_image_url!} alt={v.propertyName}
-            className={`mx-auto aspect-[4/5] w-56 border-[6px] @[700px]:w-48 object-cover @[700px]:mx-0 ${frame}`} style={{ borderColor: panel }}
-          />
-        )}
       </section>
 
       {/* ───── Khối dưới: trái (giá, phụ thu, điều khoản) | phải (huỷ, lời chào, QR) ───── */}
@@ -129,6 +122,16 @@ export function BoutiqueView({ v }: { v: VoucherData }) {
         </section>
 
         <section className="flex flex-col justify-between gap-8 px-8 py-7 @[700px]:gap-4 @[700px]:px-7 @[700px]:py-5" style={{ color: ink }}>
+          {showCover && (
+            // Ảnh trong khung vòm (giống file mẫu): nằm đầu cột phải, phía trên điều khoản huỷ
+            <div className="flex justify-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={c.branding.cover_image_url!} alt={v.propertyName}
+                className={`aspect-[140/170] w-36 border-4 object-cover ${frame}`} style={{ borderColor: dark }}
+              />
+            </div>
+          )}
           <div className="space-y-4" style={at("POLICIES")}>
             {c.blocks.show_cancellation_policy && c.custom_texts.cancellation_policy && (
               <>
