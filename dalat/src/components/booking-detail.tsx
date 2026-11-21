@@ -12,6 +12,7 @@ import { r2Configured } from "@/lib/r2";
 import { confirmerRole } from "@/lib/tx-roles";
 import { openBookingChatAction } from "@/app/(app)/chat-actions";
 import { pendingNetCard } from "@/lib/net-negotiation";
+import { BookingEditButton } from "@/components/booking-edit-form";
 import { NetResponseButtons, ProposeNetForm } from "@/components/net-price-ui";
 
 const TYPE_LABEL = { DEPOSIT: "Cọc", BALANCE: "Thanh toán", COMMISSION_SETTLEMENT: "Quyết toán hoa hồng", REFUND: "Hoàn tiền" } as const;
@@ -47,6 +48,7 @@ export async function BookingDetail({ userId, bookingId, viewer }: { userId: str
   const netCard = negotiable ? await pendingNetCard(b.id) : null;
   const dirs = directionsFor(!!b.hostId, !!b.brokerId).map((d) => ({ value: d, label: DIR_LABEL[d] }));
   const types = (Object.keys(TYPE_LABEL) as (keyof typeof TYPE_LABEL)[]).map((t) => ({ value: t, label: TYPE_LABEL[t] }));
+  const canEdit = (b.brokerId ?? b.hostId) === userId && !["CANCELLED", "CHECKED_OUT"].includes(b.status);
   const backHref = viewer === "HOST" ? "/host/calendar" : "/broker/bookings";
   const roomText = b.bookingType === "ROOMS" ? b.rooms.map((r) => r.room.name).join(", ") : b.bookingType === "EXTERNAL_MANUAL" ? b.manualRoomInfo : "Nguyên căn";
 
@@ -75,6 +77,7 @@ export async function BookingDetail({ userId, bookingId, viewer }: { userId: str
         </dl>
         <div className="flex flex-wrap items-center gap-2">
           <BookingActions id={b.id} status={b.status} />
+          {canEdit && <BookingEditButton bookingId={b.id} init={{ guestName: b.guestName, guestPhone: b.guestPhone ?? "", guestCount: b.guestCount, guestNote: b.guestNote ?? "", manualRoomInfo: b.manualRoomInfo ?? "", external }} />}
           {hasBoth && (
             <form action={openBookingChatAction.bind(null, b.id, viewer)}>
               <button type="submit" className="brutal-btn inline-flex h-9 items-center bg-white px-3 text-sm text-black">💬 Chat về booking</button>

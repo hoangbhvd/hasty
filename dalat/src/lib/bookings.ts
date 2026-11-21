@@ -270,3 +270,27 @@ export async function markCleaned(actorId: string, bookingId: string) {
   if (b.cleanedAt) return b;
   return prisma.booking.update({ where: { id: bookingId }, data: { cleanedAt: new Date() } });
 }
+
+export type EditInput = { guestName: string; guestPhone?: string | null; guestCount: number; guestNote?: string | null; manualRoomInfo?: string | null };
+
+/** Người tạo booking (CTV, hoặc chủ nhà khi tự tạo) sửa thông tin khách. Ngày, phòng và giá không đổi ở đây. */
+export async function editBooking(actorId: string, bookingId: string, input: EditInput) {
+  return prisma.$transaction(async (tx) => {
+    const b = await tx.booking.findUnique({ where: { id: bookingId }, include: { rooms: { include: { room: true } } } });
+    if (!b || (b.brokerId ?? b.hostId) !== actorId) throw new BookingError("Chỉ người tạo booking mới được sửa");
+    if (b.status === "CANCELLED" || b.status === "CHECKED_OUT") throw new BookingError("Booking đã kết thúc, không sửa được");
+    if (b.status === "HOLDING" && b.holdExpiresAt && b.holdExpiresAt <= new Date()) throw new BookingError("Giữ phòng đã hết hạn");
+    if (b.bookingType === "ROOMS" && b.rooms.reduce((s, r) => s + r.room.maxGuests, 0) < input.guestCount) {
+      throw new BookingError("Số khách vượt sức chứa các phòng đã đặt");
+    }
+    const updated = await tx.booking.update({
+      where: { id: bookingId },
+      data: {
+        guestName: input.guestName, guestPhone: input.guestPhone ?? null, guestCount: input.guestCount, guestNote: input.guestNote ?? null,
+        ...(b.bookingType === "EXTERNAL_MANUAL" ? { manualRoomInfo: input.manualRoomInfo ?? null } : {}),
+      },
+    });
+    await postSystemMessage(tx, bookingId, "Người tạo đã cập nhật thông tin booking.");
+    return updated;
+  });
+}

@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireUser } from "@/lib/session";
-import { BookingError, createBooking, markCleaned, transitionBooking, type Transition } from "@/lib/bookings";
+import { BookingError, createBooking, editBooking, markCleaned, transitionBooking, type Transition } from "@/lib/bookings";
 import { accessOnProperty } from "@/lib/staff";
 import { prisma } from "@/lib/db";
 import { cancelBookingJobs, scheduleCheckinReminder, scheduleHoldExpiry } from "@/lib/queue";
@@ -115,5 +115,39 @@ export async function markCleanedAction(bookingId: string): Promise<{ error?: st
     return { error: "Không thực hiện được, thử lại" };
   }
   revalidatePath("/broker/availability");
+  return {};
+}
+
+const editSchema = z.object({
+  guestName: z.string().trim().min(2, "Nhập tên khách").max(100),
+  guestPhone: optPhone,
+  guestCount: z.coerce.number().int().min(1, "Số khách tối thiểu 1").max(100),
+  guestNote: optText,
+  manualRoomInfo: optText,
+});
+
+/** Người tạo sửa thông tin khách / ghi chú của booking. */
+export async function editBookingAction(bookingId: string, _: FormState, fd: FormData): Promise<FormState> {
+  const user = await requireUser();
+  if (!z.uuid().safeParse(bookingId).success) return { error: "Booking không hợp lệ" };
+  const parsed = editSchema.safeParse(Object.fromEntries(fd.entries()));
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  const v = parsed.data;
+  try {
+    const b = await editBooking(user.id, bookingId, {
+      guestName: v.guestName, guestCount: v.guestCount, guestNote: v.guestNote, manualRoomInfo: v.manualRoomInfo,
+      guestPhone: v.guestPhone ? (normalizePhone(v.guestPhone) ?? v.guestPhone) : undefined,
+    });
+    await notifyUsers([b.hostId, b.brokerId].filter((x) => x && x !== user.id), `Booking ${b.bookingCode} được cập nhật thông tin khách`, `/${b.hostId === user.id ? "broker" : "host"}/bookings/${b.id}`);
+    await emitToUsers([b.hostId, b.brokerId], "booking:update", { bookingId: b.id, propertyId: b.propertyId });
+  } catch (e) {
+    if (e instanceof BookingError) return { error: e.message };
+    console.error(e);
+    return { error: "Không lưu được, thử lại" };
+  }
+  revalidatePath("/host/calendar");
+  revalidatePath("/broker/bookings");
+  revalidatePath(`/host/bookings/${bookingId}`);
+  revalidatePath(`/broker/bookings/${bookingId}`);
   return {};
 }
