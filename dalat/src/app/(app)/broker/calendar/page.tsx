@@ -68,7 +68,7 @@ export default async function BrokerCalendarPage({ searchParams }: { searchParam
         ? <p className="rounded border border-dashed border-black p-6 text-center text-sm text-muted-foreground">Chưa chọn homestay nào. Bấm tên homestay ở trên để hiện cột trên lịch.</p>
         : <PropertyCalendar from={from} days={DAYS} today={todayVn()} properties={shown} blocks={blocks} />}
       <p className="text-xs text-muted-foreground">
-        Mỗi cột là một homestay; booking nhiều đêm là một khối liền. Khối sọc 🔒 là lịch đã có người khác đặt (không hiện chi tiết). Bấm khối của bạn để mở booking.
+        Mỗi cột là một homestay; booking nhiều đêm là một khối liền. Khối sọc 🔒 là lịch đã có người khác đặt (không hiện chi tiết; riêng căn bạn là Co-host thì hiện tên và SĐT khách). Bấm khối của bạn để mở booking.
         Nhiều homestay thì cột thu hẹp, chỉ còn màu: di chuột / bấm để xem tên.
       </p>
     </div>

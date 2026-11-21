@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { occupyingWhere } from "@/lib/availability";
+import { effectiveAccess } from "@/lib/staff";
 
 export type CalProperty = { id: string; name: string; kind: "EXTERNAL" | "LINKED" };
 export type CalBlock = {
@@ -9,8 +10,9 @@ export type CalBlock = {
   checkIn: Date;
   checkOut: Date;
   status: string;
-  /** Tên khách — chỉ có với booking của chính CTV */
+  /** Tên / SĐT khách — chỉ có với booking của chính CTV hoặc mọi booking ở căn mà CTV là Co-host */
   guestName: string | null;
+  guestPhone: string | null;
 };
 
 /** Homestay CTV xem được: căn ngoài của mình + căn của chủ nhà đã duyệt liên kết. */
@@ -34,14 +36,24 @@ export async function calendarBlocks(brokerId: string, propertyIds: string[], fr
   const allowed = new Set((await calendarProperties(brokerId)).map((p) => p.id));
   const ids = propertyIds.filter((id) => allowed.has(id));
   if (ids.length === 0) return [];
+  // Căn mà CTV là Co-host (trong phạm vi được giao): thấy tên + SĐT khách của mọi booking
+  const links = await prisma.hostBrokerLink.findMany({ where: { brokerId, status: "APPROVED" } });
+  const props = await prisma.property.findMany({ where: { id: { in: ids }, sourceType: "HOST_MANAGED" }, select: { id: true, hostId: true } });
+  const coHost = new Set(props.filter((p) => {
+    const l = links.find((x) => x.hostId === p.hostId);
+    return l && effectiveAccess(l, p.id).role === "CO_HOST";
+  }).map((p) => p.id));
   const rows = await prisma.booking.findMany({
     where: { propertyId: { in: ids }, ...occupyingWhere(from, to, now) },
     orderBy: { checkIn: "asc" },
-    select: { id: true, propertyId: true, brokerId: true, checkIn: true, checkOut: true, status: true, guestName: true },
+    select: { id: true, propertyId: true, brokerId: true, checkIn: true, checkOut: true, status: true, guestName: true, guestPhone: true },
   });
-  return rows.map((b) => b.brokerId === brokerId
-    ? { bookingId: b.id, propertyId: b.propertyId, checkIn: b.checkIn, checkOut: b.checkOut, status: b.status, guestName: b.guestName }
-    : { bookingId: null, propertyId: b.propertyId, checkIn: b.checkIn, checkOut: b.checkOut, status: "BUSY", guestName: null });
+  return rows.map((b) => {
+    const own = b.brokerId === brokerId;
+    if (own) return { bookingId: b.id, propertyId: b.propertyId, checkIn: b.checkIn, checkOut: b.checkOut, status: b.status, guestName: b.guestName, guestPhone: b.guestPhone };
+    if (coHost.has(b.propertyId)) return { bookingId: null, propertyId: b.propertyId, checkIn: b.checkIn, checkOut: b.checkOut, status: b.status, guestName: b.guestName, guestPhone: b.guestPhone };
+    return { bookingId: null, propertyId: b.propertyId, checkIn: b.checkIn, checkOut: b.checkOut, status: "BUSY", guestName: null, guestPhone: null };
+  });
 }
 
 /** `p` trên URL: vắng = chọn tất cả; "-" = không chọn căn nào; còn lại là danh sách id cách nhau dấu phẩy. */

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-// Màn hình chính của CTV là Lịch trống
+// Màn hình chính của CTV là Lịch (theo ngày)
 export default function BrokerHome() {
-  redirect("/broker/availability");
+  redirect("/broker/calendar");
 }
