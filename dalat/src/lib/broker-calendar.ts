@@ -4,7 +4,7 @@ import { effectiveAccess } from "@/lib/staff";
 
 export type CalProperty = { id: string; name: string; kind: "EXTERNAL" | "LINKED" };
 export type CalBlock = {
-  /** id booking của CTV (null nếu là lịch kín của người khác: không lộ thông tin) */
+  /** id booking để mở chi tiết: của CTV, hoặc mọi booking ở căn CTV là Co-host (null nếu là lịch kín) */
   bookingId: string | null;
   propertyId: string;
   checkIn: Date;
@@ -51,7 +51,7 @@ export async function calendarBlocks(brokerId: string, propertyIds: string[], fr
   return rows.map((b) => {
     const own = b.brokerId === brokerId;
     if (own) return { bookingId: b.id, propertyId: b.propertyId, checkIn: b.checkIn, checkOut: b.checkOut, status: b.status, guestName: b.guestName, guestPhone: b.guestPhone };
-    if (coHost.has(b.propertyId)) return { bookingId: null, propertyId: b.propertyId, checkIn: b.checkIn, checkOut: b.checkOut, status: b.status, guestName: b.guestName, guestPhone: b.guestPhone };
+    if (coHost.has(b.propertyId)) return { bookingId: b.id, propertyId: b.propertyId, checkIn: b.checkIn, checkOut: b.checkOut, status: b.status, guestName: b.guestName, guestPhone: b.guestPhone };
     return { bookingId: null, propertyId: b.propertyId, checkIn: b.checkIn, checkOut: b.checkOut, status: "BUSY", guestName: null, guestPhone: null };
   });
 }

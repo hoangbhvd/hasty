@@ -37,7 +37,7 @@ const range = [D(0), D(60), new Date()] as const;
 test("Co-host: thấy tên + SĐT mọi booking ở căn được giao; căn khác chỉ booking của mình", async () => {
   const b = await calendarBlocks(co, [pCo, pNorm], ...range);
   const inCo = b.filter((x) => x.propertyId === pCo);
-  assert.equal(inCo[0].guestName, "K1"); assert.equal(inCo[0].guestPhone, "0900000001");
+  assert.ok(inCo[0].bookingId); assert.equal(inCo[0].guestName, "K1"); assert.equal(inCo[0].guestPhone, "0900000001");
   const norm = b.filter((x) => x.propertyId === pNorm);
   assert.equal(norm.find((x) => x.bookingId)?.guestName, "K3");
   assert.equal(norm.find((x) => !x.bookingId)?.guestName, null); // booking K2 của người khác: kín
@@ -48,4 +48,14 @@ test("CTV thường: chỉ thấy booking của mình, còn lại kín", async (
   const mine = b.find((x) => x.propertyId === pCo)!;
   assert.equal(mine.guestPhone, "0900000001"); assert.ok(mine.bookingId);
   for (const x of b.filter((x) => x.propertyId === pNorm)) { assert.equal(x.guestName, null); assert.equal(x.guestPhone, null); assert.equal(x.status, "BUSY"); }
+});
+
+test("Co-host mở được chi tiết booking của người khác ở căn được giao; CTV thường và căn khác thì không", async () => {
+  const { coHostBookingView } = await import("./staff-booking");
+  const k1 = (await prisma.booking.findFirst({ where: { propertyId: pCo } }))!.id;
+  const k2 = (await prisma.booking.findFirst({ where: { propertyId: pNorm, brokerId: null } }))!.id;
+  const v = await coHostBookingView(co, k1);
+  assert.equal(v?.guestPhone, "0900000001"); assert.equal(v?.hostNet, null); // chưa bật xem Net
+  assert.equal(await coHostBookingView(co, k2), null); // căn không được giao
+  assert.equal(await coHostBookingView(ctv, k1), null); // CTV thường
 });

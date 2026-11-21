@@ -64,7 +64,7 @@ export function PropertyCalendar({
           const style = { gridColumn: ci + 2, gridRow: `${start + 2} / ${end + 2}` };
           const title = `${properties[ci].name} · ${label}${busy ? " (đã có người đặt)" : ""}`;
           const text = compact ? null : <span className="sticky top-9 line-clamp-3 break-words">{busy ? "🔒 Kín" : <>{b.guestName}{b.guestPhone && <><br /><span className="font-normal">{b.guestPhone}</span></>}</>}</span>;
-          return b.bookingId === null
+          return busy
             ? <div key={k} style={style} title={title} className={cls}>{text}</div>
             : <Link key={k} href={`/broker/bookings/${b.bookingId}`} style={style} title={title} className={cls}>{text}</Link>;
         })}
