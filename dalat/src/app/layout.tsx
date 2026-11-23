@@ -25,7 +25,7 @@ export const metadata: Metadata = {
   title: "DalatStay — Kết nối Chủ Homestay & Broker Đà Lạt",
   description: "Quản lý lịch phòng, giữ phòng nhanh và đối soát hoa hồng homestay Đà Lạt",
   manifest: "/manifest.json",
-  icons: { icon: "/icons/icon-192.png", apple: "/icons/apple-touch-icon.png" },
+  icons: { icon: "/favicon.ico", apple: "/icons/apple-touch-icon.png" },
   appleWebApp: { capable: true, title: "ĐL Homestay", statusBarStyle: "black-translucent" },
 };
 
