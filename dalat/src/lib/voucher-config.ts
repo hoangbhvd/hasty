@@ -49,7 +49,14 @@ export type PdfmeSchema = {
   name: string; type: "text" | "image" | "qrcode"; position: { x: number; y: number }; width: number; height: number;
   fontSize?: number; fontColor?: string; alignment?: "left" | "center" | "right"; fontName?: string; bold?: boolean;
 };
-export type PdfmeConfig = { base_pdf_url: string | null; schemas: PdfmeSchema[] };
+/**
+ * Biến `{{ten-bien}}` được gõ sẵn trong PDF nền (Canva) và tự nhận diện khi tải lên.
+ * Vị trí (mm, gốc trên-trái) là của chữ trong PDF; `cover` là màu nền lấy mẫu quanh chữ để che đi chữ `{{...}}` khi xuất phiếu.
+ * `field` là dữ liệu chủ nhà chọn để điền vào biến (null = chưa chọn: chỉ che, không điền).
+ */
+export type PdfmeVar = { tag: string; field: string | null; x: number; y: number; w: number; h: number; fontSize: number; cover: string };
+export type PdfmeConfig = { base_pdf_url: string | null; schemas: PdfmeSchema[]; vars: PdfmeVar[] };
+export const PDF_VAR_TAG = /^[A-Za-z0-9_-]{1,40}$/;
 
 export type VoucherConfig = {
   /** TEMPLATE = mẫu HTML có sẵn (mặc định); CUSTOM_PDFME = PDF nền tự thiết kế + ô biến động kéo thả. */
@@ -94,7 +101,7 @@ export type VoucherConfig = {
 
 export const DEFAULT_VOUCHER_CONFIG: VoucherConfig = {
   mode: "TEMPLATE",
-  pdfme_config: { base_pdf_url: null, schemas: [] },
+  pdfme_config: { base_pdf_url: null, schemas: [], vars: [] },
   template_id: "DALAT_BOUTIQUE",
   block_order: [...BLOCK_IDS],
   branding: {
@@ -193,7 +200,20 @@ export function parsePdfme(raw: unknown): PdfmeConfig {
       fontName: oneOf(s.fontName, ["BeVietnamPro", "BeVietnamPro-Bold", "PlayfairDisplay"] as const, "BeVietnamPro"),
     });
   }
-  return { base_pdf_url: url, schemas };
+  const vars: PdfmeVar[] = [];
+  const seen = new Set<string>();
+  for (const it of Array.isArray(o.vars) ? o.vars.slice(0, 40) : []) {
+    const v = obj(it);
+    const tag = typeof v.tag === "string" && PDF_VAR_TAG.test(v.tag) ? v.tag : "";
+    if (!tag || seen.has(tag)) continue;
+    seen.add(tag);
+    vars.push({
+      tag, field: typeof v.field === "string" && names.has(v.field) ? v.field : null,
+      x: num(v.x, 0, 0, 210), y: num(v.y, 0, 0, 297), w: num(v.w, 40, 2, 210), h: num(v.h, 8, 2, 297),
+      fontSize: num(v.fontSize, 12, 6, 48), cover: hex(v.cover, "#FFFFFF"),
+    });
+  }
+  return { base_pdf_url: url, schemas, vars };
 }
 
 /** Đọc cấu hình từ DB/form: trường nào sai thì dùng mặc định, không bao giờ ném lỗi. */

@@ -3,9 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { PDFME_FIELDS, type PdfmeSchema } from "@/lib/voucher-config";
+import { PDFME_FIELDS, type PdfmeSchema, type PdfmeVar } from "@/lib/voucher-config";
 import { imageToA4Pdf, pdfPageCount } from "@/lib/pdf-wrap";
-import { registerPdfmeBaseAction, savePdfmeSchemasAction, setVoucherModeAction } from "@/app/(app)/voucher-actions";
+import { detectPdfmeVarsAction, registerPdfmeBaseAction, savePdfmeAction, setVoucherModeAction } from "@/app/(app)/voucher-actions";
 
 type DesignerLike = {
   destroy?: () => void;
@@ -30,11 +30,12 @@ async function loadFonts() {
 const sampleOf = (name: string) => PDFME_FIELDS.find((f) => f.name === name)?.sample ?? "";
 
 export function PdfmeStudio({
-  propertyId, hasBase, schemas, mode, r2Ready, previews,
+  propertyId, baseUrl, schemas, vars: initialVars, mode, r2Ready, previews,
 }: {
-  propertyId: string; hasBase: boolean; schemas: PdfmeSchema[]; mode: "TEMPLATE" | "CUSTOM_PDFME"; r2Ready: boolean;
+  propertyId: string; baseUrl: string | null; schemas: PdfmeSchema[]; vars: PdfmeVar[]; mode: "TEMPLATE" | "CUSTOM_PDFME"; r2Ready: boolean;
   previews: { token: string; label: string }[];
 }) {
+  const hasBase = !!baseUrl;
   const router = useRouter();
   const box = useRef<HTMLDivElement>(null);
   const designer = useRef<DesignerLike | null>(null);
@@ -43,6 +44,8 @@ export function PdfmeStudio({
   const [error, setError] = useState<string>();
   const [note, setNote] = useState<string>();
   const [used, setUsed] = useState<string[]>(schemas.map((s) => s.name));
+  const [vars, setVars] = useState<PdfmeVar[]>(initialVars);
+  const [map, setMap] = useState<Record<string, string>>(() => Object.fromEntries(initialVars.filter((v) => v.field).map((v) => [v.tag, v.field!])));
   const [sel, setSel] = useState(previews[0]?.token ?? "");
 
   // Dựng trình thiết kế kéo thả khi đã có PDF nền
@@ -71,7 +74,7 @@ export function PdfmeStudio({
     })();
     return () => { dead = true; designer.current?.destroy?.(); designer.current = null; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasBase, propertyId]);
+  }, [hasBase, propertyId, baseUrl]);
 
   async function upload(f: File) {
     setBusy("Đang tải PDF nền…"); setError(undefined); setNote(undefined);
@@ -87,8 +90,45 @@ export function PdfmeStudio({
       if (!put.ok) throw new Error("Tải lên R2 thất bại (kiểm tra CORS của bucket)");
       const r = await registerPdfmeBaseAction(propertyId);
       if (r.error) throw new Error(r.error);
+      setBusy("Đang tìm biến {{...}} trong PDF…");
+      const d = await detectPdfmeVarsAction(propertyId);
+      if (d.error) throw new Error(d.error);
+      applyDetected(d.vars ?? []);
       router.refresh();
     } catch (e) { setError(e instanceof Error ? e.message : "Lỗi tải PDF"); } finally { setBusy(undefined); if (file.current) file.current.value = ""; }
+  }
+
+  function applyDetected(found: PdfmeVar[]) {
+    setVars(found);
+    setMap(Object.fromEntries(found.filter((v) => v.field).map((v) => [v.tag, v.field!])));
+    setNote(found.length ? `Tìm thấy ${found.length} biến trong PDF. Chọn dữ liệu cho từng biến ở bảng bên dưới.` : "Không thấy biến dạng {{ten-bien}} trong PDF. Bạn vẫn có thể thêm ô thủ công bằng các nút bên dưới.");
+  }
+
+  async function rescan() {
+    setBusy("Đang quét biến…"); setError(undefined); setNote(undefined);
+    const d = await detectPdfmeVarsAction(propertyId);
+    setBusy(undefined);
+    if (d.error) setError(d.error); else applyDetected(d.vars ?? []);
+  }
+
+  /** Gán dữ liệu cho biến {{...}}: đặt ô điền đúng vị trí chữ trong PDF (thay ô cũ của biến đó nếu có). */
+  function assign(v: PdfmeVar, field: string) {
+    const d = designer.current;
+    const prev = map[v.tag];
+    setMap((m) => ({ ...m, [v.tag]: field }));
+    if (!d) return;
+    const t = d.getTemplate();
+    let page = t.schemas[0];
+    if (prev) page = page.filter((s) => s.name !== prev);
+    if (field && !page.some((s) => s.name === field)) {
+      const f = PDFME_FIELDS.find((x) => x.name === field)!;
+      page.push("image" in f
+        ? { name: field, type: "image", content: IMG_PLACEHOLDER, position: { x: v.x, y: v.y }, width: Math.max(v.w, 20), height: Math.max(v.h, 20) }
+        : { name: field, type: "text", content: f.sample, position: { x: v.x, y: v.y }, width: Math.max(v.w, 30), height: v.h, fontSize: v.fontSize, fontColor: "#000000", alignment: "left", fontName: "BeVietnamPro" });
+    }
+    t.schemas[0] = page;
+    d.updateTemplate(t);
+    setUsed(page.map((s) => String(s.name)));
   }
 
   const addField = useCallback((name: string) => {
@@ -117,7 +157,7 @@ export function PdfmeStudio({
       fontSize: Number(s.fontSize ?? 12), fontColor: String(s.fontColor ?? "#000000"),
       alignment: (s.alignment as PdfmeSchema["alignment"]) ?? "left", fontName: String(s.fontName ?? "BeVietnamPro"),
     }));
-    const r = await savePdfmeSchemasAction(propertyId, out);
+    const r = await savePdfmeAction(propertyId, out, map);
     setBusy(undefined);
     if (r.error) setError(r.error); else { setNote("Đã lưu mẫu"); router.refresh(); }
   }
@@ -134,8 +174,9 @@ export function PdfmeStudio({
       <div className="rounded border border-black bg-white p-3 text-sm">
         <p className="font-medium">Dùng thiết kế Canva của bạn làm nền</p>
         <ol className="list-decimal space-y-1 pl-5 pt-1 text-muted-foreground">
-          <li>Xuất file A4 (1 trang) từ Canva dạng PDF (hoặc PNG/JPG), để trống các chỗ cần điền thông tin khách.</li>
-          <li>Tải lên bên dưới, bấm tên biến để thêm rồi kéo thả đúng vị trí, chỉnh cỡ chữ/màu/căn lề ở bảng bên phải.</li>
+          <li>Trong Canva, gõ sẵn các biến vào chỗ cần điền, ví dụ <code className="font-mono">{"{{var-1}}"}</code>, <code className="font-mono">{"{{var-2}}"}</code>. Xuất file A4 (1 trang) dạng PDF.</li>
+          <li>Tải PDF lên: hệ thống tự nhận các biến này. Chọn dữ liệu cho từng biến (Tên khách, SĐT, Check-in…), ô điền sẽ nằm đúng chỗ đó; chữ <code className="font-mono">{"{{...}}"}</code> được che đi khi xuất phiếu.</li>
+          <li>Cần thêm ô không có biến sẵn: bấm tên dữ liệu bên dưới rồi kéo thả; chỉnh cỡ chữ/màu/căn lề ở bảng bên phải.</li>
           <li>Bấm “Lưu mẫu”, rồi “Dùng mẫu này”. Giá Net và hoa hồng không bao giờ có trong danh sách biến.</li>
         </ol>
       </div>
@@ -151,6 +192,30 @@ export function PdfmeStudio({
 
       {hasBase && (
         <>
+          <section className="space-y-2 rounded border border-black bg-white p-3" aria-label="Biến trong PDF">
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="text-sm font-bold">Biến trong PDF ({vars.length})</h3>
+              <button type="button" disabled={!!busy} onClick={rescan} className="text-xs underline disabled:opacity-50">Quét lại</button>
+            </div>
+            {vars.length === 0
+              ? <p className="text-xs text-muted-foreground">Chưa thấy biến dạng {"{{ten-bien}}"} nào. Gõ biến vào thiết kế Canva rồi tải lại PDF, hoặc bấm “Quét lại”.</p>
+              : (
+                <ul className="divide-y divide-black/15">
+                  {vars.map((v) => (
+                    <li key={v.tag} className="flex flex-wrap items-center justify-between gap-2 py-1.5">
+                      <code className="font-mono text-sm">{`{{${v.tag}}}`}</code>
+                      <select aria-label={`Dữ liệu cho ${v.tag}`} value={map[v.tag] ?? ""} onChange={(e) => assign(v, e.target.value)}
+                        className="brutal-input h-10 min-w-44 bg-white px-2 text-sm">
+                        <option value="">— Không điền —</option>
+                        {PDFME_FIELDS.map((f) => (
+                          <option key={f.name} value={f.name} disabled={Object.entries(map).some(([t, n]) => n === f.name && t !== v.tag)}>{f.label}</option>
+                        ))}
+                      </select>
+                    </li>
+                  ))}
+                </ul>
+              )}
+          </section>
           <div className="flex flex-wrap gap-1.5" aria-label="Biến động">
             {PDFME_FIELDS.map((f) => (
               <button key={f.name} type="button" disabled={used.includes(f.name)} onClick={() => addField(f.name)}

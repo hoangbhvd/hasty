@@ -32,7 +32,7 @@ export function VoucherStudio(props: Props) {
         </>
       ) : (
         <PdfmeStudio
-          propertyId={props.propertyId} hasBase={!!c.pdfme_config.base_pdf_url} schemas={c.pdfme_config.schemas} mode={c.mode}
+          propertyId={props.propertyId} baseUrl={c.pdfme_config.base_pdf_url} schemas={c.pdfme_config.schemas} vars={c.pdfme_config.vars} mode={c.mode}
           r2Ready={props.r2Ready ?? false} previews={props.previews}
         />
       )}

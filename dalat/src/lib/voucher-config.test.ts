@@ -9,7 +9,7 @@ test("cấu hình cũ (không có mode/logo/pdfme) vẫn đọc được với m
   assert.equal(c.branding.logo_position, "CENTER");
   assert.equal(c.branding.logo_size_px, 72);
   assert.equal(c.blocks.show_logo, true);
-  assert.deepEqual(c.pdfme_config, { base_pdf_url: null, schemas: [] });
+  assert.deepEqual(c.pdfme_config, { base_pdf_url: null, schemas: [], vars: [] });
   assert.deepEqual(parseVoucherConfig(null), DEFAULT_VOUCHER_CONFIG);
 });
 

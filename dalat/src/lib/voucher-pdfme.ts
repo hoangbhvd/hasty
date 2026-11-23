@@ -5,7 +5,8 @@ import { generate } from "@pdfme/generator";
 import { barcodes, image, text } from "@pdfme/schemas";
 import { formatDateVi, formatVnd } from "@/lib/format";
 import { hourLabel } from "@/components/voucher-boutique";
-import { PDFME_FIELDS, type PdfmeConfig, type PdfmeSchema } from "@/lib/voucher-config";
+import { PDFDocument, rgb } from "pdf-lib";
+import { PDFME_FIELDS, type PdfmeConfig, type PdfmeSchema, type PdfmeVar } from "@/lib/voucher-config";
 import type { VoucherData } from "@/lib/voucher";
 
 export class PdfmeError extends Error {}
@@ -79,9 +80,23 @@ export async function fetchBasePdf(url: string): Promise<Uint8Array> {
   return buf;
 }
 
+/** Che chữ {{biến}} gõ sẵn trong PDF nền bằng ô màu nền (đã lấy mẫu lúc tải lên), để dữ liệu thật điền đè lên sạch sẽ. */
+export async function coverVars(base: Uint8Array, vars: PdfmeVar[]): Promise<Uint8Array> {
+  if (vars.length === 0) return base;
+  const doc = await PDFDocument.load(base);
+  const page = doc.getPage(0);
+  const { height } = page.getSize();
+  const mm = 72 / 25.4;
+  for (const v of vars) {
+    const n = parseInt(v.cover.slice(1), 16);
+    page.drawRectangle({ x: v.x * mm, y: height - (v.y + v.h) * mm, width: v.w * mm, height: v.h * mm, color: rgb(((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255) });
+  }
+  return doc.save();
+}
+
 export async function generatePdfme(cfg: PdfmeConfig, inputs: Record<string, string>, basePdf?: Uint8Array): Promise<Buffer> {
   if (!cfg.base_pdf_url && !basePdf) throw new PdfmeError("Chưa có PDF nền");
-  const base = basePdf ?? (await fetchBasePdf(cfg.base_pdf_url!));
+  const base = await coverVars(basePdf ?? (await fetchBasePdf(cfg.base_pdf_url!)), cfg.vars);
   const schemas = toPdfmeSchemas(cfg.schemas, inputs);
   const pdf = await generate({
     template: { basePdf: base, schemas: [schemas] } as never,

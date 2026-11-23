@@ -4,7 +4,9 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/session";
 import { getManagedProperty } from "@/lib/access";
-import { AVAILABLE_TEMPLATES, parsePdfme, parseVoucherConfig, type VoucherConfig } from "@/lib/voucher-config";
+import { AVAILABLE_TEMPLATES, parsePdfme, parseVoucherConfig, type PdfmeVar, type VoucherConfig } from "@/lib/voucher-config";
+import { detectPdfVars } from "@/lib/pdf-vars";
+import { fetchBasePdf } from "@/lib/voucher-pdfme";
 import { configFromForm } from "@/lib/voucher-form";
 import { bcTemplateKey, keyFromUrl, keyPrefix, publicUrlFor, r2Configured } from "@/lib/r2";
 import { regenerateVoucherToken, setVoucherExpiry, VoucherLinkError } from "@/lib/voucher-link";
@@ -93,11 +95,6 @@ export async function registerPdfmeBaseAction(propertyId: string): Promise<{ err
   return savePdfme(propertyId, (c) => ({ ...c, pdfme_config: { ...c.pdfme_config, base_pdf_url: `${publicUrlFor(bcTemplateKey(propertyId))}?v=${Date.now()}` } }));
 }
 
-/** Lưu vị trí các ô biến động. `schemas` đi qua parsePdfme: chỉ giữ biến cho phép, kẹp toạ độ. */
-export async function savePdfmeSchemasAction(propertyId: string, schemas: unknown): Promise<{ error?: string }> {
-  return savePdfme(propertyId, (c) => ({ ...c, pdfme_config: parsePdfme({ base_pdf_url: c.pdfme_config.base_pdf_url, schemas }) }));
-}
-
 export async function setVoucherModeAction(propertyId: string, mode: string): Promise<{ error?: string }> {
   const cur = await ownedConfig(propertyId);
   if (!cur) return { error: "Không có quyền" };
@@ -106,4 +103,35 @@ export async function setVoucherModeAction(propertyId: string, mode: string): Pr
     return { error: "Hãy tải PDF nền và đặt ít nhất 1 ô biến động rồi lưu mẫu trước" };
   }
   return savePdfme(propertyId, (c) => ({ ...c, mode }));
+}
+
+/** Quét PDF nền tìm biến {{...}}; giữ lại lựa chọn dữ liệu đã gán cho các biến cùng tên. */
+export async function detectPdfmeVarsAction(propertyId: string): Promise<{ error?: string; vars?: PdfmeVar[] }> {
+  const cur = await ownedConfig(propertyId);
+  if (!cur) return { error: "Không có quyền" };
+  const url = cur.config.pdfme_config.base_pdf_url;
+  if (!url) return { error: "Chưa có PDF nền" };
+  let found;
+  try {
+    found = await detectPdfVars(await fetchBasePdf(url));
+  } catch (e) {
+    console.error(e);
+    return { error: "Không đọc được PDF nền để tìm biến" };
+  }
+  const old = new Map(cur.config.pdfme_config.vars.map((v) => [v.tag, v.field]));
+  const vars: PdfmeVar[] = found.map((v) => ({ ...v, field: old.get(v.tag) ?? null }));
+  const r = await savePdfme(propertyId, (c) => ({ ...c, pdfme_config: parsePdfme({ ...c.pdfme_config, vars }) }));
+  return r.error ? r : { vars: parsePdfme({ vars }).vars };
+}
+
+/** Lưu ô biến động + dữ liệu gán cho từng biến {{...}}. Vị trí/màu che của biến lấy từ lần quét, client chỉ được đổi `field`. */
+export async function savePdfmeAction(propertyId: string, schemas: unknown, mapping: unknown): Promise<{ error?: string }> {
+  const m = mapping && typeof mapping === "object" ? (mapping as Record<string, unknown>) : {};
+  return savePdfme(propertyId, (c) => ({
+    ...c,
+    pdfme_config: parsePdfme({
+      base_pdf_url: c.pdfme_config.base_pdf_url, schemas,
+      vars: c.pdfme_config.vars.map((v) => ({ ...v, field: typeof m[v.tag] === "string" && m[v.tag] ? m[v.tag] : null })),
+    }),
+  }));
 }
