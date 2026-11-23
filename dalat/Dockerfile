@@ -18,7 +18,8 @@ ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL \
     NODE_OPTIONS=--max-old-space-size=1536 \
     DATABASE_URL=postgresql://build:build@localhost:5432/build
 # prisma generate / next build không kết nối DB (DATABASE_URL ở trên chỉ để đọc cấu hình)
-RUN npx prisma generate && npm run build
+# Cache mount: giữ .next/cache (cache biên dịch Turbopack) giữa các lần build trên VPS; cần BuildKit (mặc định từ Docker 23)
+RUN --mount=type=cache,target=/app/.next/cache npx prisma generate && npm run build
 
 FROM node:22-bookworm-slim AS run
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates wget \
