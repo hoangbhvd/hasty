@@ -122,9 +122,12 @@ export function PdfmeStudio({
     if (prev) page = page.filter((s) => s.name !== prev);
     if (field && !page.some((s) => s.name === field)) {
       const f = PDFME_FIELDS.find((x) => x.name === field)!;
+      const center = v.align === "center";
+      const tw = center ? Math.max(v.w, 36) : Math.max(v.room, v.w, 30);
+      const tx = center ? Math.max(v.x + v.w / 2 - tw / 2, 0) : v.x;
       page.push("image" in f
         ? { name: field, type: "image", content: IMG_PLACEHOLDER, position: { x: v.x, y: v.y }, width: Math.max(v.w, 20), height: Math.max(v.h, 20) }
-        : { name: field, type: "text", content: f.sample, position: { x: v.x, y: v.y }, width: Math.max(v.w, 30), height: v.h, fontSize: v.fontSize, fontColor: "#000000", alignment: "left", fontName: "BeVietnamPro" });
+        : { name: field, type: "text", content: f.sample, position: { x: tx, y: v.y }, width: tw, height: v.h, fontSize: v.fontSize, fontColor: "#000000", alignment: center ? "center" : "left", fontName: "BeVietnamPro" });
     }
     t.schemas[0] = page;
     d.updateTemplate(t);

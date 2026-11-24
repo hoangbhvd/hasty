@@ -6,9 +6,11 @@ const RE = /\{\{\s*([A-Za-z0-9_-]{1,40})\s*\}\}/g;
 
 type Item = { str: string; x: number; y: number; w: number; h: number };
 export type FoundVar = Omit<PdfmeVar, "field" | "cover">;
+/** Đo độ rộng chuỗi (tuỳ chọn) để tính vị trí {{...}} trong một mảnh chữ chính xác hơn so với đếm ký tự. */
+export type Measure = (text: string) => number;
 
 /** Gộp các mảnh chữ cùng dòng (Canva hay tách 1 cụm chữ thành nhiều mảnh) rồi tìm {{...}}; toạ độ trả về là mm, gốc trên-trái. */
-export function findVarsInItems(items: Item[], pageH: number): FoundVar[] {
+export function findVarsInItems(items: Item[], pageH: number, pageW = 0, measure?: Measure): FoundVar[] {
   const lines: Item[][] = [];
   for (const it of items) {
     if (!it.str) continue;
@@ -29,23 +31,39 @@ export function findVarsInItems(items: Item[], pageH: number): FoundVar[] {
       // x theo tỉ lệ ký tự trong từng mảnh
       const xAt = (pos: number) => {
         const seg = [...at].reverse().find((a) => a.from <= pos) ?? at[0];
-        const frac = seg.item.str.length ? Math.min(Math.max((pos - seg.from) / seg.item.str.length, 0), 1) : 0;
-        return seg.item.x + seg.item.w * frac;
+        const str = seg.item.str, k = pos - seg.from;
+        let frac = str.length ? k / str.length : 0;
+        if (measure && str.length) { const tot = measure(str); if (tot > 0) frac = measure(str.slice(0, k)) / tot; }
+        return seg.item.x + seg.item.w * Math.min(Math.max(frac, 0), 1);
       };
       const x0 = xAt(start), x1 = xAt(end);
       const first = at.find((a) => a.from <= start && start < a.from + a.item.str.length) ?? at[0];
       const h = first.item.h;
       seen.add(tag);
+      // Biến đứng một mình (ô bảng) → căn giữa; còn lại (sau nhãn "TÊN KHÁCH:") → căn trái, được dùng khoảng trống bên phải đến chữ kế tiếp / lề trang
+      const alone = text.trim() === m[0];
+      const next = line.filter((it) => it.str.trim() && it.x > x1 + 1).map((it) => it.x)[0];
+      const roomEnd = next ?? (pageW ? pageW - 8 / PT_MM : x1 + 60 / PT_MM);
+      const room = Math.max((roomEnd - x0) * PT_MM - 1, 0);
       const padX = 0.6, padY = 0.5; // mm: chừa lề nhỏ để che sạch nét chữ
       out.push({
         tag,
         x: Math.max(x0 * PT_MM - padX, 0), y: Math.max((pageH - first.item.y - h * 0.9) * PT_MM - padY, 0),
         w: Math.max((x1 - x0) * PT_MM + padX * 2, 4), h: h * 1.25 * PT_MM + padY * 2,
-        fontSize: Math.min(Math.max(Math.round(h * 2) / 2, 6), 48),
+        fontSize: Math.min(Math.max(Math.round(h * 2) / 2, 6), 48), room: Math.round(room * 10) / 10, align: alone ? "center" : "left",
       });
     }
   }
   return out;
+}
+
+async function makeMeasure(): Promise<Measure | undefined> {
+  try {
+    const { createCanvas } = await import("@napi-rs/canvas");
+    const ctx = createCanvas(10, 10).getContext("2d");
+    ctx.font = "bold 40px sans-serif";
+    return (t) => ctx.measureText(t).width;
+  } catch { return undefined; }
 }
 
 async function sampleCover(pdf: Uint8Array, found: FoundVar[], pageW: number): Promise<string[]> {
@@ -63,11 +81,11 @@ async function sampleCover(pdf: Uint8Array, found: FoundVar[], pageW: number): P
     const k = img.width / (pageW * PT_MM); // px / mm
     return found.map((f) => {
       // lấy mẫu 8 điểm ngay ngoài khung chữ, chọn màu xuất hiện nhiều nhất
-      const gap = 1.2;
-      const pts: [number, number][] = [
-        [f.x - gap, f.y + f.h / 2], [f.x + f.w + gap, f.y + f.h / 2], [f.x + f.w / 2, f.y - gap], [f.x + f.w / 2, f.y + f.h + gap],
-        [f.x - gap, f.y - gap], [f.x + f.w + gap, f.y - gap], [f.x - gap, f.y + f.h + gap], [f.x + f.w + gap, f.y + f.h + gap],
-      ];
+      const pts: [number, number][] = [];
+      for (const gap of [1.2, 2.5]) {
+        for (const fx of [0, 0.25, 0.5, 0.75, 1]) { pts.push([f.x + f.w * fx, f.y - gap], [f.x + f.w * fx, f.y + f.h + gap]); }
+        for (const fy of [0.25, 0.5, 0.75]) { pts.push([f.x - gap, f.y + f.h * fy], [f.x + f.w + gap, f.y + f.h * fy]); }
+      }
       const count = new Map<string, number>();
       for (const [mx, my] of pts) {
         const px = Math.round(mx * k), py = Math.round(my * k);
@@ -101,7 +119,8 @@ export async function detectPdfVars(pdf: Uint8Array): Promise<Omit<PdfmeVar, "fi
       const h = it.height || Math.abs(it.transform[3]) || 10;
       items.push({ str: it.str, x: it.transform[4] - x0, y: it.transform[5] - y0, w: it.width, h });
     }
-    const found = findVarsInItems(items, pageH).sort((a, b) => a.y - b.y || a.x - b.x).slice(0, 40);
+    const measure = await makeMeasure();
+    const found = findVarsInItems(items, pageH, pageW, measure).sort((a, b) => a.y - b.y || a.x - b.x).slice(0, 40);
     const covers = found.length ? await sampleCover(pdf, found, pageW) : [];
     return found.map((f, i) => ({ ...f, cover: covers[i] }));
   } finally {
