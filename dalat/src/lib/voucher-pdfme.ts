@@ -15,6 +15,8 @@ const FONT_FILES = {
   BeVietnamPro: "BeVietnamPro-Regular.ttf",
   "BeVietnamPro-Bold": "BeVietnamPro-Bold.ttf",
   PlayfairDisplay: "PlayfairDisplay-Regular.ttf",
+  Montserrat: "Montserrat-Regular.ttf",
+  "Montserrat-Bold": "Montserrat-Bold.ttf",
 } as const;
 
 let fontCache: Promise<Record<string, { data: ArrayBuffer; fallback?: boolean }>> | undefined;

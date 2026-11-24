@@ -40,8 +40,10 @@ test("PDF thật: nhận biến, lấy màu nền quanh chữ để che", async 
 
 test("fontFor: đậm / có chân / thường", async () => {
   const { fontFor } = await import("./pdf-vars");
-  assert.equal(fontFor("ABCDEF+Montserrat-Bold"), "BeVietnamPro-Bold");
+  assert.equal(fontFor("ABCDEF+Arial-Bold"), "BeVietnamPro-Bold");
   assert.equal(fontFor("PlayfairDisplay-Regular"), "PlayfairDisplay");
-  assert.equal(fontFor("Montserrat-Regular"), "BeVietnamPro");
+  assert.equal(fontFor("Arial-Regular"), "BeVietnamPro");
+  assert.equal(fontFor("TTCommonsProTrial-ExpandedBold"), "Montserrat-Bold");
+  assert.equal(fontFor("TTCommonsPro-Regular"), "Montserrat");
   assert.equal(fontFor(undefined), "BeVietnamPro");
 });

@@ -12,7 +12,10 @@ export type Measure = (text: string) => number;
 /** Đổi tên font trong PDF (vd "ABCDEF+Montserrat-Bold") sang font có sẵn của hệ thống: đậm → Bold, có chân → Playfair, còn lại → Regular. */
 export function fontFor(name?: string): PdfmeVar["font"] {
   if (!name) return "BeVietnamPro";
-  if (/bold|black|heavy|semibold|demi/i.test(name)) return "BeVietnamPro-Bold";
+  const bold = /bold|black|heavy|semibold|demi/i.test(name);
+  // Họ sans hình học, chữ rộng (TT Commons, Montserrat, Gotham, Proxima...) → Montserrat (miễn phí, đủ dấu tiếng Việt)
+  if (/commons|montserrat|gotham|proxima|avenir|futura|poppins|expanded|wide/i.test(name)) return bold ? "Montserrat-Bold" : "Montserrat";
+  if (bold) return "BeVietnamPro-Bold";
   if (!/sans/i.test(name) && /serif|playfair|times|georgia|garamond|didot|bodoni|cormorant|merriweather|lora/i.test(name)) return "PlayfairDisplay";
   return "BeVietnamPro";
 }

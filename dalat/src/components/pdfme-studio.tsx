@@ -15,7 +15,7 @@ type DesignerLike = {
 
 // Placeholder cho ô ảnh (QR) trong trình thiết kế: ô xám 2×2 — chỉ để nhìn thấy vị trí, không lưu
 const IMG_PLACEHOLDER = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAFklEQVR4nGNkYGD4z8DAwMDEQAYYBQAUSAEDlAP0aQAAAABJRU5ErkJggg==";
-const FONT_FILES = { BeVietnamPro: "BeVietnamPro-Regular.ttf", "BeVietnamPro-Bold": "BeVietnamPro-Bold.ttf", PlayfairDisplay: "PlayfairDisplay-Regular.ttf" } as const;
+const FONT_FILES = { BeVietnamPro: "BeVietnamPro-Regular.ttf", "BeVietnamPro-Bold": "BeVietnamPro-Bold.ttf", PlayfairDisplay: "PlayfairDisplay-Regular.ttf", Montserrat: "Montserrat-Regular.ttf", "Montserrat-Bold": "Montserrat-Bold.ttf" } as const;
 
 async function loadFonts() {
   const out: Record<string, { data: ArrayBuffer; fallback?: boolean }> = {};
