@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { isA4Template } from "@/lib/voucher-config";
 import { notFound } from "next/navigation";
 import { getVoucherResult } from "@/lib/voucher";
 import { VoucherView } from "@/components/voucher-view";
@@ -38,7 +39,7 @@ export default async function VoucherPage({ params }: { params: Promise<{ token:
         <VoucherView v={v} token={token} />
       )}
       <VoucherActions token={token} mapsUrl={v.config.blocks.show_google_maps ? v.mapsUrl : null} phone={v.supportPhone ?? v.caretakerPhone} />
-      {v.config.mode !== "CUSTOM_PDFME" && <VoucherPrintStyle boutique={v.config.template_id === "DALAT_BOUTIQUE"} />}
+      {v.config.mode !== "CUSTOM_PDFME" && <VoucherPrintStyle boutique={isA4Template(v.config.template_id)} />}
     </main>
   );
 }

@@ -23,7 +23,8 @@ export type CreateInput = {
   checkOut: Date;
   guestName: string;
   guestPhone?: string;
-  guestCount: number;
+  guestCount: number; // số người lớn
+  childCount?: number;
   guestNote?: string;
   guestTotalPrice?: number;
   hostNetPrice?: number; // chỉ dùng cho căn ngoài app
@@ -177,6 +178,7 @@ export async function createBooking(input: CreateInput) {
           guestName: input.guestName,
           guestPhone: input.guestPhone ?? null,
           guestCount: input.guestCount,
+          childCount: input.childCount ?? 0,
           guestNote: input.guestNote ?? null,
           status: holding ? "HOLDING" : "CONFIRMED",
           holdExpiresAt: holding ? new Date(Date.now() + HOLD_MINUTES * 60_000) : null,
@@ -271,7 +273,7 @@ export async function markCleaned(actorId: string, bookingId: string) {
   return prisma.booking.update({ where: { id: bookingId }, data: { cleanedAt: new Date() } });
 }
 
-export type EditInput = { guestName: string; guestPhone?: string | null; guestCount: number; guestNote?: string | null; manualRoomInfo?: string | null };
+export type EditInput = { guestName: string; guestPhone?: string | null; guestCount: number; childCount?: number; guestNote?: string | null; manualRoomInfo?: string | null };
 
 /** Người tạo booking (CTV, hoặc chủ nhà khi tự tạo) sửa thông tin khách. Ngày, phòng và giá không đổi ở đây. */
 export async function editBooking(actorId: string, bookingId: string, input: EditInput) {
@@ -286,7 +288,7 @@ export async function editBooking(actorId: string, bookingId: string, input: Edi
     const updated = await tx.booking.update({
       where: { id: bookingId },
       data: {
-        guestName: input.guestName, guestPhone: input.guestPhone ?? null, guestCount: input.guestCount, guestNote: input.guestNote ?? null,
+        guestName: input.guestName, guestPhone: input.guestPhone ?? null, guestCount: input.guestCount, childCount: input.childCount ?? 0, guestNote: input.guestNote ?? null,
         ...(b.bookingType === "EXTERNAL_MANUAL" ? { manualRoomInfo: input.manualRoomInfo ?? null } : {}),
       },
     });

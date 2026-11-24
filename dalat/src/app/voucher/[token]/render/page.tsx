@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { isA4Template } from "@/lib/voucher-config";
 import { notFound } from "next/navigation";
 import { getVoucherResult } from "@/lib/voucher";
 import { VoucherView } from "@/components/voucher-view";
@@ -24,7 +25,7 @@ export default async function VoucherRenderPage({ params, searchParams }: { para
   return (
     <main>
       <VoucherView v={r.data} token={token} />
-      <VoucherPrintStyle boutique={r.data.config.template_id === "DALAT_BOUTIQUE"} forced scale={scale} />
+      <VoucherPrintStyle boutique={isA4Template(r.data.config.template_id)} forced scale={scale} />
     </main>
   );
 }

@@ -7,7 +7,7 @@ import { coHostBookingView } from "@/lib/staff-booking";
 import { BookingActions } from "@/components/booking-actions";
 import { Badge, BOOKING_TONE } from "@/components/ui/badge";
 import { STATUS_LABEL } from "@/components/booking-list";
-import { formatDateTimeVi, formatDateVi, formatVnd } from "@/lib/format";
+import { formatDateTimeVi, formatDateVi, formatVnd, guestsText } from "@/lib/format";
 
 function Row({ k, val }: { k: string; val: React.ReactNode }) {
   return <div className="flex justify-between gap-3 py-1"><dt>{k}</dt><dd className="money-num text-right font-semibold">{val}</dd></div>;
@@ -37,7 +37,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
           <Row k="Căn" val={v.property} />
           <Row k="Hạng phòng" val={v.roomText || "—"} />
           <Row k="Nhận → trả phòng" val={`${formatDateVi(v.checkIn)} → ${formatDateVi(v.checkOut)}`} />
-          <Row k="Số khách" val={v.guestCount} />
+          <Row k="Số khách" val={guestsText(v.guestCount, v.childCount)} />
           {v.guestPhone && <Row k="SĐT khách" val={<a href={`tel:${v.guestPhone}`} className="underline">{v.guestPhone}</a>} />}
           {v.guestNote && <Row k="Ghi chú" val={v.guestNote} />}
           <Row k="Người tạo" val={v.createdBy} />

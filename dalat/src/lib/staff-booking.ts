@@ -19,7 +19,7 @@ export async function coHostBookingView(userId: string, bookingId: string) {
   return {
     id: b.id, code: b.bookingCode, status: b.status, property: b.property.name,
     checkIn: b.checkIn, checkOut: b.checkOut, holdExpiresAt: b.holdExpiresAt,
-    guestName: b.guestName, guestPhone: b.guestPhone, guestCount: b.guestCount, guestNote: b.guestNote,
+    guestName: b.guestName, guestPhone: b.guestPhone, guestCount: b.guestCount, childCount: b.childCount, guestNote: b.guestNote,
     roomText: b.bookingType === "ROOMS" ? b.rooms.map((r) => r.room.name).join(", ") : "Nguyên căn",
     createdBy: b.broker?.fullName ?? "Chủ nhà",
     total: Number(b.guestTotalPrice),

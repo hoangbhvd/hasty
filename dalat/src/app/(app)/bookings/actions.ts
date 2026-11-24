@@ -25,7 +25,8 @@ const schema = z.object({
   checkOut: z.string(),
   guestName: z.string().trim().min(2, "Nhập tên khách").max(100),
   guestPhone: optPhone,
-  guestCount: z.coerce.number().int().min(1, "Số khách tối thiểu 1").max(100),
+  guestCount: z.coerce.number().int().min(1, "Số người lớn tối thiểu 1").max(100),
+  childCount: z.coerce.number().int().min(0, "Số trẻ em không hợp lệ").max(100).catch(0),
   guestNote: optText,
   guestTotalPrice: optMoney,
   hostNetPrice: optMoney,
@@ -51,7 +52,7 @@ export async function createBookingAction(_: FormState, fd: FormData): Promise<F
       actorId: user.id, as: v.as, mode: v.mode, propertyId: v.propertyId, bookingType: v.bookingType,
       roomIds: v.roomIds, checkIn, checkOut, guestName: v.guestName,
       guestPhone: v.guestPhone ? (normalizePhone(v.guestPhone) ?? v.guestPhone) : undefined,
-      guestCount: v.guestCount, guestNote: v.guestNote,
+      guestCount: v.guestCount, childCount: v.childCount, guestNote: v.guestNote,
       guestTotalPrice: v.guestTotalPrice, hostNetPrice: v.hostNetPrice, manualRoomInfo: v.manualRoomInfo,
     });
   } catch (e) {
@@ -121,7 +122,8 @@ export async function markCleanedAction(bookingId: string): Promise<{ error?: st
 const editSchema = z.object({
   guestName: z.string().trim().min(2, "Nhập tên khách").max(100),
   guestPhone: optPhone,
-  guestCount: z.coerce.number().int().min(1, "Số khách tối thiểu 1").max(100),
+  guestCount: z.coerce.number().int().min(1, "Số người lớn tối thiểu 1").max(100),
+  childCount: z.coerce.number().int().min(0, "Số trẻ em không hợp lệ").max(100).catch(0),
   guestNote: optText,
   manualRoomInfo: optText,
 });
@@ -135,7 +137,7 @@ export async function editBookingAction(bookingId: string, _: FormState, fd: For
   const v = parsed.data;
   try {
     const b = await editBooking(user.id, bookingId, {
-      guestName: v.guestName, guestCount: v.guestCount, guestNote: v.guestNote, manualRoomInfo: v.manualRoomInfo,
+      guestName: v.guestName, guestCount: v.guestCount, childCount: v.childCount, guestNote: v.guestNote, manualRoomInfo: v.manualRoomInfo,
       guestPhone: v.guestPhone ? (normalizePhone(v.guestPhone) ?? v.guestPhone) : undefined,
     });
     await notifyUsers([b.hostId, b.brokerId].filter((x) => x && x !== user.id), `Booking ${b.bookingCode} được cập nhật thông tin khách`, `/${b.hostId === user.id ? "broker" : "host"}/bookings/${b.id}`);

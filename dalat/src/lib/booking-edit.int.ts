@@ -29,11 +29,11 @@ after(async () => {
   await prisma.$disconnect();
 });
 
-const input = { guestName: "Mới", guestPhone: "0900000000", guestCount: 3, guestNote: "ghi chú" };
+const input = { guestName: "Mới", guestPhone: "0900000000", guestCount: 3, childCount: 2, guestNote: "ghi chú" };
 
 test("CTV tạo booking sửa được; chủ nhà và người lạ thì không", async () => {
   const b = await editBooking(broker, byBroker, input);
-  assert.equal(b.guestName, "Mới"); assert.equal(b.guestCount, 3);
+  assert.equal(b.guestName, "Mới"); assert.equal(b.guestCount, 3); assert.equal(b.childCount, 2);
   await assert.rejects(editBooking(host, byBroker, input), BookingError);
   await assert.rejects(editBooking(other, byBroker, input), BookingError);
 });

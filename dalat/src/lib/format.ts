@@ -34,3 +34,8 @@ export function addDays(dateOnly: string, n: number): string {
   const d = parseDateOnly(dateOnly)!;
   return toDateOnly(new Date(d.getTime() + n * 86_400_000));
 }
+
+/** "8 người lớn, 2 trẻ em" (bỏ phần trẻ em nếu không có). */
+export function guestsText(adults: number, children = 0): string {
+  return children > 0 ? `${adults} người lớn, ${children} trẻ em` : `${adults} người lớn`;
+}

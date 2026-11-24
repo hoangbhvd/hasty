@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { generate } from "@pdfme/generator";
 import { barcodes, image, text } from "@pdfme/schemas";
-import { formatDateVi, formatVnd } from "@/lib/format";
+import { formatDateVi, formatVnd, guestsText } from "@/lib/format";
 import { hourLabel } from "@/components/voucher-boutique";
 import { PDFDocument, rgb } from "pdf-lib";
 import { PDFME_FIELDS, type PdfmeConfig, type PdfmeSchema, type PdfmeVar } from "@/lib/voucher-config";
@@ -40,7 +40,7 @@ export function pdfmeInputs(v: VoucherData, qrDataUri: string | null): Record<st
   return {
     guest_name: v.guestName,
     guest_phone: v.guestPhone ?? "",
-    guest_count: `${v.guestCount} người lớn`,
+    guest_count: guestsText(v.guestCount, v.childCount),
     booking_code: v.bookingCode,
     room_info: v.roomLabel,
     check_in_str: `${hourLabel(c.checkin_time)} ${d(v.checkIn)}`,

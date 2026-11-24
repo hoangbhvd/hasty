@@ -385,7 +385,8 @@ model Booking {
   checkOut       DateTime      @map("check_out") @db.Date
   guestName      String        @map("guest_name")
   guestPhone     String?       @map("guest_phone")
-  guestCount     Int           @default(1) @map("guest_count")
+  guestCount     Int           @default(1) @map("guest_count") // số người lớn
+  childCount     Int           @default(0) @map("child_count") // số trẻ em
   guestNote      String?       @map("guest_note")
   status         BookingStatus @default(CONFIRMED)
   holdExpiresAt  DateTime?     @map("hold_expires_at")

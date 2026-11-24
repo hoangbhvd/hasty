@@ -5,7 +5,7 @@ import { formatDateTimeVi, formatDateVi, formatVnd } from "@/lib/format";
 
 export type BookingRow = {
   id: string; bookingCode: string; status: string; bookingType: string; guestName: string; guestPhone: string | null;
-  guestCount: number; checkIn: Date; checkOut: Date; holdExpiresAt: Date | null;
+  guestCount: number; childCount?: number; checkIn: Date; checkOut: Date; holdExpiresAt: Date | null;
   guestTotalPrice: unknown; hostNetPrice: unknown; commissionAmount: unknown;
   propertyName: string; roomNames: string[]; brokerName: string | null; manualRoomInfo: string | null;
 };
@@ -36,7 +36,7 @@ export function BookingList({ rows, viewer, showProperty = true }: { rows: Booki
           </div>
           <div className="text-sm text-muted-foreground">
             {showProperty && <>{b.propertyName} · </>}
-            {formatDateVi(b.checkIn)} → {formatDateVi(b.checkOut)} · {b.guestCount} khách
+            {formatDateVi(b.checkIn)} → {formatDateVi(b.checkOut)} · {b.guestCount} NL{b.childCount ? `, ${b.childCount} TE` : ""}
             {b.bookingType === "ROOMS" && b.roomNames.length > 0 && <> · {b.roomNames.join(", ")}</>}
             {b.manualRoomInfo && <> · {b.manualRoomInfo}</>}
             {b.guestPhone && <> · {b.guestPhone}</>}
@@ -67,7 +67,7 @@ export const bookingInclude = {
 
 export function toRow(b: {
   id: string; bookingCode: string; status: string; bookingType: string; guestName: string; guestPhone: string | null;
-  guestCount: number; checkIn: Date; checkOut: Date; holdExpiresAt: Date | null; manualRoomInfo: string | null;
+  guestCount: number; childCount?: number; checkIn: Date; checkOut: Date; holdExpiresAt: Date | null; manualRoomInfo: string | null;
   guestTotalPrice: unknown; hostNetPrice: unknown; commissionAmount: unknown;
   property: { name: string }; rooms: { room: { name: string } }[]; broker: { fullName: string } | null;
 }): BookingRow {

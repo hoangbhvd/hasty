@@ -7,7 +7,7 @@ import { BookingActions } from "@/components/booking-actions";
 import { Badge, BOOKING_TONE, type BadgeTone } from "@/components/ui/badge";
 import { STATUS_LABEL } from "@/components/booking-list";
 import { AddonForm, DeleteAddonButton, ExtraFeeForm, TransactionForm, TxDecision } from "@/components/booking-finance-forms";
-import { formatDateTimeVi, formatDateVi, formatVnd } from "@/lib/format";
+import { formatDateTimeVi, formatDateVi, formatVnd, guestsText } from "@/lib/format";
 import { r2Configured } from "@/lib/r2";
 import { confirmerRole } from "@/lib/tx-roles";
 import { openBookingChatAction } from "@/app/(app)/chat-actions";
@@ -68,7 +68,7 @@ export async function BookingDetail({ userId, bookingId, viewer }: { userId: str
           <Row k="Căn" v={b.property.name} />
           <Row k="Hạng phòng" v={roomText || "—"} />
           <Row k="Nhận → trả phòng" v={`${formatDateVi(b.checkIn)} → ${formatDateVi(b.checkOut)}`} />
-          <Row k="Số khách" v={b.guestCount} />
+          <Row k="Số khách" v={guestsText(b.guestCount, b.childCount)} />
           {b.guestPhone && <Row k="SĐT khách" v={b.guestPhone} />}
           {viewer === "HOST" && b.broker && <Row k="CTV" v={`${b.broker.fullName} ${b.broker.phone ?? ""}`} />}
           {viewer === "BROKER" && b.host && <Row k="Chủ nhà" v={`${b.host.fullName} ${b.host.phone ?? ""}`} />}
@@ -77,7 +77,7 @@ export async function BookingDetail({ userId, bookingId, viewer }: { userId: str
         </dl>
         <div className="flex flex-wrap items-center gap-2">
           <BookingActions id={b.id} status={b.status} />
-          {canEdit && <BookingEditButton bookingId={b.id} init={{ guestName: b.guestName, guestPhone: b.guestPhone ?? "", guestCount: b.guestCount, guestNote: b.guestNote ?? "", manualRoomInfo: b.manualRoomInfo ?? "", external }} />}
+          {canEdit && <BookingEditButton bookingId={b.id} init={{ guestName: b.guestName, guestPhone: b.guestPhone ?? "", guestCount: b.guestCount, childCount: b.childCount, guestNote: b.guestNote ?? "", manualRoomInfo: b.manualRoomInfo ?? "", external }} />}
           {hasBoth && (
             <form action={openBookingChatAction.bind(null, b.id, viewer)}>
               <button type="submit" className="brutal-btn inline-flex h-9 items-center bg-white px-3 text-sm text-black">💬 Chat về booking</button>

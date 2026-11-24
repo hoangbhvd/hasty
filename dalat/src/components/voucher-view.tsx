@@ -1,7 +1,8 @@
-import { formatDateVi, formatVnd } from "@/lib/format";
+import { formatDateVi, formatVnd, guestsText } from "@/lib/format";
 import type { VoucherData } from "@/lib/voucher";
 import { FONT_CSS, type BlockId, type VoucherConfig } from "@/lib/voucher-config";
 import { BoutiqueView } from "@/components/voucher-boutique";
+import { CottownView } from "@/components/voucher-cottown";
 import { VoucherQr } from "@/components/voucher-qr";
 import { VoucherLogo } from "@/components/voucher-logo";
 import { Fragment } from "react";
@@ -77,6 +78,7 @@ function Policy({ look, title, text }: { look: Look; title: string; text: string
 
 /** Phiếu Booking Confirmation: 4 mẫu dùng chung nội dung. `id="voucher-capture"` là vùng xuất PNG/PDF. */
 export function VoucherView({ v, token }: { v: VoucherData; token: string }) {
+  if (v.config.template_id === "COTTOWN") return <CottownView v={v} />;
   if (v.config.template_id === "DALAT_BOUTIQUE") return <BoutiqueView v={v} />;
   const { config: c } = v;
   const variant = c.template_id;
@@ -164,7 +166,7 @@ export function VoucherView({ v, token }: { v: VoucherData; token: string }) {
           <Row look={look} k="Khách" v={v.guestName} />
           <Row look={look} k="Nhận phòng" v={`${dateOf(v.checkIn)} · từ ${v.config.stay_times.checkin_time}`} />
           <Row look={look} k="Trả phòng" v={`${dateOf(v.checkOut)} · trước ${v.config.stay_times.checkout_time}`} />
-          <Row look={look} k="Số khách" v={v.guestCount} />
+          <Row look={look} k="Số khách" v={guestsText(v.guestCount, v.childCount)} />
         </dl>
       </Section>
 

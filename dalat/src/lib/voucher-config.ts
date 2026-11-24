@@ -1,15 +1,18 @@
 import { z } from "zod";
 
-export const TEMPLATE_IDS = ["DALAT_BOUTIQUE", "GUMROAD_BRUTAL", "LUXURY_MINIMAL", "RECEIPT_COMPACT"] as const;
+export const TEMPLATE_IDS = ["COTTOWN", "DALAT_BOUTIQUE", "GUMROAD_BRUTAL", "LUXURY_MINIMAL", "RECEIPT_COMPACT"] as const;
 /** Cả 4 mẫu đều đã có giao diện (xem components/voucher-view.tsx). */
 export const AVAILABLE_TEMPLATES = TEMPLATE_IDS;
 
 export const TEMPLATE_LABEL: Record<(typeof TEMPLATE_IDS)[number], string> = {
+  COTTOWN: "Cottown (mẫu có sẵn: ảnh khung vòm, bố cục A4)",
   DALAT_BOUTIQUE: "Đà Lạt Boutique (mặc định)",
   GUMROAD_BRUTAL: "Gumroad Brutal (vé / biên lai đậm)",
   LUXURY_MINIMAL: "Luxury Minimal (tối giản, sang trọng)",
   RECEIPT_COMPACT: "Receipt Compact (biên lai gọn)",
 };
+/** Các mẫu bố cục A4 dọc 2 cột (xuất PDF/PNG đúng khổ A4, không có VietQR thanh toán). */
+export const isA4Template = (id: string) => id === "DALAT_BOUTIQUE" || id === "COTTOWN";
 export const FRAME_STYLES = ["ARCH", "RECTANGLE", "ROUNDED"] as const;
 export const FONT_FAMILIES = ["PLUS_JAKARTA", "BE_VIETNAM", "PLAYFAIR_SERIF"] as const;
 export const FONT_LABEL: Record<(typeof FONT_FAMILIES)[number], string> = {
@@ -165,7 +168,7 @@ const obj = (v: unknown): Record<string, unknown> => (v && typeof v === "object"
 export const PDFME_FIELDS = [
   { name: "guest_name", label: "Tên khách", sample: "Nguyễn Văn Ánh" },
   { name: "guest_phone", label: "SĐT khách", sample: "0900 111 222" },
-  { name: "guest_count", label: "Số khách", sample: "4 người lớn" },
+  { name: "guest_count", label: "Số khách", sample: "4 người lớn, 2 trẻ em" },
   { name: "booking_code", label: "Mã booking", sample: "DL-2606-889" },
   { name: "room_info", label: "Hình thức thuê", sample: "Nguyên căn" },
   { name: "check_in_str", label: "Check-in", sample: "14H 12/06/2026" },

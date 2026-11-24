@@ -34,7 +34,10 @@ export function BookingCreateForm({
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label="Tên khách" htmlFor="guestName"><Input id="guestName" name="guestName" className="h-11 text-base" required /></Field>
         <Field label="SĐT khách" htmlFor="guestPhone"><Input id="guestPhone" name="guestPhone" type="tel" inputMode="tel" className="h-11 text-base" /></Field>
-        <Field label="Số khách" htmlFor="guestCount"><Input id="guestCount" name="guestCount" type="number" min="1" defaultValue={2} inputMode="numeric" className="h-11 text-base" required /></Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Người lớn" htmlFor="guestCount"><Input id="guestCount" name="guestCount" type="number" min="1" defaultValue={2} inputMode="numeric" className="h-11 text-base" required /></Field>
+          <Field label="Trẻ em" htmlFor="childCount"><Input id="childCount" name="childCount" type="number" min="0" defaultValue={0} inputMode="numeric" className="h-11 text-base" /></Field>
+        </div>
         <Field label={as === "HOST" ? "Tổng tiền khách (đ)" : "Giá bán cho khách (đ)"} htmlFor="guestTotalPrice" hint={as === "BROKER" ? "Chênh lệch so với giá Net là hoa hồng của bạn" : undefined}>
           <Input id="guestTotalPrice" name="guestTotalPrice" type="number" min="0" step="1" inputMode="numeric" defaultValue={defaultGuestTotal} className="h-11 text-base" required={external || defaultGuestTotal === undefined} />
         </Field>

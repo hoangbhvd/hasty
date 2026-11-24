@@ -1,5 +1,5 @@
 import { MapPin } from "lucide-react";
-import { formatDateVi, formatVnd } from "@/lib/format";
+import { formatDateVi, formatVnd, guestsText } from "@/lib/format";
 import type { VoucherData } from "@/lib/voucher";
 import { MapQr } from "@/components/map-qr";
 import { VoucherLogo } from "@/components/voucher-logo";
@@ -56,7 +56,7 @@ export function BoutiqueView({ v }: { v: VoucherData }) {
           <div>
             <div>Tên khách: {v.guestName}</div>
             {v.guestPhone && <div>Số điện thoại: {v.guestPhone}</div>}
-            <div>Số lượng khách: {v.guestCount} người lớn</div>
+            <div>Số lượng khách: {guestsText(v.guestCount, v.childCount)}</div>
           </div>
           <hr style={{ borderColor: ink }} className="max-w-sm opacity-60" />
           <div>

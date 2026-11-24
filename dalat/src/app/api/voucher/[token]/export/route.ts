@@ -1,4 +1,5 @@
 import { headers } from "next/headers";
+import { isA4Template } from "@/lib/voucher-config";
 import { getVoucherQrUrl, getVoucherResult } from "@/lib/voucher";
 import { PdfmeError, generatePdfme, pdfToPng, pdfmeInputs, qrDataUri } from "@/lib/voucher-pdfme";
 import { RenderError, renderVoucher, type Format } from "@/lib/voucher-render";
@@ -38,7 +39,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ token: string }
       const pdf = await generatePdfme(r.data.config.pdfme_config, pdfmeInputs(r.data, qr));
       return respond(format === "pdf" ? pdf : await pdfToPng(pdf));
     }
-    const layout = format === "png" && r.data.config.template_id !== "DALAT_BOUTIQUE" ? "card" : "a4";
+    const layout = format === "png" && !isA4Template(r.data.config.template_id) ? "card" : "a4";
     return respond(await renderVoucher(token, format, layout));
   } catch (e) {
     if (e instanceof PdfmeError) return Response.json({ error: e.message }, { status: 502 });

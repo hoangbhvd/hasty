@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Check, Field, Select, Textarea } from "@/components/form-fields";
 import { useSafeForm } from "@/lib/use-safe-form";
 import { saveVoucherConfigAction } from "@/app/(app)/voucher-actions";
-import { BLOCK_LABEL, FONT_FAMILIES, FONT_LABEL, LOGO_MAX_PX, LOGO_MIN_PX, SAMPLE_TEXTS, TEMPLATE_IDS, TEMPLATE_LABEL, type BlockId, type VoucherConfig } from "@/lib/voucher-config";
+import { BLOCK_LABEL, isA4Template, FONT_FAMILIES, FONT_LABEL, LOGO_MAX_PX, LOGO_MIN_PX, SAMPLE_TEXTS, TEMPLATE_IDS, TEMPLATE_LABEL, type BlockId, type VoucherConfig } from "@/lib/voucher-config";
 import { configFromForm } from "@/lib/voucher-form";
 import { sampleVoucher } from "@/lib/voucher-sample";
 import { VoucherView } from "@/components/voucher-view";
@@ -30,7 +30,7 @@ function LivePreview({ config, propertyName, address }: { config: VoucherConfig;
     ro.observe(el); setW(el.clientWidth);
     return () => ro.disconnect();
   }, []);
-  const natural = config.template_id === "DALAT_BOUTIQUE" ? 794 : 430;
+  const natural = isA4Template(config.template_id) ? 794 : 430;
   const zoom = w > 0 ? Math.min(w / natural, 1.2) : 1;
   return (
     <div ref={box} className="overflow-hidden rounded border border-black bg-muted p-2" aria-label="Xem trước phiếu">
@@ -192,7 +192,7 @@ export function VoucherConfigForm({
         )}
       </fieldset>
 
-      <BlockOrderEditor order={order} boutique={live.template_id === "DALAT_BOUTIQUE"} onChange={(o) => { setOrder(o); setTimeout(() => recompute(), 0); }} />
+      <BlockOrderEditor order={order} boutique={isA4Template(live.template_id)} onChange={(o) => { setOrder(o); setTimeout(() => recompute(), 0); }} />
 
       <fieldset>
         <legend className="mb-1 text-sm font-medium">Các khối hiển thị</legend>
