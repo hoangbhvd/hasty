@@ -120,7 +120,8 @@ async function build(b: Loaded): Promise<VoucherData> {
     grandTotal: c.grandTotal,
     paid: c.paid,
     remaining: c.remaining,
-    mapsUrl: b.property.googleMapsUrl,
+    // Chưa nhập link Google Maps thì tạo link tìm kiếm từ địa chỉ để phiếu vẫn có QR định vị
+    mapsUrl: b.property.googleMapsUrl || (b.property.address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(b.property.address)}` : null),
     checkinGuide: b.property.checkinGuide,
     houseRules: b.property.houseRules,
     caretakerPhone: b.property.caretakerPhone,
