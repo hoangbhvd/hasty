@@ -23,10 +23,13 @@ export async function saveVoucherConfigAction(propertyId: string, _: FormState, 
   for (const k of ["primary_color", "background_color"]) if (!HEX.test(s(k))) return { error: "Màu phải có dạng #RRGGBB" };
   if (!(AVAILABLE_TEMPLATES as readonly string[]).includes(s("template_id"))) return { error: "Mẫu này chưa khả dụng" };
 
-  // Ảnh bìa chỉ được chọn trong số ảnh của chính căn này (không nhận URL tuỳ ý)
+  // Ảnh bìa: ảnh của chính căn này, hoặc ảnh đã tải lên R2 cho phiếu của căn này (không nhận URL tuỳ ý)
   let cover: string | null = null;
   const wanted = s("cover_image_url");
-  if (wanted) {
+  const uploadedKey = wanted ? keyFromUrl(wanted.split("?")[0]) : null;
+  if (wanted && uploadedKey?.startsWith(`${keyPrefix(propertyId)}voucher-cover.`)) {
+    cover = wanted; // ảnh người dùng tải thẳng cho phiếu
+  } else if (wanted) {
     const m = await prisma.propertyMedia.findFirst({ where: { propertyId, url: wanted, mediaType: "IMAGE" }, select: { url: true } });
     if (!m) return { error: "Ảnh bìa không thuộc căn này" };
     cover = m.url;

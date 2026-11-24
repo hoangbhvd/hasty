@@ -65,6 +65,7 @@ export async function deleteObject(key: string) {
 export const IMAGE_EXT: Record<string, string> = { "image/webp": "webp", "image/jpeg": "jpg", "image/png": "png" };
 export const avatarKey = (userId: string, ext: string) => `avatars/${userId}.${ext}`;
 export const logoKey = (propertyId: string, ext: string) => `${keyPrefix(propertyId)}logo.${ext}`;
+export const voucherCoverKey = (propertyId: string, ext: string) => `${keyPrefix(propertyId)}voucher-cover.${ext}`;
 export const coverKey = (propertyId: string, ext: string) => `properties/${propertyId}/cover.${ext}`;
 
 export async function presignFixed(key: string, contentType: string) {

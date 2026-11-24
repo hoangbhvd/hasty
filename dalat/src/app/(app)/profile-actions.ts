@@ -5,7 +5,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/session";
 import { getManagedProperty } from "@/lib/access";
-import { IMAGE_EXT, avatarKey, coverKey, logoKey, publicUrlFor, r2Configured } from "@/lib/r2";
+import { IMAGE_EXT, avatarKey, coverKey, voucherCoverKey, logoKey, publicUrlFor, r2Configured } from "@/lib/r2";
 import type { FormState } from "@/app/(auth)/actions";
 
 const ext = (contentType: string) => IMAGE_EXT[contentType];
@@ -62,4 +62,15 @@ export async function registerLogoAction(propertyId: string, contentType: string
   const p = await getManagedProperty(user.id, propertyId);
   if (!p) return { error: "Không có quyền" };
   return { url: versioned(logoKey(p.id, e)) };
+}
+
+/** Xác nhận ảnh bìa riêng của phiếu (tải thẳng từ máy, không nằm trong thư viện ảnh căn) đã lên R2; trả URL để form giữ trong ô ẩn. */
+export async function registerVoucherCoverAction(propertyId: string, contentType: string): Promise<{ error?: string; url?: string }> {
+  const user = await requireUser();
+  if (!r2Configured()) return { error: "Chưa cấu hình Cloudflare R2" };
+  const e = ext(contentType);
+  if (!e || !z.uuid().safeParse(propertyId).success) return { error: "Dữ liệu không hợp lệ" };
+  const p = await getManagedProperty(user.id, propertyId);
+  if (!p) return { error: "Không có quyền" };
+  return { url: versioned(voucherCoverKey(p.id, e)) };
 }

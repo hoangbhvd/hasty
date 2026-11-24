@@ -11,7 +11,7 @@ import { configFromForm } from "@/lib/voucher-form";
 import { sampleVoucher } from "@/lib/voucher-sample";
 import { VoucherView } from "@/components/voucher-view";
 import { compressImage } from "@/lib/image-compress";
-import { registerLogoAction } from "@/app/(app)/profile-actions";
+import { registerLogoAction, registerVoucherCoverAction } from "@/app/(app)/profile-actions";
 
 const BLOCKS: [keyof VoucherConfig["blocks"], string][] = [
   ["show_logo", "Logo"], ["show_property_name", "Tên cơ sở"], ["show_cover_image", "Ảnh bìa"], ["show_price_table", "Bảng giá"], ["show_vietqr", "Mã VietQR thanh toán"],
@@ -106,6 +106,58 @@ function LogoUploader({ propertyId, value, onChange, r2Ready }: { propertyId: st
   );
 }
 
+/** Ảnh bìa: tải thẳng từ máy (nén 900px) hoặc chọn từ ảnh của căn; giữ URL trong ô ẩn cover_image_url. */
+function CoverPicker({ propertyId, value, onChange, images, r2Ready }: { propertyId: string; value: string; onChange: (url: string) => void; images: { url: string }[]; r2Ready: boolean }) {
+  const input = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string>();
+  async function pick(file: File) {
+    setBusy(true); setError(undefined);
+    try {
+      const { blob, type } = await compressImage(file, { maxW: 900, maxH: 1100 });
+      const res = await fetch("/api/media/presign", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind: "vcover", propertyId, contentType: type, size: blob.size }) });
+      const j = await res.json();
+      if (!res.ok) throw new Error(j.error ?? "Không tải lên được");
+      const put = await fetch(j.uploadUrl, { method: "PUT", headers: { "Content-Type": type }, body: blob });
+      if (!put.ok) throw new Error("Tải lên R2 thất bại (kiểm tra CORS của bucket)");
+      const r = await registerVoucherCoverAction(propertyId, type);
+      if (r.error || !r.url) throw new Error(r.error ?? "Lỗi");
+      onChange(r.url);
+    } catch (e) { setError(e instanceof Error ? e.message : "Lỗi tải ảnh"); } finally { setBusy(false); if (input.current) input.current.value = ""; }
+  }
+  const uploaded = value.includes("/voucher-cover.");
+  return (
+    <fieldset className="space-y-2">
+      <legend className="text-sm font-medium">Ảnh bìa (nằm trong khung vòm / khung ảnh của phiếu)</legend>
+      <input type="hidden" name="cover_image_url" value={value} />
+      <input ref={input} type="file" hidden accept="image/png,image/jpeg,image/webp" onChange={(e) => e.target.files?.[0] && pick(e.target.files[0])} />
+      <div className="flex flex-wrap items-center gap-2">
+        {uploaded && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={value} alt="Ảnh bìa đã tải lên" className="h-20 w-16 rounded-t-full border-2 border-black object-cover" />
+        )}
+        <Button type="button" variant="outline" className="h-11" disabled={!r2Ready || busy} onClick={() => input.current?.click()}>{busy ? "Đang tải…" : uploaded ? "Đổi ảnh" : "Tải ảnh từ máy"}</Button>
+        {value && <Button type="button" variant="outline" className="h-11" onClick={() => onChange("")}>Bỏ ảnh bìa</Button>}
+      </div>
+      {!r2Ready && <p className="text-xs text-red-700">Chưa cấu hình Cloudflare R2.</p>}
+      {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
+      {images.length > 0 && (
+        <>
+          <p className="text-xs text-muted-foreground">Hoặc chọn từ ảnh của căn:</p>
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+            {images.map((im) => (
+              <button key={im.url} type="button" aria-pressed={value === im.url} onClick={() => onChange(im.url)} className={`relative block aspect-square overflow-hidden rounded border border-black ${value === im.url ? "outline-4 outline-offset-1 outline-black" : ""}`}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={im.url} alt="Ảnh của căn" loading="lazy" className="size-full object-cover" />
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </fieldset>
+  );
+}
+
 export function VoucherConfigForm({
   propertyId, config, images, previews, propertyName = "Homestay của bạn", address = null, r2Ready = false,
 }: {
@@ -121,9 +173,10 @@ export function VoucherConfigForm({
   const [logo, setLogo] = useState(config.branding.logo_url ?? "");
   const [live, setLive] = useState<VoucherConfig>(config);
   const [order, setOrder] = useState<BlockId[]>(config.block_order);
-  const recompute = (l = logo) => {
+  const [cover, setCover] = useState(config.branding.cover_image_url ?? "");
+  const recompute = (l = logo, c = cover) => {
     const f = formRef.current;
-    if (f) setLive(configFromForm(new FormData(f), { cover: String(new FormData(f).get("cover_image_url") ?? "") || null, logo: l || null }));
+    if (f) setLive(configFromForm(new FormData(f), { cover: c || null, logo: l || null }));
   };
   const { state, pending, disabled, ref, onSubmit } = useSafeForm(saveVoucherConfigAction.bind(null, propertyId));
   const [sel, setSel] = useState(previews[0]?.token ?? "");
@@ -174,23 +227,7 @@ export function VoucherConfigForm({
         </Field>
       </div>
 
-      <fieldset className="space-y-2">
-        <legend className="text-sm font-medium">Ảnh bìa (chọn từ ảnh của căn)</legend>
-        {images.length === 0 ? <p className="text-sm text-muted-foreground">Chưa có ảnh. Tải ảnh lên ở mục “Ảnh & video” để chọn làm ảnh bìa.</p> : (
-          <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
-            <label className="flex aspect-square cursor-pointer items-center justify-center rounded border border-black bg-white text-xs has-[:checked]:bg-primary">
-              <input type="radio" name="cover_image_url" value="" defaultChecked={!b.cover_image_url} className="sr-only" /> Không dùng
-            </label>
-            {images.map((im) => (
-              <label key={im.url} className="relative block aspect-square cursor-pointer overflow-hidden rounded border border-black has-[:checked]:outline-4 has-[:checked]:outline-offset-1 has-[:checked]:outline-black">
-                <input type="radio" name="cover_image_url" value={im.url} defaultChecked={b.cover_image_url === im.url} className="sr-only" />
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={im.url} alt="Ảnh bìa" loading="lazy" className="size-full object-cover" />
-              </label>
-            ))}
-          </div>
-        )}
-      </fieldset>
+      <CoverPicker propertyId={propertyId} value={cover} images={images} r2Ready={r2Ready} onChange={(u) => { setCover(u); recompute(logo, u); }} />
 
       <BlockOrderEditor order={order} boutique={isA4Template(live.template_id)} onChange={(o) => { setOrder(o); setTimeout(() => recompute(), 0); }} />
 
