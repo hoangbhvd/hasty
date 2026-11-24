@@ -10,7 +10,7 @@ test("lịch tháng: T2 đầu tuần, booking hiện đủ các đêm và khôn
   const html = renderToStaticMarkup(
     <MonthGrid month="2026-11" today="2026-11-24" items={[{ id: "a", label: "Khách A", status: "CONFIRMED", checkIn: d("2026-11-10"), checkOut: d("2026-11-13") }]} />,
   );
-  assert.equal((html.match(/Khách A/g) ?? []).length, 3 * 2); // 3 đêm × (text + title)
+  assert.equal((html.match(/Khách A/g) ?? []).length, 3); // 3 đêm: 10, 11, 12 (không hiện ngày 13 = check-out)
   assert.equal((html.match(/role="gridcell"/g) ?? []).length, 30);
   assert.ok(html.indexOf("T2") < html.indexOf("CN"));
 });

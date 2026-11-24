@@ -14,13 +14,8 @@ export const STATUS_LABEL: Record<string, string> = {
   HOLDING: "Đang giữ", CONFIRMED: "Đã xác nhận", CHECKED_IN: "Đang ở", CHECKED_OUT: "Đã trả phòng", CANCELLED: "Đã huỷ",
 };
 /** Màu thanh booking trên lịch (cùng bảng màu với Badge trạng thái). */
-export const STATUS_STYLE: Record<string, string> = {
-  HOLDING: "bg-status-holding",
-  CONFIRMED: "bg-status-confirmed-bg",
-  CHECKED_IN: "bg-status-checked-in",
-  CHECKED_OUT: "bg-muted",
-  CANCELLED: "bg-status-cancelled",
-};
+import { STATUS_STYLE } from "@/lib/status-style";
+export { STATUS_STYLE };
 
 export function BookingList({ rows, viewer, showProperty = true }: { rows: BookingRow[]; viewer: "HOST" | "BROKER"; showProperty?: boolean }) {
   if (rows.length === 0) return <p className="text-sm text-muted-foreground">Chưa có booking.</p>;

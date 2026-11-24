@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { toDateOnly } from "@/lib/format";
-import { STATUS_STYLE } from "@/components/booking-list";
+import { STATUS_STYLE } from "@/lib/status-style";
 
 export type GridItem = {
   id: string; label: string; status: string; checkIn: Date; checkOut: Date;
