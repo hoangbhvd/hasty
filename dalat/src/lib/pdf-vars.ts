@@ -55,7 +55,7 @@ export function findVarsInItems(items: Item[], pageH: number, pageW = 0, measure
       const h = first.item.h;
       seen.add(tag);
       // Biến đứng một mình (ô bảng) → căn giữa; còn lại (sau nhãn "TÊN KHÁCH:") → căn trái, được dùng khoảng trống bên phải đến chữ kế tiếp / lề trang
-      const alone = text.trim() === m[0];
+      const alone = text.replace(RE, "").trim() === ""; // dòng chỉ gồm biến (vd hàng ô bảng) → căn giữa
       const next = line.filter((it) => it.str.trim() && it.x > x1 + 1).map((it) => it.x)[0];
       const roomEnd = next ?? (pageW ? pageW - 8 / PT_MM : x1 + 60 / PT_MM);
       const room = Math.max((roomEnd - x0) * PT_MM - 1, 0);
@@ -172,17 +172,19 @@ async function sampleCover(pdf: Uint8Array, found: Found[], pageW: number): Prom
         for (const fx of [0, 0.25, 0.5, 0.75, 1]) { pts.push([f.x + f.w * fx, f.y - gap], [f.x + f.w * fx, f.y + f.h + gap]); }
         for (const fy of [0.25, 0.5, 0.75]) { pts.push([f.x - gap, f.y + f.h * fy], [f.x + f.w + gap, f.y + f.h * fy]); }
       }
-      const count = new Map<string, number>();
+      // gộp các điểm gần giống nhau (bội của 8), rồi lấy trung bình giá trị thật của nhóm đông nhất để khớp màu nền chính xác
+      const groups = new Map<string, { n: number; sum: number[] }>();
       for (const [mx, my] of pts) {
         const px = Math.round(mx * k), py = Math.round(my * k);
         if (px < 0 || py < 0 || px >= img.width || py >= img.height) continue;
         const d = ctx.getImageData(px, py, 1, 1).data;
-        // làm tròn mỗi kênh về bội của 8 để các điểm gần giống nhau gộp được
-        const q = (n: number) => Math.min(255, Math.round(n / 8) * 8);
-        const c = `#${[d[0], d[1], d[2]].map((n) => q(n).toString(16).padStart(2, "0")).join("")}`.toUpperCase();
-        count.set(c, (count.get(c) ?? 0) + 1);
+        const key = [d[0], d[1], d[2]].map((n) => Math.round(n / 8)).join(",");
+        const g = groups.get(key) ?? { n: 0, sum: [0, 0, 0] };
+        g.n++; for (let i = 0; i < 3; i++) g.sum[i] += d[i];
+        groups.set(key, g);
       }
-      const cover = [...count.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "#FFFFFF";
+      const top = [...groups.values()].sort((a, b) => b.n - a.n)[0];
+      const cover = top ? `#${top.sum.map((v) => Math.round(v / top.n).toString(16).padStart(2, "0")).join("")}`.toUpperCase() : "#FFFFFF";
       return { cover, color: textColor(ctx, f, k, img.width, img.height, cover) };
     });
   } catch {
