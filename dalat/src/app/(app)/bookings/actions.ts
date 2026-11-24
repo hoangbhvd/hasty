@@ -78,7 +78,7 @@ export async function createBookingAction(_: FormState, fd: FormData): Promise<F
   revalidatePath("/broker/bookings");
   redirect(
     v.as === "HOST"
-      ? `/host/calendar?property=${booking.propertyId}&from=${toDateOnly(checkIn)}`
+      ? `/host/calendar?property=${booking.propertyId}&month=${toDateOnly(checkIn).slice(0, 7)}`
       : "/broker/bookings",
   );
 }

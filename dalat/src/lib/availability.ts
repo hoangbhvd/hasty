@@ -16,6 +16,12 @@ export function occupyingWhere(checkIn: Date, checkOut: Date, now: Date) {
   };
 }
 
+/** Booking hiện trên lịch: đang chiếm lịch + đã trả phòng (để xem lại lịch sử). Chỉ dùng để HIỂN THỊ, không dùng kiểm tra trống. */
+export function calendarWhere(checkIn: Date, checkOut: Date, now: Date) {
+  const { OR, ...overlap } = occupyingWhere(checkIn, checkOut, now);
+  return { ...overlap, OR: [...OR, { status: "CHECKED_OUT" as const }] };
+}
+
 /** Đặt WHOLE_UNIT: không được có BẤT KỲ booking chiếm lịch nào của căn. */
 export function wholeUnitAvailable(occ: OccupyingBooking[]): boolean {
   return occ.length === 0;

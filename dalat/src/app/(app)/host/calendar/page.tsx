@@ -1,14 +1,14 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/session";
-import { occupyingWhere } from "@/lib/availability";
-import { addDays, parseDateOnly, todayVn } from "@/lib/format";
+import { calendarWhere } from "@/lib/availability";
+import { todayVn } from "@/lib/format";
+import { parseMonth } from "@/lib/calendar-month";
+import { MonthNav } from "@/components/month-nav";
 import { Gantt, type GanttBooking } from "@/components/gantt";
 import { BookingList, bookingInclude, toRow } from "@/components/booking-list";
 
-const DAYS = 28;
-
-export default async function HostCalendarPage({ searchParams }: { searchParams: Promise<{ property?: string; from?: string }> }) {
+export default async function HostCalendarPage({ searchParams }: { searchParams: Promise<{ property?: string; month?: string }> }) {
   const sp = await searchParams;
   const user = await requireUser();
   const properties = await prisma.property.findMany({
@@ -25,14 +25,14 @@ export default async function HostCalendarPage({ searchParams }: { searchParams:
     );
   }
   const property = properties.find((p) => p.id === sp.property) ?? properties[0];
-  const fromStr = sp.from && parseDateOnly(sp.from) ? sp.from : todayVn();
-  const from = parseDateOnly(fromStr)!;
-  const to = parseDateOnly(addDays(fromStr, DAYS))!;
+  const today = todayVn();
+  const { month, from, days: DAYS } = parseMonth(sp.month, today);
+  const to = new Date(from.getTime() + DAYS * 86_400_000);
 
   const now = new Date();
   const [occ, others] = await Promise.all([
     prisma.booking.findMany({
-      where: { propertyId: property.id, ...occupyingWhere(from, to, now) },
+      where: { propertyId: property.id, ...calendarWhere(from, to, now) },
       orderBy: { checkIn: "asc" },
       include: bookingInclude,
     }),
@@ -43,7 +43,7 @@ export default async function HostCalendarPage({ searchParams }: { searchParams:
     checkIn: b.checkIn, checkOut: b.checkOut, roomIds: b.rooms.map((r) => r.roomId), brokerName: b.broker?.fullName ?? null,
   }));
 
-  const nav = (f: string, p = property.id) => `/host/calendar?property=${p}&from=${f}`;
+  const nav = (m: string, p = property.id) => `/host/calendar?property=${p}&month=${m}`;
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -55,24 +55,20 @@ export default async function HostCalendarPage({ searchParams }: { searchParams:
 
       <div className="flex flex-wrap gap-2" role="tablist" aria-label="Chọn căn">
         {properties.map((p) => (
-          <Link key={p.id} href={nav(fromStr, p.id)} role="tab" aria-selected={p.id === property.id}
+          <Link key={p.id} href={nav(month, p.id)} role="tab" aria-selected={p.id === property.id}
             className={`h-10 rounded-full border border-black px-4 text-sm leading-10 text-black ${p.id === property.id ? "bg-primary font-semibold" : "bg-white hover:bg-muted"}`}>
             {p.name}
           </Link>
         ))}
       </div>
 
-      <div className="flex items-center gap-2 text-sm">
-        <Link href={nav(addDays(fromStr, -14))} className="h-10 brutal-btn bg-white px-3 leading-10 text-black">← 14 ngày</Link>
-        <Link href={nav(todayVn())} className="h-10 brutal-btn bg-white px-3 leading-10 text-black">Hôm nay</Link>
-        <Link href={nav(addDays(fromStr, 14))} className="h-10 brutal-btn bg-white px-3 leading-10 text-black">14 ngày →</Link>
-      </div>
+      <MonthNav month={month} thisMonth={today.slice(0, 7)} action="/host/calendar" hidden={{ property: property.id }} href={(m) => nav(m)} />
 
-      <Gantt from={from} days={DAYS} today={todayVn()} rooms={property.allowIndividualRooms ? property.rooms.map((r) => ({ id: r.id, name: r.name })) : []} bookings={gantt} />
-      <p className="text-xs text-muted-foreground">Ô sọc 🔒 là lịch bị khoá chéo do booking nguyên căn / phòng lẻ. Cột cam là đêm T6–T7. {others > 0 && `Có ${others} booking đã huỷ trong khoảng này (ẩn).`}</p>
+      <Gantt from={from} days={DAYS} today={today} rooms={property.allowIndividualRooms ? property.rooms.map((r) => ({ id: r.id, name: r.name })) : []} bookings={gantt} />
+      <p className="text-xs text-muted-foreground">Ô sọc 🔒 là lịch bị khoá chéo do booking nguyên căn / phòng lẻ. Cột cam là đêm T6–T7. {others > 0 && `Có ${others} booking đã huỷ trong tháng này (ẩn). Ô xám là booking đã trả phòng.`}</p>
 
       <section className="space-y-2">
-        <h2 className="font-semibold">Booking trong khoảng này</h2>
+        <h2 className="font-semibold">Booking trong tháng</h2>
         <BookingList rows={occ.map(toRow)} viewer="HOST" showProperty={false} />
       </section>
     </div>

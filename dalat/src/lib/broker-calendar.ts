@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { occupyingWhere } from "@/lib/availability";
+import { calendarWhere } from "@/lib/availability";
 import { effectiveAccess } from "@/lib/staff";
 
 export type CalProperty = { id: string; name: string; kind: "EXTERNAL" | "LINKED" };
@@ -44,15 +44,15 @@ export async function calendarBlocks(brokerId: string, propertyIds: string[], fr
     return l && effectiveAccess(l, p.id).role === "CO_HOST";
   }).map((p) => p.id));
   const rows = await prisma.booking.findMany({
-    where: { propertyId: { in: ids }, ...occupyingWhere(from, to, now) },
+    where: { propertyId: { in: ids }, ...calendarWhere(from, to, now) },
     orderBy: { checkIn: "asc" },
     select: { id: true, propertyId: true, brokerId: true, checkIn: true, checkOut: true, status: true, guestName: true, guestPhone: true },
   });
-  return rows.map((b) => {
+  return rows.flatMap((b): CalBlock[] => {
     const own = b.brokerId === brokerId;
-    if (own) return { bookingId: b.id, propertyId: b.propertyId, checkIn: b.checkIn, checkOut: b.checkOut, status: b.status, guestName: b.guestName, guestPhone: b.guestPhone };
-    if (coHost.has(b.propertyId)) return { bookingId: b.id, propertyId: b.propertyId, checkIn: b.checkIn, checkOut: b.checkOut, status: b.status, guestName: b.guestName, guestPhone: b.guestPhone };
-    return { bookingId: null, propertyId: b.propertyId, checkIn: b.checkIn, checkOut: b.checkOut, status: "BUSY", guestName: null, guestPhone: null };
+    if (own || coHost.has(b.propertyId)) return [{ bookingId: b.id, propertyId: b.propertyId, checkIn: b.checkIn, checkOut: b.checkOut, status: b.status, guestName: b.guestName, guestPhone: b.guestPhone }];
+    if (b.status === "CHECKED_OUT") return []; // booking đã xong của người khác: không còn là lịch bận
+    return [{ bookingId: null, propertyId: b.propertyId, checkIn: b.checkIn, checkOut: b.checkOut, status: "BUSY", guestName: null, guestPhone: null }];
   });
 }
 
