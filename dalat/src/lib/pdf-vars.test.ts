@@ -31,4 +31,17 @@ test("PDF thật: nhận biến, lấy màu nền quanh chữ để che", async 
   assert.ok(v.fontSize >= 14 && v.fontSize <= 18, String(v.fontSize));
   assert.match(v.cover, /^#C[0-9A-F]{5}$/); // nền nâu hồng (đỏ ~C4)
   assert.ok(v.cover !== "#FFFFFF");
+  assert.match(v.color, /^#F[0-9A-F]F[0-9A-F]F[0-9A-F]$/); // chữ gốc màu trắng → dữ liệu cũng trắng
+  assert.equal(v.font, "BeVietnamPro"); // Helvetica thường
+  const d2 = await PDFDocument.create();
+  d2.addPage([595.28, 841.89]).drawText("{{x}}", { x: 100, y: 600, size: 16, font: await d2.embedFont(StandardFonts.HelveticaBold) });
+  assert.equal((await detectPdfVars(await d2.save()))[0].font, "BeVietnamPro-Bold");
+});
+
+test("fontFor: đậm / có chân / thường", async () => {
+  const { fontFor } = await import("./pdf-vars");
+  assert.equal(fontFor("ABCDEF+Montserrat-Bold"), "BeVietnamPro-Bold");
+  assert.equal(fontFor("PlayfairDisplay-Regular"), "PlayfairDisplay");
+  assert.equal(fontFor("Montserrat-Regular"), "BeVietnamPro");
+  assert.equal(fontFor(undefined), "BeVietnamPro");
 });

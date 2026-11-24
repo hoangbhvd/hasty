@@ -54,7 +54,7 @@ export type PdfmeSchema = {
  * Vị trí (mm, gốc trên-trái) là của chữ trong PDF; `cover` là màu nền lấy mẫu quanh chữ để che đi chữ `{{...}}` khi xuất phiếu.
  * `field` là dữ liệu chủ nhà chọn để điền vào biến (null = chưa chọn: chỉ che, không điền).
  */
-export type PdfmeVar = { tag: string; field: string | null; x: number; y: number; w: number; h: number; fontSize: number; cover: string; room: number; align: "left" | "center" };
+export type PdfmeVar = { tag: string; field: string | null; x: number; y: number; w: number; h: number; fontSize: number; cover: string; room: number; align: "left" | "center"; color: string; font: "BeVietnamPro" | "BeVietnamPro-Bold" | "PlayfairDisplay" };
 export type PdfmeConfig = { base_pdf_url: string | null; schemas: PdfmeSchema[]; vars: PdfmeVar[] };
 export const PDF_VAR_TAG = /^[A-Za-z0-9_-]{1,40}$/;
 
@@ -212,6 +212,7 @@ export function parsePdfme(raw: unknown): PdfmeConfig {
       x: num(v.x, 0, 0, 210), y: num(v.y, 0, 0, 297), w: num(v.w, 40, 2, 210), h: num(v.h, 8, 2, 297),
       fontSize: num(v.fontSize, 12, 6, 48), cover: hex(v.cover, "#FFFFFF"),
       room: num(v.room, num(v.w, 40, 2, 210), 0, 210), align: v.align === "center" ? "center" : "left",
+      color: hex(v.color, "#000000"), font: oneOf(v.font, ["BeVietnamPro", "BeVietnamPro-Bold", "PlayfairDisplay"] as const, "BeVietnamPro"),
     });
   }
   return { base_pdf_url: url, schemas, vars };
