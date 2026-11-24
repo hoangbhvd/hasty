@@ -3,10 +3,11 @@ import { requireUser } from "@/lib/session";
 import { todayVn } from "@/lib/format";
 import { parseMonth } from "@/lib/calendar-month";
 import { MonthNav } from "@/components/month-nav";
+import { MonthGrid } from "@/components/month-grid";
 import { calendarBlocks, calendarProperties, parseSelected, selectedParam } from "@/lib/broker-calendar";
 import { PropertyCalendar } from "@/components/property-calendar";
 
-export default async function BrokerCalendarPage({ searchParams }: { searchParams: Promise<{ p?: string; month?: string }> }) {
+export default async function BrokerCalendarPage({ searchParams }: { searchParams: Promise<{ p?: string; month?: string; view?: string }> }) {
   const sp = await searchParams;
   const user = await requireUser();
   const all = await calendarProperties(user.id);
@@ -18,6 +19,7 @@ export default async function BrokerCalendarPage({ searchParams }: { searchParam
       </div>
     );
   }
+  const view = sp.view === "timeline" ? "timeline" : "grid";
   const today = todayVn();
   const { month, from, days: DAYS } = parseMonth(sp.month, today);
   const to = new Date(from.getTime() + DAYS * 86_400_000);
@@ -25,8 +27,8 @@ export default async function BrokerCalendarPage({ searchParams }: { searchParam
   const shown = all.filter((p) => selected.includes(p.id));
   const blocks = await calendarBlocks(user.id, selected, from, to, new Date());
 
-  const href = (ids: string[], m = month) => {
-    const q = new URLSearchParams({ month: m });
+  const href = (ids: string[], m = month, v = view) => {
+    const q = new URLSearchParams({ month: m, view: v });
     const p = selectedParam(ids, all);
     if (p) q.set("p", p);
     return `/broker/calendar?${q.toString()}`;
@@ -58,10 +60,17 @@ export default async function BrokerCalendarPage({ searchParams }: { searchParam
         </div>
       </section>
 
-      <MonthNav month={month} thisMonth={today.slice(0, 7)} action="/broker/calendar" hidden={selectedParam(selected, all) ? { p: selectedParam(selected, all)! } : {}} href={(m) => href(selected, m)} />
+      <MonthNav month={month} thisMonth={today.slice(0, 7)} action="/broker/calendar" hidden={{ view, ...(selectedParam(selected, all) ? { p: selectedParam(selected, all)! } : {}) }} href={(m) => href(selected, m)} view={view} viewHref={(v) => href(selected, month, v)} />
 
       {shown.length === 0
         ? <p className="rounded border border-dashed border-black p-6 text-center text-sm text-muted-foreground">Chưa chọn homestay nào. Bấm tên homestay ở trên để hiện cột trên lịch.</p>
+        : view === "grid"
+        ? <MonthGrid month={month} today={today} items={blocks.map((b, k) => {
+            const name = all.find((x) => x.id === b.propertyId)?.name ?? "";
+            const busy = b.guestName === null;
+            const label = shown.length > 1 ? `${name}: ${b.guestName}` : String(b.guestName);
+            return { id: `${b.propertyId}-${k}`, label, status: b.status, checkIn: b.checkIn, checkOut: b.checkOut, busy, href: busy ? undefined : `/broker/bookings/${b.bookingId}`, title: busy ? `${name} · đã có người đặt` : `${name} · ${b.guestName}${b.guestPhone ? ` · ${b.guestPhone}` : ""}` };
+          })} />
         : <PropertyCalendar from={from} days={DAYS} today={today} properties={shown} blocks={blocks} />}
       <p className="text-xs text-muted-foreground">
         Mỗi cột là một homestay; booking nhiều đêm là một khối liền. Khối sọc 🔒 là lịch đã có người khác đặt (không hiện chi tiết; riêng căn bạn là Co-host thì hiện tên và SĐT khách). Bấm khối có tên khách để mở booking.

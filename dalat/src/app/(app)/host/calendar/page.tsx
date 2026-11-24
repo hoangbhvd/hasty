@@ -5,10 +5,11 @@ import { calendarWhere } from "@/lib/availability";
 import { todayVn } from "@/lib/format";
 import { parseMonth } from "@/lib/calendar-month";
 import { MonthNav } from "@/components/month-nav";
+import { MonthGrid } from "@/components/month-grid";
 import { Gantt, type GanttBooking } from "@/components/gantt";
 import { BookingList, bookingInclude, toRow } from "@/components/booking-list";
 
-export default async function HostCalendarPage({ searchParams }: { searchParams: Promise<{ property?: string; month?: string }> }) {
+export default async function HostCalendarPage({ searchParams }: { searchParams: Promise<{ property?: string; month?: string; view?: string }> }) {
   const sp = await searchParams;
   const user = await requireUser();
   const properties = await prisma.property.findMany({
@@ -25,6 +26,7 @@ export default async function HostCalendarPage({ searchParams }: { searchParams:
     );
   }
   const property = properties.find((p) => p.id === sp.property) ?? properties[0];
+  const view = sp.view === "timeline" ? "timeline" : "grid";
   const today = todayVn();
   const { month, from, days: DAYS } = parseMonth(sp.month, today);
   const to = new Date(from.getTime() + DAYS * 86_400_000);
@@ -43,7 +45,7 @@ export default async function HostCalendarPage({ searchParams }: { searchParams:
     checkIn: b.checkIn, checkOut: b.checkOut, roomIds: b.rooms.map((r) => r.roomId), brokerName: b.broker?.fullName ?? null,
   }));
 
-  const nav = (m: string, p = property.id) => `/host/calendar?property=${p}&month=${m}`;
+  const nav = (m: string, p = property.id, v = view) => `/host/calendar?property=${p}&month=${m}&view=${v}`;
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -62,9 +64,11 @@ export default async function HostCalendarPage({ searchParams }: { searchParams:
         ))}
       </div>
 
-      <MonthNav month={month} thisMonth={today.slice(0, 7)} action="/host/calendar" hidden={{ property: property.id }} href={(m) => nav(m)} />
+      <MonthNav month={month} thisMonth={today.slice(0, 7)} action="/host/calendar" hidden={{ property: property.id, view }} href={(m) => nav(m)} view={view} viewHref={(v) => nav(month, property.id, v)} />
 
-      <Gantt from={from} days={DAYS} today={today} rooms={property.allowIndividualRooms ? property.rooms.map((r) => ({ id: r.id, name: r.name })) : []} bookings={gantt} />
+      {view === "grid"
+        ? <MonthGrid month={month} today={today} items={occ.map((b) => ({ id: b.id, label: b.guestName, status: b.status, checkIn: b.checkIn, checkOut: b.checkOut, href: `/host/bookings/${b.id}`, title: `${b.guestName}${b.broker?.fullName ? ` · CTV ${b.broker.fullName}` : ""}` }))} />
+        : <Gantt from={from} days={DAYS} today={today} rooms={property.allowIndividualRooms ? property.rooms.map((r) => ({ id: r.id, name: r.name })) : []} bookings={gantt} />}
       <p className="text-xs text-muted-foreground">Ô sọc 🔒 là lịch bị khoá chéo do booking nguyên căn / phòng lẻ. Cột cam là đêm T6–T7. {others > 0 && `Có ${others} booking đã huỷ trong tháng này (ẩn). Ô xám là booking đã trả phòng.`}</p>
 
       <section className="space-y-2">
