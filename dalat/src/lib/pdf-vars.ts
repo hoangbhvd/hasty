@@ -6,6 +6,9 @@ const RE = /\{\{\s*([A-Za-z0-9_-]{1,40})\s*\}\}/g;
 
 type Item = { str: string; x: number; y: number; w: number; h: number; font?: string };
 export type FoundVar = Omit<PdfmeVar, "field" | "cover" | "color">;
+/** Thông tin để tinh chỉnh vị trí bằng ảnh render: đoạn dòng chứa biến, số "từ" trước biến / trong biến / cả dòng. */
+type Ref = { left: number; right: number; yTop: number; yBot: number; hPt: number; before: number; varTokens: number; total: number; roomEnd: number };
+type Found = FoundVar & { ref?: Ref };
 /** Đo độ rộng chuỗi (tuỳ chọn) để tính vị trí {{...}} trong một mảnh chữ chính xác hơn so với đếm ký tự. */
 export type Measure = (text: string) => number;
 
@@ -21,14 +24,14 @@ export function fontFor(name?: string): PdfmeVar["font"] {
 }
 
 /** Gộp các mảnh chữ cùng dòng (Canva hay tách 1 cụm chữ thành nhiều mảnh) rồi tìm {{...}}; toạ độ trả về là mm, gốc trên-trái. */
-export function findVarsInItems(items: Item[], pageH: number, pageW = 0, measure?: Measure): FoundVar[] {
+export function findVarsInItems(items: Item[], pageH: number, pageW = 0, measure?: Measure): Found[] {
   const lines: Item[][] = [];
   for (const it of items) {
     if (!it.str) continue;
     const line = lines.find((l) => Math.abs(l[0].y - it.y) < Math.max(1.5, it.h * 0.3));
     if (line) line.push(it); else lines.push([it]);
   }
-  const out: FoundVar[] = [];
+  const out: Found[] = [];
   const seen = new Set<string>();
   for (const line of lines) {
     line.sort((a, b) => a.x - b.x);
@@ -57,7 +60,14 @@ export function findVarsInItems(items: Item[], pageH: number, pageW = 0, measure
       const roomEnd = next ?? (pageW ? pageW - 8 / PT_MM : x1 + 60 / PT_MM);
       const room = Math.max((roomEnd - x0) * PT_MM - 1, 0);
       const padX = 0.6, padY = 0.5; // mm: chừa lề nhỏ để che sạch nét chữ
+      const words = (t: string) => t.split(/\s+/).filter(Boolean).length;
+      const clean = (start === 0 || /\s/.test(text[start - 1])) && (end === text.length || /\s/.test(text[end]));
+      const last = line[line.length - 1];
       out.push({
+        ref: clean ? {
+          left: line[0].x, right: last.x + last.w, yTop: (pageH - first.item.y - h * 0.72) * PT_MM, yBot: (pageH - first.item.y) * PT_MM,
+          hPt: h, before: words(text.slice(0, start)), varTokens: words(m[0]), total: words(text), roomEnd: roomEnd * PT_MM,
+        } : undefined,
         tag,
         x: Math.max(x0 * PT_MM - padX, 0), y: Math.max((pageH - first.item.y - h * 0.9) * PT_MM - padY, 0),
         w: Math.max((x1 - x0) * PT_MM + padX * 2, 4), h: h * 1.25 * PT_MM + padY * 2,
@@ -68,8 +78,47 @@ export function findVarsInItems(items: Item[], pageH: number, pageW = 0, measure
   return out;
 }
 
+type Ctx = { getImageData(x: number, y: number, w: number, h: number): { data: Uint8ClampedArray } };
+
+/** Tinh chỉnh khung biến theo ảnh render: tách dòng thành các "từ" theo khoảng trống mực, nếu số từ khớp với văn bản thì lấy đúng vị trí từ chứa {{...}}. */
+function refineByInk(ctx: Ctx, f: Found, k: number, W: number, H: number) {
+  const r = f.ref;
+  if (!r) return;
+  const xl = Math.max(Math.floor(r.left * PT_MM * k) - 2, 0), xr = Math.min(Math.ceil(r.right * PT_MM * k) + 2, W);
+  const y0 = Math.max(Math.floor(r.yTop * k), 0), y1 = Math.min(Math.ceil(r.yBot * k), H);
+  if (xr - xl < 4 || y1 - y0 < 2) return;
+  const w = xr - xl, h = y1 - y0;
+  const d = ctx.getImageData(xl, y0, w, h).data;
+  // nền = màu phổ biến nhất trong vùng
+  const cnt = new Map<number, number>();
+  for (let i = 0; i < d.length; i += 4) { const key = ((d[i] >> 3) << 10) | ((d[i + 1] >> 3) << 5) | (d[i + 2] >> 3); cnt.set(key, (cnt.get(key) ?? 0) + 1); }
+  const bgKey = [...cnt.entries()].sort((a, b) => b[1] - a[1])[0][0];
+  const bg = [((bgKey >> 10) & 31) << 3, ((bgKey >> 5) & 31) << 3, (bgKey & 31) << 3];
+  const ink = new Array<boolean>(w).fill(false);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const i = (y * w + x) * 4;
+    if (Math.abs(d[i] - bg[0]) + Math.abs(d[i + 1] - bg[1]) + Math.abs(d[i + 2] - bg[2]) > 70) ink[x] = true;
+  }
+  const gap = Math.max(2, 0.2 * r.hPt * PT_MM * k);
+  const clusters: { s: number; e: number }[] = [];
+  let run = 0;
+  for (let x = 0; x < w; x++) {
+    if (!ink[x]) { run++; continue; }
+    const c = clusters[clusters.length - 1];
+    if (c && run < gap) c.e = x; else clusters.push({ s: x, e: x });
+    run = 0;
+  }
+  if (clusters.length !== r.total) return; // không khớp số từ → giữ ước lượng
+  const a = clusters[r.before], b = clusters[r.before + r.varTokens - 1];
+  if (!a || !b) return;
+  const pad = 0.6;
+  f.x = Math.max((xl + a.s) / k - pad, 0);
+  f.w = Math.max((b.e - a.s) / k + 1 + pad * 2, 4);
+  f.room = Math.round(Math.max(r.roomEnd - f.x - 1, 0) * 10) / 10;
+}
+
 /** Màu chữ gốc: trong khung biến, lấy các điểm khác nền nhiều nhất rồi chọn màu phổ biến nhất. */
-function textColor(ctx: { getImageData(x: number, y: number, w: number, h: number): { data: Uint8ClampedArray } }, f: FoundVar, k: number, W: number, H: number, cover: string): string {
+function textColor(ctx: Ctx, f: FoundVar, k: number, W: number, H: number, cover: string): string {
   const x0 = Math.max(Math.floor(f.x * k), 0), y0 = Math.max(Math.floor(f.y * k), 0);
   const w = Math.min(Math.ceil(f.w * k), W - x0), h = Math.min(Math.ceil(f.h * k), H - y0);
   if (w <= 0 || h <= 0) return "#000000";
@@ -102,7 +151,7 @@ async function makeMeasure(): Promise<Measure | undefined> {
   } catch { return undefined; }
 }
 
-async function sampleCover(pdf: Uint8Array, found: FoundVar[], pageW: number): Promise<{ cover: string; color: string }[]> {
+async function sampleCover(pdf: Uint8Array, found: Found[], pageW: number): Promise<{ cover: string; color: string }[]> {
   try {
     const { pdf: open } = await import("pdf-to-img");
     const { createCanvas, loadImage } = await import("@napi-rs/canvas");
@@ -115,6 +164,7 @@ async function sampleCover(pdf: Uint8Array, found: FoundVar[], pageW: number): P
     const ctx = cv.getContext("2d");
     ctx.drawImage(img, 0, 0);
     const k = img.width / (pageW * PT_MM); // px / mm
+    for (const f of found) refineByInk(ctx, f, k, img.width, img.height);
     return found.map((f) => {
       // lấy mẫu 8 điểm ngay ngoài khung chữ, chọn màu xuất hiện nhiều nhất
       const pts: [number, number][] = [];
@@ -168,7 +218,11 @@ export async function detectPdfVars(pdf: Uint8Array): Promise<Omit<PdfmeVar, "fi
     const measure = await makeMeasure();
     const found = findVarsInItems(items, pageH, pageW, measure).sort((a, b) => a.y - b.y || a.x - b.x).slice(0, 40);
     const covers = found.length ? await sampleCover(pdf, found, pageW) : [];
-    return found.map((f, i) => ({ ...f, cover: covers[i].cover, color: covers[i].color }));
+    return found.map((f, i) => {
+      const out: Partial<Found> = { ...f };
+      delete out.ref;
+      return { ...(out as FoundVar), cover: covers[i].cover, color: covers[i].color };
+    });
   } finally {
     await task.destroy();
   }

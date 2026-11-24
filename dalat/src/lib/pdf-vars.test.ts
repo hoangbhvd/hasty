@@ -47,3 +47,19 @@ test("fontFor: đậm / có chân / thường", async () => {
   assert.equal(fontFor("TTCommonsPro-Regular"), "Montserrat");
   assert.equal(fontFor(undefined), "BeVietnamPro");
 });
+
+test("nhãn + biến cùng một chuỗi: khung biến khớp đúng vị trí thật (đo bằng ảnh render)", async () => {
+  const doc = await PDFDocument.create();
+  const page = doc.addPage([595.28, 841.89]);
+  page.drawRectangle({ x: 0, y: 0, width: 595.28, height: 841.89, color: rgb(1, 1, 1) });
+  const font = await doc.embedFont(StandardFonts.HelveticaBold);
+  const label = "TEN KHACH WWW: ", v = "{{var-1}}";
+  page.drawText(label + v, { x: 60, y: 700, size: 14, font, color: rgb(0.45, 0.35, 0.3) });
+  page.drawText("SO DIEN THOAI: {{sdt}}", { x: 60, y: 676, size: 14, font, color: rgb(0.45, 0.35, 0.3) });
+  const out = await detectPdfVars(await doc.save());
+  const a = out.find((x) => x.tag === "var-1")!;
+  const startMm = (60 + font.widthOfTextAtSize(label, 14)) * 25.4 / 72;
+  const widthMm = font.widthOfTextAtSize(v, 14) * 25.4 / 72;
+  assert.ok(Math.abs(a.x - startMm) < 1.5, `x=${a.x} mong đợi ${startMm}`);
+  assert.ok(Math.abs(a.w - widthMm) < 2.5, `w=${a.w} mong đợi ${widthMm}`);
+});
