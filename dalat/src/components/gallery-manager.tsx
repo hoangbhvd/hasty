@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ShareImagesButton } from "@/components/share-images-button";
 import { ArrowDown, ArrowUp, Download, Link2, Play, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -123,6 +124,7 @@ export function GalleryManager({
         {total > 0 && gallery.albums.length > 0 && (
           <a href={zip()} className="brutal-btn inline-flex h-10 items-center gap-1 bg-white px-3 text-sm text-black"><Download className="size-4" /> Tải toàn bộ ({total})</a>
         )}
+        {active && active.media.length > 0 && <ShareImagesButton media={active.media} name={`${gallery.propertyName} ${active.name}`} zipHref={zip(active.albumId ?? "general")} />}
         {total > 0 && <button type="button" onClick={copyLink} className="brutal-btn inline-flex h-10 items-center gap-1 bg-primary px-3 text-sm text-black"><Link2 className="size-4" /> Copy link xem ảnh sạch</button>}
       </div>
       {note && <p role="status" className="rounded border border-black bg-status-holding p-2 text-sm font-medium">{note}</p>}
