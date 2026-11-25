@@ -101,6 +101,7 @@ export async function BookingPlanner({
                 as={as} propertyId={property.id} bookingType={targetType} roomIds={roomIds}
                 checkIn={params.checkIn!} checkOut={params.checkOut!}
                 defaultGuestTotal={quoteOk ? q.total : undefined}
+                defaultNightly={quoteOk ? q.perNight.map((n) => n.amount) : undefined}
                 external={!!external}
                 canHold={canHold && params.intent !== "instant"} canInstant={canInstant && params.intent !== "hold"}
               />
