@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useSafeForm } from "@/lib/use-safe-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +23,10 @@ export function BookingCreateForm({
   canInstant?: boolean;
 }) {
   const { state, pending, disabled, ref, onSubmit } = useSafeForm(createBookingAction);
+  const nights = Math.max(1, Math.round((Date.parse(checkOut) - Date.parse(checkIn)) / 86_400_000) || 1);
+  const [total, setTotal] = useState(defaultGuestTotal === undefined ? "" : String(defaultGuestTotal));
+  const perNight = total === "" ? "" : String(Math.round(Number(total) / nights));
+  const onNight = (v: string) => setTotal(v === "" ? "" : String(Math.round(Number(v) * nights)));
   return (
     <form ref={ref} onSubmit={onSubmit} className="space-y-4">
       <input type="hidden" name="as" value={as} />
@@ -38,8 +43,11 @@ export function BookingCreateForm({
           <Field label="Người lớn" htmlFor="guestCount"><Input id="guestCount" name="guestCount" type="number" min="1" defaultValue={2} inputMode="numeric" className="h-11 text-base" required /></Field>
           <Field label="Trẻ em" htmlFor="childCount"><Input id="childCount" name="childCount" type="number" min="0" defaultValue={0} inputMode="numeric" className="h-11 text-base" /></Field>
         </div>
+        <Field label="Giá 1 đêm (đ)" htmlFor="perNight" hint={nights > 1 ? `${nights} đêm — sửa giá đêm thì tổng tiền tự tính lại` : undefined}>
+          <Input id="perNight" type="number" min="0" step="1" inputMode="numeric" value={perNight} onChange={(e) => onNight(e.target.value)} className="h-11 text-base" />
+        </Field>
         <Field label={as === "HOST" ? "Tổng tiền khách (đ)" : "Giá bán cho khách (đ)"} htmlFor="guestTotalPrice" hint={as === "BROKER" ? "Chênh lệch so với giá Net là hoa hồng của bạn" : undefined}>
-          <Input id="guestTotalPrice" name="guestTotalPrice" type="number" min="0" step="1" inputMode="numeric" defaultValue={defaultGuestTotal} className="h-11 text-base" required={external || defaultGuestTotal === undefined} />
+          <Input id="guestTotalPrice" name="guestTotalPrice" type="number" min="0" step="1" inputMode="numeric" value={total} onChange={(e) => setTotal(e.target.value)} className="h-11 text-base" required={external || defaultGuestTotal === undefined} />
         </Field>
         {external && (
           <>
