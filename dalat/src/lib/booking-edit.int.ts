@@ -43,3 +43,20 @@ test("Chủ nhà tự tạo thì chủ nhà sửa được; booking đã huỷ t
   await prisma.booking.update({ where: { id: byHost }, data: { status: "CANCELLED" } });
   await assert.rejects(editBooking(host, byHost, input), BookingError);
 });
+
+test("sửa giá: CTV không bán thấp hơn Net, đổi tổng → hoa hồng đổi, lưu giá từng đêm; chủ nhà tự tạo thì Net = tổng", async () => {
+  const mk = (n: number, brokerId: string | null) => prisma.booking.create({
+    data: { bookingCode: `BE-${tag.slice(-6)}-p${n}`, propertyId: prop, hostId: host, brokerId, bookingType: "WHOLE_UNIT", checkIn: D(40 + n * 3), checkOut: D(42 + n * 3), guestName: "G", guestCount: 2, status: "CONFIRMED", guestTotalPrice: 100, hostNetPrice: 80, commissionAmount: 20 },
+  });
+  const bb = (await mk(1, broker)).id, hb = (await mk(2, null)).id;
+  await assert.rejects(editBooking(broker, bb, { ...input, guestTotalPrice: 70 }), BookingError);
+  const b = await editBooking(broker, bb, { ...input, guestTotalPrice: 150, nightlyPrices: [60, 90] });
+  assert.equal(Number(b.guestTotalPrice), 150); assert.equal(Number(b.hostNetPrice), 80); assert.equal(Number(b.commissionAmount), 70);
+  assert.deepEqual((b.nightlyPrices as { amount: number }[]).map((n) => n.amount), [60, 90]);
+  // tổng không khớp giá từng đêm → bỏ chi tiết từng đêm
+  assert.equal((await editBooking(broker, bb, { ...input, guestTotalPrice: 160, nightlyPrices: [60, 90] })).nightlyPrices, null);
+  const h = await editBooking(host, hb, { ...input, guestTotalPrice: 120 });
+  assert.equal(Number(h.guestTotalPrice), 120); assert.equal(Number(h.hostNetPrice), 120); assert.equal(Number(h.commissionAmount), 0);
+  // không gửi giá → giữ nguyên
+  assert.equal(Number((await editBooking(host, hb, input)).guestTotalPrice), 120);
+});

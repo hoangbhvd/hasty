@@ -83,7 +83,7 @@ export async function BookingDetail({ userId, bookingId, viewer }: { userId: str
         </dl>
         <div className="flex flex-wrap items-center gap-2">
           <BookingActions id={b.id} status={b.status} />
-          {canEdit && <BookingEditButton bookingId={b.id} init={{ guestName: b.guestName, guestPhone: b.guestPhone ?? "", guestCount: b.guestCount, childCount: b.childCount, guestNote: b.guestNote ?? "", manualRoomInfo: b.manualRoomInfo ?? "", external }} />}
+          {canEdit && <BookingEditButton bookingId={b.id} init={{ guestName: b.guestName, guestPhone: b.guestPhone ?? "", guestCount: b.guestCount, childCount: b.childCount, guestNote: b.guestNote ?? "", manualRoomInfo: b.manualRoomInfo ?? "", external, price: { checkIn: b.checkIn.toISOString().slice(0, 10), checkOut: b.checkOut.toISOString().slice(0, 10), total: Number(b.guestTotalPrice), hostNet: Number(b.hostNetPrice), nightly: Array.isArray(b.nightlyPrices) ? (b.nightlyPrices as { amount: number }[]).map((n) => n.amount) : null, asBroker: b.brokerId === userId } }} />}
           {hasBoth && (
             <form action={openBookingChatAction.bind(null, b.id, viewer)}>
               <button type="submit" className="brutal-btn inline-flex h-9 items-center bg-white px-3 text-sm text-black">💬 Chat về booking</button>

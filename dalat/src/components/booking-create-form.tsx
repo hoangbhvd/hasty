@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { NightlyFieldset, nightsOf, useNightlyPrices } from "@/components/nightly-price-fields";
 import { useSafeForm } from "@/lib/use-safe-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,26 +25,9 @@ export function BookingCreateForm({
   canInstant?: boolean;
 }) {
   const { state, pending, disabled, ref, onSubmit } = useSafeForm(createBookingAction);
-  const nights = Math.max(1, Math.round((Date.parse(checkOut) - Date.parse(checkIn)) / 86_400_000) || 1);
-  const [nightly, setNightly] = useState<string[]>(() =>
-    Array.from({ length: nights }, (_, i) => {
-      const v = defaultNightly?.length === nights ? defaultNightly[i] : defaultGuestTotal !== undefined ? Math.round(defaultGuestTotal / nights) : undefined;
-      return v === undefined ? "" : String(v);
-    }));
-  // Tổng = cộng giá từng đêm; để trống hết thì không gửi (server dùng giá Net)
-  const filled = nightly.some((v) => v !== "");
-  const total = filled ? String(nightly.reduce((s, v) => s + (Number(v) || 0), 0)) : "";
-  const setOne = (i: number, v: string) => setNightly((a) => a.map((x, j) => (j === i ? v : x)));
-  const setAll = (v: string) => setNightly(Array.from({ length: nights }, () => v));
-  const setTotal = (v: string) => {
-    if (v === "") return setAll("");
-    const t = Math.round(Number(v)), each = Math.floor(t / nights);
-    setNightly(Array.from({ length: nights }, (_, i) => String(i === nights - 1 ? t - each * (nights - 1) : each)));
-  };
-  const dayLabel = (i: number) => {
-    const d = new Date(Date.parse(checkIn) + i * 86_400_000);
-    return `${["CN", "T2", "T3", "T4", "T5", "T6", "T7"][d.getUTCDay()]} ${String(d.getUTCDate()).padStart(2, "0")}/${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
-  };
+  const nightsN = nightsOf(checkIn, checkOut);
+  const p = useNightlyPrices(checkIn, checkOut, Array.from({ length: nightsN }, (_, i) =>
+    defaultNightly?.length === nightsN ? defaultNightly[i] : defaultGuestTotal !== undefined ? Math.round(defaultGuestTotal / nightsN) : undefined));
   return (
     <form ref={ref} onSubmit={onSubmit} className="space-y-4">
       <input type="hidden" name="as" value={as} />
@@ -52,7 +35,7 @@ export function BookingCreateForm({
       <input type="hidden" name="bookingType" value={bookingType} />
       <input type="hidden" name="checkIn" value={checkIn} />
       <input type="hidden" name="checkOut" value={checkOut} />
-      {filled && nightly.every((v) => v !== "") && <input type="hidden" name="nightlyPrices" value={nightly.map((v) => Math.round(Number(v))).join(",")} />}
+      {p.csv && <input type="hidden" name="nightlyPrices" value={p.csv} />}
       {roomIds.map((r) => <input key={r} type="hidden" name="roomIds" value={r} />)}
 
       <div className="grid gap-3 sm:grid-cols-2">
@@ -63,7 +46,7 @@ export function BookingCreateForm({
           <Field label="Trẻ em" htmlFor="childCount"><Input id="childCount" name="childCount" type="number" min="0" defaultValue={0} inputMode="numeric" className="h-11 text-base" /></Field>
         </div>
         <Field label={as === "HOST" ? "Tổng tiền khách (đ)" : "Giá bán cho khách (đ)"} htmlFor="guestTotalPrice" hint={as === "BROKER" ? "Chênh lệch so với giá Net là hoa hồng của bạn" : undefined}>
-          <Input id="guestTotalPrice" name="guestTotalPrice" type="number" min="0" step="1" inputMode="numeric" value={total} onChange={(e) => setTotal(e.target.value)} className="h-11 text-base" required={external || defaultGuestTotal === undefined} />
+          <Input id="guestTotalPrice" name="guestTotalPrice" type="number" min="0" step="1" inputMode="numeric" value={p.total} onChange={(e) => p.setTotal(e.target.value)} className="h-11 text-base" required={external || defaultGuestTotal === undefined} />
         </Field>
         {external && (
           <>
@@ -72,24 +55,7 @@ export function BookingCreateForm({
           </>
         )}
       </div>
-      <fieldset className="space-y-2 rounded border border-black p-3">
-        <legend className="px-1 text-sm font-medium">Giá từng đêm (đ) — sửa được từng đêm</legend>
-        {nights > 1 && (
-          <div className="flex items-center gap-2 text-sm">
-            <span className="shrink-0 text-muted-foreground">Áp cùng giá cho mọi đêm</span>
-            <Input type="number" min="0" step="1" inputMode="numeric" aria-label="Giá chung cho mọi đêm" placeholder="vd 800000" className="h-10 text-base" onChange={(e) => setAll(e.target.value)} />
-          </div>
-        )}
-        <div className="grid gap-2 sm:grid-cols-2">
-          {nightly.map((v, i) => (
-            <label key={i} className="flex items-center gap-2 text-sm">
-              <span className="w-16 shrink-0 font-medium">{dayLabel(i)}</span>
-              <Input type="number" min="0" step="1" inputMode="numeric" value={v} onChange={(e) => setOne(i, e.target.value)} aria-label={`Giá đêm ${dayLabel(i)}`} className="h-10 text-base" />
-            </label>
-          ))}
-        </div>
-        <p className="text-xs text-muted-foreground">Tổng tiền = cộng các đêm. Sửa tổng thì chia đều cho các đêm.</p>
-      </fieldset>
+      <NightlyFieldset checkIn={checkIn} p={p} />
       <Field label="Ghi chú" htmlFor="guestNote"><Textarea id="guestNote" name="guestNote" className="min-h-20" /></Field>
 
       {state?.error && <p role="alert" className="text-sm text-red-700">{state.error}</p>}

@@ -127,6 +127,9 @@ const editSchema = z.object({
   childCount: z.coerce.number().int().min(0, "Số trẻ em không hợp lệ").max(100).catch(0),
   guestNote: optText,
   manualRoomInfo: optText,
+  guestTotalPrice: optMoney,
+  hostNetPrice: optMoney,
+  nightlyPrices: z.string().optional().transform((s) => (s ? s.split(",").map((x) => Number(x)) : undefined)),
 });
 
 /** Người tạo sửa thông tin khách / ghi chú của booking. */
@@ -139,6 +142,7 @@ export async function editBookingAction(bookingId: string, _: FormState, fd: For
   try {
     const b = await editBooking(user.id, bookingId, {
       guestName: v.guestName, guestCount: v.guestCount, childCount: v.childCount, guestNote: v.guestNote, manualRoomInfo: v.manualRoomInfo,
+      guestTotalPrice: v.guestTotalPrice, hostNetPrice: v.hostNetPrice, nightlyPrices: v.nightlyPrices,
       guestPhone: v.guestPhone ? (normalizePhone(v.guestPhone) ?? v.guestPhone) : undefined,
     });
     await notifyUsers([b.hostId, b.brokerId].filter((x) => x && x !== user.id), `Booking ${b.bookingCode} được cập nhật thông tin khách`, `/${b.hostId === user.id ? "broker" : "host"}/bookings/${b.id}`);

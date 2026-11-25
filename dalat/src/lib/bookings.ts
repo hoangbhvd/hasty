@@ -284,7 +284,9 @@ export async function markCleaned(actorId: string, bookingId: string) {
   return prisma.booking.update({ where: { id: bookingId }, data: { cleanedAt: new Date() } });
 }
 
-export type EditInput = { guestName: string; guestPhone?: string | null; guestCount: number; childCount?: number; guestNote?: string | null; manualRoomInfo?: string | null };
+export type EditInput = { guestName: string; guestPhone?: string | null; guestCount: number; childCount?: number; guestNote?: string | null; manualRoomInfo?: string | null;
+  /** Sửa giá (tuỳ chọn): tổng khách trả, giá Net (chỉ căn ngoài app), giá từng đêm */
+  guestTotalPrice?: number; hostNetPrice?: number; nightlyPrices?: number[] };
 
 /** Người tạo booking (CTV, hoặc chủ nhà khi tự tạo) sửa thông tin khách. Ngày, phòng và giá không đổi ở đây. */
 export async function editBooking(actorId: string, bookingId: string, input: EditInput) {
@@ -296,14 +298,36 @@ export async function editBooking(actorId: string, bookingId: string, input: Edi
     if (b.bookingType === "ROOMS" && b.rooms.reduce((s, r) => s + r.room.maxGuests, 0) < input.guestCount) {
       throw new BookingError("Số khách vượt sức chứa các phòng đã đặt");
     }
+    // ── Giá ──
+    let priceData: Prisma.BookingUpdateInput = {};
+    let priceMsg = "";
+    if (input.guestTotalPrice !== undefined) {
+      const oldGuest = Number(b.guestTotalPrice), oldNet = Number(b.hostNetPrice);
+      const guest = input.guestTotalPrice;
+      let net: number;
+      if (b.brokerId === actorId) {
+        net = b.bookingType === "EXTERNAL_MANUAL" ? (input.hostNetPrice ?? oldNet) : oldNet; // căn trong app: Net đổi qua thương lượng
+        if (guest < net) throw new BookingError("Giá bán cho khách không được thấp hơn giá Net");
+      } else {
+        net = guest; // chủ nhà tự tạo: tiền khách = tiền chủ thu
+      }
+      if (guest !== oldGuest || net !== oldNet || input.nightlyPrices) {
+        priceData = {
+          guestTotalPrice: guest, hostNetPrice: net, commissionAmount: guest - net,
+          nightlyPrices: nightlyJson(b.checkIn, b.checkOut, input.nightlyPrices, guest) ?? Prisma.DbNull,
+        };
+        if (guest !== oldGuest || net !== oldNet) priceMsg = ` Giá khách trả: ${oldGuest.toLocaleString("vi-VN")}đ → ${guest.toLocaleString("vi-VN")}đ.`;
+      }
+    }
     const updated = await tx.booking.update({
       where: { id: bookingId },
       data: {
+        ...priceData,
         guestName: input.guestName, guestPhone: input.guestPhone ?? null, guestCount: input.guestCount, childCount: input.childCount ?? 0, guestNote: input.guestNote ?? null,
         ...(b.bookingType === "EXTERNAL_MANUAL" ? { manualRoomInfo: input.manualRoomInfo ?? null } : {}),
       },
     });
-    await postSystemMessage(tx, bookingId, "Người tạo đã cập nhật thông tin booking.");
+    await postSystemMessage(tx, bookingId, `Người tạo đã cập nhật thông tin booking.${priceMsg}`);
     return updated;
   });
 }
