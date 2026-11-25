@@ -1,5 +1,6 @@
 import { MapPin } from "lucide-react";
 import { formatDateVi, formatVnd, guestsText } from "@/lib/format";
+import { NightlyList } from "@/components/voucher-nightly";
 import type { VoucherData } from "@/lib/voucher";
 import { MapQr } from "@/components/map-qr";
 import { VoucherLogo } from "@/components/voucher-logo";
@@ -87,6 +88,7 @@ export function BoutiqueView({ v }: { v: VoucherData }) {
                   </div>
                 ))}
               </dl>
+              <NightlyList nightly={v.nightly} className="text-[12px] font-semibold" />
               {hasExtras && (
                 <dl className="money-num space-y-1 text-[12px] font-semibold uppercase">
                   {v.addons.map((a, i) => (

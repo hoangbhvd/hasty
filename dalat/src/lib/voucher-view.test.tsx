@@ -10,7 +10,7 @@ import type { VoucherData } from "./voucher";
 const data = (template: string, over: Partial<VoucherData["config"]["blocks"]> = {}, extra: Partial<VoucherData> = {}): VoucherData => ({
   bookingCode: "DL-2611-889", status: "CONFIRMED", propertyName: "Villa Đồi Thông", roomLabel: "Nguyên căn",
   checkIn: "2026-12-04", checkOut: "2026-12-06", nights: 2, guestName: "Nguyễn Văn Khách", guestPhone: "0352508031", address: "Hẻm 54 Hùng Vương, P.9, Đà Lạt", guestCount: 4, childCount: 2,
-  pricePerNight: 2_200_000, roomTotal: 4_400_000, extraFees: 100_000, addons: [{ name: "Thuê xe máy", quantity: 2, guestPrice: 150_000 }],
+  pricePerNight: 2_200_000, roomTotal: 4_400_000, nightly: [], extraFees: 100_000, addons: [{ name: "Thuê xe máy", quantity: 2, guestPrice: 150_000 }],
   grandTotal: 4_800_000, paid: 2_000_000, remaining: 2_800_000, mapsUrl: "https://maps.example/x", checkinGuide: "Rẽ trái ở ngã ba thông",
   houseRules: null, caretakerPhone: "0911222333", supportPhone: "0966000002", supportLabel: "Người đặt phòng (CTV)", hasQr: true,
   config: parseVoucherConfig({
@@ -147,4 +147,14 @@ test("Cottown: hiện '8 người lớn, 2 trẻ em', ảnh trong khung vòm, đ
   assert.ok(h.includes("rounded-t-[999px]") && h.includes("https://cdn.example/a.jpg"), "ảnh nằm trong khung vòm");
   assert.ok(h.includes("Tên khách: Nguyễn Văn Khách") && h.includes("Số điện thoại: 0352508031") && h.includes("Giá 1 đêm") && h.includes("Đã cọc"));
   assert.ok(!html(data("COTTOWN", {}, { config: cfg, guestCount: 3, childCount: 0 })).includes("trẻ em"));
+});
+
+test("giá từng đêm hiện trên mọi mẫu khi booking có lưu, không hiện khi rỗng", () => {
+  const nightly = [{ date: "2026-12-04", amount: 1_900_000 }, { date: "2026-12-05", amount: 2_500_000 }];
+  for (const t of TEMPLATE_IDS) {
+    const withN = renderToStaticMarkup(<VoucherView v={data(t, {}, { nightly })} token="t" />);
+    assert.match(withN, /T6 04\/12/, t);
+    assert.match(withN, /2\.500\.000/, t);
+    assert.doesNotMatch(renderToStaticMarkup(<VoucherView v={data(t)} token="t" />), /T6 04\/12/, t);
+  }
 });

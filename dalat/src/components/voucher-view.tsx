@@ -1,4 +1,5 @@
 import { formatDateVi, formatVnd, guestsText } from "@/lib/format";
+import { NightlyList } from "@/components/voucher-nightly";
 import type { VoucherData } from "@/lib/voucher";
 import { FONT_CSS, type BlockId, type VoucherConfig } from "@/lib/voucher-config";
 import { BoutiqueView } from "@/components/voucher-boutique";
@@ -222,6 +223,7 @@ export function VoucherView({ v, token }: { v: VoucherData; token: string }) {
               </tbody>
             </table>
           )}
+          <NightlyList nightly={v.nightly} className="mt-2 border-t border-black/20 pt-2 text-[12px]" />
         </Section>
       )}
 

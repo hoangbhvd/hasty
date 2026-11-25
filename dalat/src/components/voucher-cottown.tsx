@@ -1,6 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 import { MapPin } from "lucide-react";
 import { formatDateVi, formatVnd, guestsText } from "@/lib/format";
+import { NightlyList } from "@/components/voucher-nightly";
 import type { VoucherData } from "@/lib/voucher";
 import { MapQr } from "@/components/map-qr";
 import { VoucherLogo } from "@/components/voucher-logo";
@@ -95,6 +96,7 @@ export function CottownView({ v }: { v: VoucherData }) {
                     </div>
                   ))}
                 </dl>
+                <NightlyList nightly={v.nightly} className="mx-[5mm] mb-3 text-[10.5px] font-semibold @[700px]:text-[11px]" />
                 <hr className="mx-[3mm] -mt-[8mm] mb-[8mm] hidden border-white/80 @[700px]:block" />
                 {hasExtras && (
                   <dl className="money-num mx-[5mm] mb-3 space-y-1 text-[11px] font-semibold uppercase">
