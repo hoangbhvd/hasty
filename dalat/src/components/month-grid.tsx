@@ -13,45 +13,74 @@ const WD = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
 
 /**
  * Lịch tháng dạng lưới như lịch thường: 7 cột (T2→CN), mỗi hàng một tuần, mỗi ô một ngày.
- * Booking hiện ở mọi đêm nó chiếm (từ ngày check-in đến đêm trước ngày check-out).
+ * Booking là MỘT THANH liền chạy qua các đêm nó chiếm (ngày check-in → đêm trước ngày check-out).
+ * Khi thanh vắt sang tuần sau thì tiếp tục ở hàng dưới (đầu thanh phẳng + mũi tên ‹ ›, nhắc lại tên khách).
  */
 export function MonthGrid({ month, today, items }: { month: string; today: string; items: GridItem[] }) {
   const first = new Date(`${month}-01T00:00:00Z`);
   const [y, m] = month.split("-").map(Number);
   const daysInMonth = new Date(Date.UTC(y, m, 0)).getUTCDate();
   const lead = (first.getUTCDay() + 6) % 7; // T2 = 0
-  const cells: (Date | null)[] = [
-    ...Array.from({ length: lead }, () => null),
-    ...Array.from({ length: daysInMonth }, (_, i) => new Date(first.getTime() + i * DAY)),
-  ];
-  while (cells.length % 7) cells.push(null);
+  const total = Math.ceil((lead + daysInMonth) / 7) * 7;
+  const pos = (d: Date) => Math.round((d.getTime() - first.getTime()) / DAY) + lead; // vị trí ô trong lưới
+  const lo = lead, hi = lead + daysInMonth - 1;
+
+  // Mỗi booking → khoảng ô [a, b] (b = đêm cuối), cắt theo tháng đang xem
+  const spans = items
+    .map((it) => ({ it, a: pos(it.checkIn), b: pos(it.checkOut) - 1 }))
+    .filter((x) => x.b >= x.a && x.b >= lo && x.a <= hi)
+    .sort((p, q) => p.a - q.a || q.b - p.b);
+
+  const weeks = Array.from({ length: total / 7 }, (_, w) => {
+    const w0 = w * 7, w1 = w0 + 6;
+    const lanes: number[] = []; // lanes[k] = ô cuối đã dùng của làn k
+    const bars = spans.filter((x) => x.a <= w1 && x.b >= w0).map((x) => {
+      const start = Math.max(x.a, w0, lo), end = Math.min(x.b, w1, hi);
+      let lane = lanes.findIndex((last) => last < start);
+      if (lane < 0) { lane = lanes.length; lanes.push(end); } else lanes[lane] = end;
+      return { ...x, start, end, lane, w0 };
+    });
+    return { w0, bars, laneCount: Math.max(lanes.length, 1) };
+  });
 
   return (
     <div className="overflow-hidden rounded border border-black bg-white shadow-brutal-sm" role="grid" aria-label={`Lịch tháng ${m}/${y}`}>
       <div className="grid grid-cols-7 border-b border-black bg-muted text-center text-xs font-bold" role="row">
         {WD.map((w, i) => <div key={w} role="columnheader" className={`py-1.5 ${i >= 5 ? "text-red-700" : ""}`}>{w}</div>)}
       </div>
-      <div className="grid grid-cols-7">
-        {cells.map((d, i) => {
-          if (!d) return <div key={`e${i}`} className="min-h-20 border-b border-r border-black/15 bg-muted/40 md:min-h-28" />;
-          const s = toDateOnly(d);
-          const day = items.filter((b) => b.checkIn.getTime() <= d.getTime() && d.getTime() < b.checkOut.getTime());
-          const weekend = i % 7 >= 5;
-          return (
-            <div key={s} role="gridcell" className={`min-h-20 min-w-0 space-y-0.5 border-b border-r border-black/15 p-0.5 md:min-h-28 md:p-1 ${weekend ? "bg-secondary/15" : ""}`}>
-              <div className={`money-num mb-0.5 text-[11px] font-semibold md:text-xs ${s === today ? "inline-block rounded-full bg-primary px-1.5" : ""}`}>{Number(s.slice(8))}</div>
-              {day.map((b) => {
-                const startsHere = b.checkIn.getTime() === d.getTime();
-                const cls = `block truncate rounded border border-black px-1 py-px text-[10px] leading-tight text-black md:text-xs ${b.busy ? "bg-cross-locked text-black/70" : STATUS_STYLE[b.status] ?? "bg-muted"} ${startsHere ? "font-bold" : "font-medium"}`;
-                const text = b.busy ? "🔒" : b.label;
-                return b.href
-                  ? <Link key={b.id} href={b.href} title={b.title ?? b.label} className={cls}>{text}</Link>
-                  : <div key={b.id} title={b.title} className={cls}>{text}</div>;
-              })}
-            </div>
-          );
-        })}
-      </div>
+      {weeks.map(({ w0, bars, laneCount }) => (
+        <div key={w0} role="row" className="grid grid-cols-7 border-b border-black/15 last:border-b-0"
+          style={{ gridTemplateRows: `auto repeat(${laneCount}, 1.5rem) 0.25rem` }}>
+          {Array.from({ length: 7 }, (_, c) => {
+            const p = w0 + c;
+            const inMonth = p >= lo && p <= hi;
+            return (
+              <div key={c} role="gridcell" style={{ gridColumn: c + 1, gridRow: `1 / span ${laneCount + 2}` }}
+                className={`min-h-16 border-r border-black/15 last:border-r-0 md:min-h-24 ${!inMonth ? "bg-muted/40" : c >= 5 ? "bg-secondary/15" : ""}`} />
+            );
+          })}
+          {Array.from({ length: 7 }, (_, c) => {
+            const p = w0 + c;
+            if (p < lo || p > hi) return null;
+            const s = toDateOnly(new Date(first.getTime() + (p - lead) * DAY));
+            return (
+              <div key={`n${c}`} style={{ gridColumn: c + 1, gridRow: 1 }} className="z-[1] p-0.5 md:p-1">
+                <span className={`money-num text-[11px] font-semibold md:text-xs ${s === today ? "inline-block rounded-full bg-primary px-1.5" : ""}`}>{Number(s.slice(8))}</span>
+              </div>
+            );
+          })}
+          {bars.map(({ it, a, b, start, end, lane }) => {
+            const contFrom = a < start; // đã bắt đầu từ tuần/tháng trước
+            const contTo = b > end;     // còn kéo dài sang sau
+            const cls = `z-[2] mx-px my-px flex min-w-0 items-center overflow-hidden border border-black px-1 text-[10px] leading-tight text-black md:text-xs ${contFrom ? "rounded-l-none border-l-0" : "rounded-l"} ${contTo ? "rounded-r-none border-r-0" : "rounded-r"} ${it.busy ? "bg-cross-locked text-black/70" : STATUS_STYLE[it.status] ?? "bg-muted"} ${contFrom ? "font-medium" : "font-bold"}`;
+            const style = { gridColumn: `${start - w0 + 1} / ${end - w0 + 2}`, gridRow: lane + 2 };
+            const text = <span className="truncate">{contFrom && "‹ "}{it.busy ? "🔒" : it.label}{contTo && " ›"}</span>;
+            return it.href
+              ? <Link key={`${it.id}-${w0}`} href={it.href} title={it.title ?? it.label} style={style} className={cls}>{text}</Link>
+              : <div key={`${it.id}-${w0}`} title={it.title} style={style} className={cls}>{text}</div>;
+          })}
+        </div>
+      ))}
     </div>
   );
 }
