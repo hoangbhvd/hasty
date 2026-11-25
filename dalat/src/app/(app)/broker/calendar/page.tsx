@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/session";
-import { todayVn } from "@/lib/format";
+import { addDays, todayVn } from "@/lib/format";
 import { parseMonth } from "@/lib/calendar-month";
 import { MonthNav } from "@/components/month-nav";
 import { MonthGrid } from "@/components/month-grid";
@@ -65,7 +65,7 @@ export default async function BrokerCalendarPage({ searchParams }: { searchParam
       {shown.length === 0
         ? <p className="rounded border border-dashed border-black p-6 text-center text-sm text-muted-foreground">Chưa chọn homestay nào. Bấm tên homestay ở trên để hiện cột trên lịch.</p>
         : view === "grid"
-        ? <MonthGrid month={month} today={today} items={blocks.map((b, k) => {
+        ? <MonthGrid month={month} today={today} newHref={shown.length === 1 ? (d) => `/broker/book/${shown[0].id}?checkIn=${d}&checkOut=${addDays(d, 1)}` : undefined} items={blocks.map((b, k) => {
             const name = all.find((x) => x.id === b.propertyId)?.name ?? "";
             const busy = b.guestName === null;
             const label = shown.length > 1 ? `${name}: ${b.guestName}` : String(b.guestName);
@@ -73,7 +73,7 @@ export default async function BrokerCalendarPage({ searchParams }: { searchParam
           })} />
         : <PropertyCalendar from={from} days={DAYS} today={today} properties={shown} blocks={blocks} />}
       <p className="text-xs text-muted-foreground">
-        Mỗi cột là một homestay; booking nhiều đêm là một khối liền. Khối sọc 🔒 là lịch đã có người khác đặt (không hiện chi tiết; riêng căn bạn là Co-host thì hiện tên và SĐT khách). Bấm khối có tên khách để mở booking.
+        Chọn đúng 1 homestay thì bấm ô ngày trống để tạo booking từ ngày đó. Mỗi cột là một homestay; booking nhiều đêm là một khối liền. Khối sọc 🔒 là lịch đã có người khác đặt (không hiện chi tiết; riêng căn bạn là Co-host thì hiện tên và SĐT khách). Bấm khối có tên khách để mở booking.
         Nhiều homestay thì cột thu hẹp, chỉ còn màu: di chuột / bấm để xem tên.
       </p>
     </div>

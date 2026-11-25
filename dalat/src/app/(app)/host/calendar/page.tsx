@@ -2,7 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/session";
 import { calendarWhere } from "@/lib/availability";
-import { todayVn } from "@/lib/format";
+import { addDays, todayVn } from "@/lib/format";
 import { parseMonth } from "@/lib/calendar-month";
 import { MonthNav } from "@/components/month-nav";
 import { MonthGrid } from "@/components/month-grid";
@@ -67,7 +67,7 @@ export default async function HostCalendarPage({ searchParams }: { searchParams:
       <MonthNav month={month} thisMonth={today.slice(0, 7)} action="/host/calendar" hidden={{ property: property.id, view }} href={(m) => nav(m)} view={view} viewHref={(v) => nav(month, property.id, v)} />
 
       {view === "grid"
-        ? <MonthGrid month={month} today={today} items={occ.map((b) => ({ id: b.id, label: b.guestName, status: b.status, checkIn: b.checkIn, checkOut: b.checkOut, href: `/host/bookings/${b.id}`, title: `${b.guestName}${b.broker?.fullName ? ` · CTV ${b.broker.fullName}` : ""}` }))} />
+        ? <MonthGrid month={month} today={today} newHref={(d) => `/host/bookings/new?propertyId=${property.id}&checkIn=${d}&checkOut=${addDays(d, 1)}`} items={occ.map((b) => ({ id: b.id, label: b.guestName, status: b.status, checkIn: b.checkIn, checkOut: b.checkOut, href: `/host/bookings/${b.id}`, title: `${b.guestName}${b.broker?.fullName ? ` · CTV ${b.broker.fullName}` : ""}` }))} />
         : <Gantt from={from} days={DAYS} today={today} rooms={property.allowIndividualRooms ? property.rooms.map((r) => ({ id: r.id, name: r.name })) : []} bookings={gantt} />}
       <p className="text-xs text-muted-foreground">Ô sọc 🔒 là lịch bị khoá chéo do booking nguyên căn / phòng lẻ. Cột cam là đêm T6–T7. {others > 0 && `Có ${others} booking đã huỷ trong tháng này (ẩn). Ô xám là booking đã trả phòng.`}</p>
 
