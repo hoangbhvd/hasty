@@ -52,6 +52,7 @@ export function BookingCreateForm({
       <input type="hidden" name="bookingType" value={bookingType} />
       <input type="hidden" name="checkIn" value={checkIn} />
       <input type="hidden" name="checkOut" value={checkOut} />
+      {filled && nightly.every((v) => v !== "") && <input type="hidden" name="nightlyPrices" value={nightly.map((v) => Math.round(Number(v))).join(",")} />}
       {roomIds.map((r) => <input key={r} type="hidden" name="roomIds" value={r} />)}
 
       <div className="grid gap-3 sm:grid-cols-2">

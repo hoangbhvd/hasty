@@ -2,7 +2,7 @@ import { effectiveAccess, staffMay } from "@/lib/staff";
 import { prisma } from "@/lib/db";
 import { Prisma } from "@/generated/prisma/client";
 import { occupyingWhere, roomsAvailable, wholeUnitAvailable, type OccupyingBooking } from "@/lib/availability";
-import { quote, type SpecialRow, type Tier } from "@/lib/pricing";
+import { nightsBetween, quote, type SpecialRow, type Tier } from "@/lib/pricing";
 import { postSystemMessage } from "@/lib/booking-chat";
 import { todayVn } from "@/lib/format";
 
@@ -27,9 +27,19 @@ export type CreateInput = {
   childCount?: number;
   guestNote?: string;
   guestTotalPrice?: number;
+  /** Giá khách trả từng đêm, đúng số đêm; chỉ lưu khi tổng khớp guestTotalPrice */
+  nightlyPrices?: number[];
   hostNetPrice?: number; // chỉ dùng cho căn ngoài app
   manualRoomInfo?: string; // chỉ dùng cho căn ngoài app
 };
+
+/** [{date, amount}] nếu số đêm và tổng khớp; ngược lại không lưu. */
+function nightlyJson(checkIn: Date, checkOut: Date, amounts: number[] | undefined, total: number) {
+  const nights = nightsBetween(checkIn, checkOut);
+  if (!amounts || amounts.length !== nights.length || amounts.some((a) => !Number.isFinite(a) || a < 0)) return undefined;
+  if (amounts.reduce((s, a) => s + a, 0) !== total) return undefined;
+  return nights.map((d, i) => ({ date: d.toISOString().slice(0, 10), amount: amounts[i] }));
+}
 
 const dec = (n: Prisma.Decimal | number | null | undefined) => (n === null || n === undefined ? null : Number(n));
 
@@ -182,6 +192,7 @@ export async function createBooking(input: CreateInput) {
           guestNote: input.guestNote ?? null,
           status: holding ? "HOLDING" : "CONFIRMED",
           holdExpiresAt: holding ? new Date(Date.now() + HOLD_MINUTES * 60_000) : null,
+          nightlyPrices: nightlyJson(input.checkIn, input.checkOut, input.nightlyPrices, guestTotal),
           guestTotalPrice: guestTotal,
           hostNetPrice: hostNet,
           commissionAmount: guestTotal - hostNet,

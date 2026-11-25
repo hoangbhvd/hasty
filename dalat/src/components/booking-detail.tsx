@@ -50,6 +50,12 @@ export async function BookingDetail({ userId, bookingId, viewer }: { userId: str
   const types = (Object.keys(TYPE_LABEL) as (keyof typeof TYPE_LABEL)[]).map((t) => ({ value: t, label: TYPE_LABEL[t] }));
   const canEdit = (b.brokerId ?? b.hostId) === userId && !["CANCELLED", "CHECKED_OUT"].includes(b.status);
   const backHref = viewer === "HOST" ? "/host/calendar" : "/broker/bookings";
+  const nightly = (Array.isArray(b.nightlyPrices) ? (b.nightlyPrices as { date: string; amount: number }[]) : [])
+    .filter((n) => b.checkOut.getTime() - b.checkIn.getTime() > 86_400_000)
+    .map((n) => {
+      const d = new Date(n.date);
+      return { ...n, label: `${["CN", "T2", "T3", "T4", "T5", "T6", "T7"][d.getUTCDay()]} ${String(d.getUTCDate()).padStart(2, "0")}/${String(d.getUTCMonth() + 1).padStart(2, "0")}` };
+    });
   const roomText = b.bookingType === "ROOMS" ? b.rooms.map((r) => r.room.name).join(", ") : b.bookingType === "EXTERNAL_MANUAL" ? b.manualRoomInfo : "Nguyên căn";
 
   return (
@@ -96,6 +102,7 @@ export async function BookingDetail({ userId, bookingId, viewer }: { userId: str
         <h2 className="font-bold">Tài chính</h2>
         <dl className="divide-y divide-black/20 text-sm">
           <Row k="Tiền phòng (khách trả)" v={formatVnd(b.guestTotalPrice)} />
+          {nightly.map((n) => <Row key={n.date} k={`  ${n.label}`} v={formatVnd(n.amount)} />)}
           {l.addonsGuest > 0 && <Row k="Dịch vụ đi kèm" v={formatVnd(l.addonsGuest)} />}
           {Number(b.extraFees) > 0 && <Row k="Phụ thu" v={formatVnd(b.extraFees)} />}
           <Row k="Tổng khách phải trả" v={formatVnd(l.guestPayable)} strong />

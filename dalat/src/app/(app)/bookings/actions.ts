@@ -30,6 +30,7 @@ const schema = z.object({
   guestNote: optText,
   guestTotalPrice: optMoney,
   hostNetPrice: optMoney,
+  nightlyPrices: z.string().optional().transform((s) => (s ? s.split(",").map((x) => Number(x)) : undefined)),
   manualRoomInfo: optText,
 });
 
@@ -53,7 +54,7 @@ export async function createBookingAction(_: FormState, fd: FormData): Promise<F
       roomIds: v.roomIds, checkIn, checkOut, guestName: v.guestName,
       guestPhone: v.guestPhone ? (normalizePhone(v.guestPhone) ?? v.guestPhone) : undefined,
       guestCount: v.guestCount, childCount: v.childCount, guestNote: v.guestNote,
-      guestTotalPrice: v.guestTotalPrice, hostNetPrice: v.hostNetPrice, manualRoomInfo: v.manualRoomInfo,
+      guestTotalPrice: v.guestTotalPrice, nightlyPrices: v.nightlyPrices, hostNetPrice: v.hostNetPrice, manualRoomInfo: v.manualRoomInfo,
     });
   } catch (e) {
     if (e instanceof BookingError) return { error: e.message };
