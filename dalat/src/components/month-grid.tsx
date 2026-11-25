@@ -16,10 +16,12 @@ const WD = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
  * Booking là MỘT THANH liền chạy qua các đêm nó chiếm (ngày check-in → đêm trước ngày check-out).
  * Khi thanh vắt sang tuần sau thì tiếp tục ở hàng dưới (đầu thanh phẳng + mũi tên ‹ ›, nhắc lại tên khách).
  */
-export function MonthGrid({ month, today, items, newHref }: {
+export function MonthGrid({ month, today, items, newHref, canCreate }: {
   month: string; today: string; items: GridItem[];
   /** Có thì ngày trống (từ hôm nay trở đi, không có đêm nào bị chiếm) bấm được để tạo booking bắt đầu ngày đó. */
   newHref?: (date: string) => string;
+  /** Ghi đè điều kiện "ngày trống" (mặc định: không booking nào chiếm đêm đó) — dùng khi lịch gộp nhiều căn. */
+  canCreate?: (date: string) => boolean;
 }) {
   const first = new Date(`${month}-01T00:00:00Z`);
   const [y, m] = month.split("-").map(Number);
@@ -64,7 +66,7 @@ export function MonthGrid({ month, today, items, newHref }: {
             const date = inMonth ? toDateOnly(new Date(first.getTime() + (p - lead) * DAY)) : "";
             const cell = `min-h-16 border-r border-black/15 last:border-r-0 md:min-h-24 ${!inMonth ? "bg-muted/40" : c >= 5 ? "bg-secondary/15" : ""}`;
             const style = { gridColumn: c + 1, gridRow: `1 / span ${laneCount + 2}` };
-            return newHref && inMonth && date >= today && !busyPos.has(p)
+            return newHref && inMonth && date >= today && (canCreate ? canCreate(date) : !busyPos.has(p))
               ? (
                 <Link key={c} role="gridcell" href={newHref(date)} style={style} aria-label={`Tạo booking từ ngày ${date.slice(8)}/${date.slice(5, 7)}`}
                   className={`${cell} group flex items-end justify-end p-1 hover:bg-primary/25 focus-visible:bg-primary/25`}>
