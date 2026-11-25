@@ -47,6 +47,10 @@ export function pdfmeInputs(v: VoucherData, qrDataUri: string | null): Record<st
     check_out_str: `${hourLabel(c.checkout_time)} ${d(v.checkOut)}`,
     nights_count: String(v.nights),
     price_per_night: formatVnd(v.pricePerNight),
+    nightly_prices: v.nightly.map((n) => {
+      const d = new Date(`${n.date}T00:00:00Z`);
+      return `${["CN", "T2", "T3", "T4", "T5", "T6", "T7"][d.getUTCDay()]} ${String(d.getUTCDate()).padStart(2, "0")}/${String(d.getUTCMonth() + 1).padStart(2, "0")}: ${formatVnd(n.amount)}`;
+    }).join("\n"),
     guest_total_price: formatVnd(v.grandTotal),
     deposit_paid: formatVnd(v.paid),
     remaining_amount: formatVnd(Math.max(v.remaining, 0)),

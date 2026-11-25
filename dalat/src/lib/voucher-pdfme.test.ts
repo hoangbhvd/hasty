@@ -65,3 +65,10 @@ test("biến {{...}} trong PDF nền: được che bằng màu nền khi xuất"
   for (let i = 0; i < 6; i++) { const d = ctx.getImageData(Math.round((vars[0].x + 0.2 + i * 0.1) * k), Math.round((vars[0].y + vars[0].h / 2) * k), 1, 1).data; if (d[0] > 200) white++; }
   assert.ok(white <= 1, "chữ {{...}} chưa được che");
 });
+
+test("biến nightly_prices: mỗi đêm một dòng, rỗng khi không có giá từng đêm", () => {
+  const v = sampleVoucher(DEFAULT_VOUCHER_CONFIG);
+  assert.equal(pdfmeInputs(v, null).nightly_prices, "");
+  const withN = pdfmeInputs({ ...v, nightly: [{ date: "2026-12-04", amount: 1_900_000 }, { date: "2026-12-05", amount: 2_500_000 }] }, null);
+  assert.equal(withN.nightly_prices, "T6 04/12: 1.900.000đ\nT7 05/12: 2.500.000đ");
+});

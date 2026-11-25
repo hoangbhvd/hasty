@@ -175,6 +175,7 @@ export const PDFME_FIELDS = [
   { name: "check_out_str", label: "Check-out", sample: "12H 14/06/2026" },
   { name: "nights_count", label: "Số đêm", sample: "2" },
   { name: "price_per_night", label: "Giá 1 đêm", sample: "2.000.000đ" },
+  { name: "nightly_prices", label: "Giá từng đêm (mỗi đêm 1 dòng)", sample: "T6 12/06: 2.200.000đ\nT7 13/06: 2.500.000đ" },
   { name: "guest_total_price", label: "Thành tiền", sample: "4.000.000đ" },
   { name: "deposit_paid", label: "Đã cọc", sample: "1.000.000đ" },
   { name: "remaining_amount", label: "Còn lại", sample: "3.000.000đ" },
