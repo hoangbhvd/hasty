@@ -40,6 +40,13 @@ export type VoucherData = {
   config: VoucherConfig;
 };
 
+/** Giá từng đêm chỉ hiển thị khi booking ≥ 2 đêm và các đêm KHÔNG cùng giá. */
+export function differingNights(nights: number, raw: unknown): { date: string; amount: number }[] {
+  if (nights < 2 || !Array.isArray(raw)) return [];
+  const list = raw as { date: string; amount: number }[];
+  return list.every((n) => n.amount === list[0]?.amount) ? [] : list;
+}
+
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 async function loadByToken(token: string) {
@@ -117,7 +124,7 @@ async function build(b: Loaded): Promise<VoucherData> {
     childCount: b.childCount,
     pricePerNight: Math.round(c.roomTotal / c.nights),
     roomTotal: c.roomTotal,
-    nightly: c.nights > 1 && Array.isArray(b.nightlyPrices) ? (b.nightlyPrices as { date: string; amount: number }[]) : [],
+    nightly: differingNights(c.nights, b.nightlyPrices),
     extraFees: c.extraFees,
     addons: c.addons,
     grandTotal: c.grandTotal,

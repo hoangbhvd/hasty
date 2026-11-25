@@ -1,3 +1,4 @@
+import { differingNights } from "@/lib/voucher";
 import { isVoucherExpired } from "@/lib/voucher-link";
 import { VoucherLinkPanel } from "@/components/voucher-link-panel";
 import Link from "next/link";
@@ -50,8 +51,7 @@ export async function BookingDetail({ userId, bookingId, viewer }: { userId: str
   const types = (Object.keys(TYPE_LABEL) as (keyof typeof TYPE_LABEL)[]).map((t) => ({ value: t, label: TYPE_LABEL[t] }));
   const canEdit = (b.brokerId ?? b.hostId) === userId && !["CANCELLED", "CHECKED_OUT"].includes(b.status);
   const backHref = viewer === "HOST" ? "/host/calendar" : "/broker/bookings";
-  const nightly = (Array.isArray(b.nightlyPrices) ? (b.nightlyPrices as { date: string; amount: number }[]) : [])
-    .filter((n) => b.checkOut.getTime() - b.checkIn.getTime() > 86_400_000)
+  const nightly = differingNights(Math.round((b.checkOut.getTime() - b.checkIn.getTime()) / 86_400_000), b.nightlyPrices)
     .map((n) => {
       const d = new Date(n.date);
       return { ...n, label: `${["CN", "T2", "T3", "T4", "T5", "T6", "T7"][d.getUTCDay()]} ${String(d.getUTCDate()).padStart(2, "0")}/${String(d.getUTCMonth() + 1).padStart(2, "0")}` };

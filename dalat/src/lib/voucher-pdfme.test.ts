@@ -72,3 +72,12 @@ test("biến nightly_prices: mỗi đêm một dòng, rỗng khi không có giá
   const withN = pdfmeInputs({ ...v, nightly: [{ date: "2026-12-04", amount: 1_900_000 }, { date: "2026-12-05", amount: 2_500_000 }] }, null);
   assert.equal(withN.nightly_prices, "T6 04/12: 1.900.000đ\nT7 05/12: 2.500.000đ");
 });
+
+test("giá từng đêm bằng nhau thì không hiển thị chi tiết", async () => {
+  const { differingNights } = await import("./voucher");
+  const same = [{ date: "2026-12-04", amount: 2_000_000 }, { date: "2026-12-05", amount: 2_000_000 }];
+  assert.deepEqual(differingNights(2, same), []);
+  assert.equal(differingNights(2, [same[0], { ...same[1], amount: 2_500_000 }]).length, 2);
+  assert.deepEqual(differingNights(1, [same[0]]), []);
+  assert.deepEqual(differingNights(2, null), []);
+});
