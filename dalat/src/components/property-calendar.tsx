@@ -59,11 +59,11 @@ export function PropertyCalendar({
           const end = Math.min(idx(b.checkOut), days);
           if (ci === undefined || end <= start) return null;
           const busy = b.guestName === null; // kín: không có thông tin khách
-          const label = busy ? "Kín" : [b.guestName, b.guestPhone].filter(Boolean).join(" · ");
+          const label = busy ? "Kín" : [b.rooms, b.guestName, b.guestPhone].filter(Boolean).join(" · ");
           const cls = `z-[1] m-px flex items-start overflow-hidden rounded border border-black text-xs font-semibold text-black ${compact ? "px-0 py-0.5" : "px-1.5 py-1"} ${busy ? "bg-cross-locked font-medium text-black/70" : STATUS_STYLE[b.status] ?? "bg-muted"}`;
           const style = { gridColumn: ci + 2, gridRow: `${start + 2} / ${end + 2}` };
           const title = `${properties[ci].name} · ${label}${busy ? " (đã có người đặt)" : ""}`;
-          const text = compact ? null : <span className="sticky top-9 line-clamp-3 break-words">{busy ? "🔒 Kín" : <>{b.guestName}{b.guestPhone && <><br /><span className="font-normal">{b.guestPhone}</span></>}</>}</span>;
+          const text = compact ? null : <span className="sticky top-9 line-clamp-3 break-words">{busy ? "🔒 Kín" : <>{b.rooms && <span className="font-normal">{b.rooms}<br /></span>}{b.guestName}{b.guestPhone && <><br /><span className="font-normal">{b.guestPhone}</span></>}</>}</span>;
           return busy
             ? <div key={k} style={style} title={title} className={cls}>{text}</div>
             : <Link key={k} href={`/broker/bookings/${b.bookingId}`} style={style} title={title} className={cls}>{text}</Link>;

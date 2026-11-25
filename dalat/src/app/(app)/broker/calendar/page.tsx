@@ -86,8 +86,9 @@ export default async function BrokerCalendarPage({ searchParams }: { searchParam
         ? <MonthGrid month={month} today={today} newHref={shown.length === 1 ? (d) => `/broker/book/${shown[0].id}?checkIn=${d}&checkOut=${addDays(d, 1)}` : (d) => href(selected, month, view, d)} canCreate={(d) => shown.some((p) => freeOn(p.id, d))} items={blocks.map((b, k) => {
             const name = all.find((x) => x.id === b.propertyId)?.name ?? "";
             const busy = b.guestName === null;
-            const label = shown.length > 1 ? `${name}: ${b.guestName}` : String(b.guestName);
-            return { id: `${b.propertyId}-${k}`, label, status: b.status, checkIn: b.checkIn, checkOut: b.checkOut, busy, href: busy ? undefined : `/broker/bookings/${b.bookingId}`, title: busy ? `${name} · đã có người đặt` : `${name} · ${b.guestName}${b.guestPhone ? ` · ${b.guestPhone}` : ""}` };
+            const who = `${b.rooms}: ${b.guestName}`;
+            const label = shown.length > 1 ? `${name} · ${who}` : who;
+            return { id: `${b.propertyId}-${k}`, label, status: b.status, checkIn: b.checkIn, checkOut: b.checkOut, busy, href: busy ? undefined : `/broker/bookings/${b.bookingId}`, title: busy ? `${name} · đã có người đặt` : `${name} · ${b.rooms} · ${b.guestName}${b.guestPhone ? ` · ${b.guestPhone}` : ""}` };
           })} />
         : <PropertyCalendar from={from} days={DAYS} today={today} properties={shown} blocks={blocks} />}
       <p className="text-xs text-muted-foreground">

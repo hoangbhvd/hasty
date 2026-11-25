@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { calendarWhere } from "@/lib/availability";
 import { effectiveAccess } from "@/lib/staff";
+import { roomLabel } from "@/lib/room-label";
 
 export type CalProperty = { id: string; name: string; kind: "EXTERNAL" | "LINKED" };
 export type CalBlock = {
@@ -13,6 +14,8 @@ export type CalBlock = {
   /** Tên / SĐT khách — chỉ có với booking của chính CTV hoặc mọi booking ở căn mà CTV là Co-host */
   guestName: string | null;
   guestPhone: string | null;
+  /** "Nguyên căn" hoặc tên các phòng, cách nhau dấu phẩy (chỉ có khi thấy chi tiết booking) */
+  rooms: string | null;
 };
 
 /** Homestay CTV xem được: căn ngoài của mình + căn của chủ nhà đã duyệt liên kết. */
@@ -46,13 +49,16 @@ export async function calendarBlocks(brokerId: string, propertyIds: string[], fr
   const rows = await prisma.booking.findMany({
     where: { propertyId: { in: ids }, ...calendarWhere(from, to, now) },
     orderBy: { checkIn: "asc" },
-    select: { id: true, propertyId: true, brokerId: true, checkIn: true, checkOut: true, status: true, guestName: true, guestPhone: true },
+    select: {
+      id: true, propertyId: true, brokerId: true, checkIn: true, checkOut: true, status: true, guestName: true, guestPhone: true,
+      bookingType: true, manualRoomInfo: true, rooms: { select: { room: { select: { name: true } } } },
+    },
   });
   return rows.flatMap((b): CalBlock[] => {
     const own = b.brokerId === brokerId;
-    if (own || coHost.has(b.propertyId)) return [{ bookingId: b.id, propertyId: b.propertyId, checkIn: b.checkIn, checkOut: b.checkOut, status: b.status, guestName: b.guestName, guestPhone: b.guestPhone }];
+    if (own || coHost.has(b.propertyId)) return [{ bookingId: b.id, propertyId: b.propertyId, checkIn: b.checkIn, checkOut: b.checkOut, status: b.status, guestName: b.guestName, guestPhone: b.guestPhone, rooms: roomLabel(b) }];
     if (b.status === "CHECKED_OUT") return []; // booking đã xong của người khác: không còn là lịch bận
-    return [{ bookingId: null, propertyId: b.propertyId, checkIn: b.checkIn, checkOut: b.checkOut, status: "BUSY", guestName: null, guestPhone: null }];
+    return [{ bookingId: null, propertyId: b.propertyId, checkIn: b.checkIn, checkOut: b.checkOut, status: "BUSY", guestName: null, guestPhone: null, rooms: null }];
   });
 }
 
