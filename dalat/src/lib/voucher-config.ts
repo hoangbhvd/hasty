@@ -155,7 +155,7 @@ export const SAMPLE_TEXTS = {
 const HEX = /^#[0-9a-fA-F]{6}$/; // chỉ nhận hex — giá trị này được đưa vào style, không để chuỗi tuỳ ý lọt vào CSS
 const TEXT_MAX = 4000;
 
-const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
+export const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
 const time = (v: unknown, d: string) => (typeof v === "string" && TIME.test(v) ? v : d);
 const bool = (v: unknown, d: boolean) => (typeof v === "boolean" ? v : d);
 const text = (v: unknown, d: string, max = TEXT_MAX) => (typeof v === "string" ? v.replace(/\r\n?/g, "\n").slice(0, max) : d);

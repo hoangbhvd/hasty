@@ -60,3 +60,9 @@ test("sửa giá: CTV không bán thấp hơn Net, đổi tổng → hoa hồng 
   // không gửi giá → giữ nguyên
   assert.equal(Number((await editBooking(host, hb, input)).guestTotalPrice), 120);
 });
+
+test("sửa giờ nhận/trả phòng của booking", async () => {
+  const b = await editBooking(broker, byBroker, { ...input, checkInTime: "10:30", checkOutTime: "15:00" });
+  assert.equal(b.checkInTime, "10:30"); assert.equal(b.checkOutTime, "15:00");
+  assert.equal((await editBooking(broker, byBroker, input)).checkInTime, "10:30"); // không gửi → giữ nguyên
+});

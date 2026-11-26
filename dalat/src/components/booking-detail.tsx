@@ -1,3 +1,4 @@
+import { parseVoucherConfig } from "@/lib/voucher-config";
 import { differingNights } from "@/lib/voucher";
 import { isVoucherExpired } from "@/lib/voucher-link";
 import { VoucherLinkPanel } from "@/components/voucher-link-panel";
@@ -56,6 +57,8 @@ export async function BookingDetail({ userId, bookingId, viewer }: { userId: str
       const d = new Date(n.date);
       return { ...n, label: `${["CN", "T2", "T3", "T4", "T5", "T6", "T7"][d.getUTCDay()]} ${String(d.getUTCDate()).padStart(2, "0")}/${String(d.getUTCMonth() + 1).padStart(2, "0")}` };
     });
+  const stayBase = parseVoucherConfig(b.property.voucherConfig).stay_times;
+  const stay = { checkin_time: b.checkInTime ?? stayBase.checkin_time, checkout_time: b.checkOutTime ?? stayBase.checkout_time };
   const roomText = b.bookingType === "ROOMS" ? b.rooms.map((r) => r.room.name).join(", ") : b.bookingType === "EXTERNAL_MANUAL" ? b.manualRoomInfo : "Nguyên căn";
 
   return (
@@ -73,7 +76,7 @@ export async function BookingDetail({ userId, bookingId, viewer }: { userId: str
         <dl className="text-sm">
           <Row k="Căn" v={b.property.name} />
           <Row k="Hạng phòng" v={roomText || "—"} />
-          <Row k="Nhận → trả phòng" v={`${formatDateVi(b.checkIn)} → ${formatDateVi(b.checkOut)}`} />
+          <Row k="Nhận → trả phòng" v={`${stay.checkin_time} ${formatDateVi(b.checkIn)} → ${stay.checkout_time} ${formatDateVi(b.checkOut)}`} />
           <Row k="Số khách" v={guestsText(b.guestCount, b.childCount)} />
           {b.guestPhone && <Row k="SĐT khách" v={b.guestPhone} />}
           {viewer === "HOST" && b.broker && <Row k="CTV" v={`${b.broker.fullName} ${b.broker.phone ?? ""}`} />}
@@ -83,7 +86,7 @@ export async function BookingDetail({ userId, bookingId, viewer }: { userId: str
         </dl>
         <div className="flex flex-wrap items-center gap-2">
           <BookingActions id={b.id} status={b.status} />
-          {canEdit && <BookingEditButton bookingId={b.id} init={{ guestName: b.guestName, guestPhone: b.guestPhone ?? "", guestCount: b.guestCount, childCount: b.childCount, guestNote: b.guestNote ?? "", manualRoomInfo: b.manualRoomInfo ?? "", external, price: { checkIn: b.checkIn.toISOString().slice(0, 10), checkOut: b.checkOut.toISOString().slice(0, 10), total: Number(b.guestTotalPrice), hostNet: Number(b.hostNetPrice), nightly: Array.isArray(b.nightlyPrices) ? (b.nightlyPrices as { amount: number }[]).map((n) => n.amount) : null, asBroker: b.brokerId === userId } }} />}
+          {canEdit && <BookingEditButton bookingId={b.id} init={{ guestName: b.guestName, guestPhone: b.guestPhone ?? "", guestCount: b.guestCount, childCount: b.childCount, guestNote: b.guestNote ?? "", manualRoomInfo: b.manualRoomInfo ?? "", external, checkInTime: stay.checkin_time, checkOutTime: stay.checkout_time, price: { checkIn: b.checkIn.toISOString().slice(0, 10), checkOut: b.checkOut.toISOString().slice(0, 10), total: Number(b.guestTotalPrice), hostNet: Number(b.hostNetPrice), nightly: Array.isArray(b.nightlyPrices) ? (b.nightlyPrices as { amount: number }[]).map((n) => n.amount) : null, asBroker: b.brokerId === userId } }} />}
           {hasBoth && (
             <form action={openBookingChatAction.bind(null, b.id, viewer)}>
               <button type="submit" className="brutal-btn inline-flex h-9 items-center bg-white px-3 text-sm text-black">💬 Chat về booking</button>

@@ -7,6 +7,7 @@ import { Field, Select } from "@/components/form-fields";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { findOverlappingBookings } from "@/lib/external-property";
+import { parseVoucherConfig } from "@/lib/voucher-config";
 import { BookingCreateForm } from "@/components/booking-create-form";
 import { accessOnProperty } from "@/lib/staff";
 
@@ -102,6 +103,7 @@ export async function BookingPlanner({
                 checkIn={params.checkIn!} checkOut={params.checkOut!}
                 defaultGuestTotal={quoteOk ? q.total : undefined}
                 defaultNightly={quoteOk ? q.perNight.map((n) => n.amount) : undefined}
+                defaultTimes={parseVoucherConfig(property.voucherConfig).stay_times}
                 external={!!external}
                 canHold={canHold && params.intent !== "instant"} canInstant={canInstant && params.intent !== "hold"}
               />

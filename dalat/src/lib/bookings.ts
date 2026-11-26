@@ -26,6 +26,8 @@ export type CreateInput = {
   guestCount: number; // số người lớn
   childCount?: number;
   guestNote?: string;
+  checkInTime?: string; // "HH:mm"; bỏ trống = theo cấu hình căn
+  checkOutTime?: string;
   guestTotalPrice?: number;
   /** Giá khách trả từng đêm, đúng số đêm; chỉ lưu khi tổng khớp guestTotalPrice */
   nightlyPrices?: number[];
@@ -192,6 +194,8 @@ export async function createBooking(input: CreateInput) {
           guestNote: input.guestNote ?? null,
           status: holding ? "HOLDING" : "CONFIRMED",
           holdExpiresAt: holding ? new Date(Date.now() + HOLD_MINUTES * 60_000) : null,
+          checkInTime: input.checkInTime ?? null,
+          checkOutTime: input.checkOutTime ?? null,
           nightlyPrices: nightlyJson(input.checkIn, input.checkOut, input.nightlyPrices, guestTotal),
           guestTotalPrice: guestTotal,
           hostNetPrice: hostNet,
@@ -285,6 +289,8 @@ export async function markCleaned(actorId: string, bookingId: string) {
 }
 
 export type EditInput = { guestName: string; guestPhone?: string | null; guestCount: number; childCount?: number; guestNote?: string | null; manualRoomInfo?: string | null;
+  /** Giờ nhận/trả (tuỳ chọn) */
+  checkInTime?: string; checkOutTime?: string;
   /** Sửa giá (tuỳ chọn): tổng khách trả, giá Net (chỉ căn ngoài app), giá từng đêm */
   guestTotalPrice?: number; hostNetPrice?: number; nightlyPrices?: number[] };
 
@@ -323,6 +329,8 @@ export async function editBooking(actorId: string, bookingId: string, input: Edi
       where: { id: bookingId },
       data: {
         ...priceData,
+        ...(input.checkInTime !== undefined ? { checkInTime: input.checkInTime || null } : {}),
+        ...(input.checkOutTime !== undefined ? { checkOutTime: input.checkOutTime || null } : {}),
         guestName: input.guestName, guestPhone: input.guestPhone ?? null, guestCount: input.guestCount, childCount: input.childCount ?? 0, guestNote: input.guestNote ?? null,
         ...(b.bookingType === "EXTERNAL_MANUAL" ? { manualRoomInfo: input.manualRoomInfo ?? null } : {}),
       },

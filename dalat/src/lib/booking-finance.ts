@@ -16,7 +16,7 @@ export async function getBookingForParty(userId: string, bookingId: string) {
   const booking = await prisma.booking.findFirst({
     where: { id: bookingId, OR: [{ hostId: userId }, { brokerId: userId }] },
     include: {
-      property: { select: { id: true, name: true, sourceType: true, createdByBrokerId: true } },
+      property: { select: { id: true, name: true, sourceType: true, createdByBrokerId: true, voucherConfig: true } },
       rooms: { include: { room: { select: { name: true } } } },
       addons: { orderBy: { id: "asc" } },
       transactions: { orderBy: { createdAt: "asc" } },

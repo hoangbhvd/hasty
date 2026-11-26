@@ -55,7 +55,7 @@ async function loadByToken(token: string) {
     where: { voucherToken: token },
     select: {
       bookingCode: true, status: true, voucherExpiresAt: true, bookingType: true, manualRoomInfo: true,
-      checkIn: true, checkOut: true, guestName: true, guestPhone: true, guestCount: true, childCount: true,
+      checkIn: true, checkOut: true, checkInTime: true, checkOutTime: true, guestName: true, guestPhone: true, guestCount: true, childCount: true,
       guestTotalPrice: true, nightlyPrices: true, extraFees: true,
       hostId: true, brokerId: true, // chỉ dùng nội bộ để tìm SĐT/ngân hàng, KHÔNG trả ra ngoài
       property: { select: { name: true, address: true, googleMapsUrl: true, checkinGuide: true, houseRules: true, caretakerPhone: true, voucherConfig: true } },
@@ -106,7 +106,9 @@ export async function getVoucherData(token: string): Promise<VoucherData | null>
 async function build(b: Loaded): Promise<VoucherData> {
   const c = compute(b);
   const who = await collector(b);
-  const cfg = parseVoucherConfig(b.property.voucherConfig);
+  const base = parseVoucherConfig(b.property.voucherConfig);
+  // Giờ nhận/trả riêng của booking (nếu có) thay cho giờ mặc định của căn
+  const cfg = { ...base, stay_times: { checkin_time: b.checkInTime ?? base.stay_times.checkin_time, checkout_time: b.checkOutTime ?? base.stay_times.checkout_time } };
   const roomLabel = b.bookingType === "WHOLE_UNIT" ? "Nguyên căn" : b.rooms.map((r) => r.room.name).join(", ") || b.manualRoomInfo || "Nguyên căn";
 
   return {

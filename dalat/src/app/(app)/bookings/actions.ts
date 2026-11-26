@@ -12,6 +12,7 @@ import { notifyUsers } from "@/lib/notify";
 import { emitToUsers } from "@/lib/realtime";
 import { normalizePhone } from "@/lib/phone";
 import { parseDateOnly, toDateOnly } from "@/lib/format";
+import { TIME } from "@/lib/voucher-config";
 import { optMoney, optPhone, optText } from "@/lib/validators";
 import type { FormState } from "@/app/(auth)/actions";
 
@@ -31,6 +32,8 @@ const schema = z.object({
   guestTotalPrice: optMoney,
   hostNetPrice: optMoney,
   nightlyPrices: z.string().optional().transform((s) => (s ? s.split(",").map((x) => Number(x)) : undefined)),
+  checkInTime: z.string().regex(TIME, "Giờ nhận phòng không hợp lệ").optional().catch(undefined),
+  checkOutTime: z.string().regex(TIME, "Giờ trả phòng không hợp lệ").optional().catch(undefined),
   manualRoomInfo: optText,
 });
 
@@ -54,7 +57,7 @@ export async function createBookingAction(_: FormState, fd: FormData): Promise<F
       roomIds: v.roomIds, checkIn, checkOut, guestName: v.guestName,
       guestPhone: v.guestPhone ? (normalizePhone(v.guestPhone) ?? v.guestPhone) : undefined,
       guestCount: v.guestCount, childCount: v.childCount, guestNote: v.guestNote,
-      guestTotalPrice: v.guestTotalPrice, nightlyPrices: v.nightlyPrices, hostNetPrice: v.hostNetPrice, manualRoomInfo: v.manualRoomInfo,
+      guestTotalPrice: v.guestTotalPrice, nightlyPrices: v.nightlyPrices, checkInTime: v.checkInTime, checkOutTime: v.checkOutTime, hostNetPrice: v.hostNetPrice, manualRoomInfo: v.manualRoomInfo,
     });
   } catch (e) {
     if (e instanceof BookingError) return { error: e.message };
@@ -127,6 +130,8 @@ const editSchema = z.object({
   childCount: z.coerce.number().int().min(0, "Số trẻ em không hợp lệ").max(100).catch(0),
   guestNote: optText,
   manualRoomInfo: optText,
+  checkInTime: z.string().regex(TIME, "Giờ nhận phòng không hợp lệ").optional().catch(undefined),
+  checkOutTime: z.string().regex(TIME, "Giờ trả phòng không hợp lệ").optional().catch(undefined),
   guestTotalPrice: optMoney,
   hostNetPrice: optMoney,
   nightlyPrices: z.string().optional().transform((s) => (s ? s.split(",").map((x) => Number(x)) : undefined)),
@@ -142,7 +147,7 @@ export async function editBookingAction(bookingId: string, _: FormState, fd: For
   try {
     const b = await editBooking(user.id, bookingId, {
       guestName: v.guestName, guestCount: v.guestCount, childCount: v.childCount, guestNote: v.guestNote, manualRoomInfo: v.manualRoomInfo,
-      guestTotalPrice: v.guestTotalPrice, hostNetPrice: v.hostNetPrice, nightlyPrices: v.nightlyPrices,
+      guestTotalPrice: v.guestTotalPrice, hostNetPrice: v.hostNetPrice, nightlyPrices: v.nightlyPrices, checkInTime: v.checkInTime, checkOutTime: v.checkOutTime,
       guestPhone: v.guestPhone ? (normalizePhone(v.guestPhone) ?? v.guestPhone) : undefined,
     });
     await notifyUsers([b.hostId, b.brokerId].filter((x) => x && x !== user.id), `Booking ${b.bookingCode} được cập nhật thông tin khách`, `/${b.hostId === user.id ? "broker" : "host"}/bookings/${b.id}`);

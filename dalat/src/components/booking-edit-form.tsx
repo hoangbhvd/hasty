@@ -9,7 +9,7 @@ import { NightlyFieldset, nightsOf, useNightlyPrices } from "@/components/nightl
 import { useSafeForm } from "@/lib/use-safe-form";
 import { editBookingAction } from "@/app/(app)/bookings/actions";
 
-type Init = { guestName: string; guestPhone: string; guestCount: number; childCount: number; guestNote: string; manualRoomInfo: string; external: boolean;
+type Init = { guestName: string; guestPhone: string; guestCount: number; childCount: number; guestNote: string; manualRoomInfo: string; external: boolean; checkInTime: string; checkOutTime: string;
   price: { checkIn: string; checkOut: string; total: number; hostNet: number; nightly: number[] | null; asBroker: boolean } };
 
 function Form({ bookingId, init, onDone }: { bookingId: string; init: Init; onDone: () => void }) {
@@ -31,6 +31,10 @@ function Form({ bookingId, init, onDone }: { bookingId: string; init: Init; onDo
       </div>
       {init.external && <Field label="Phòng / hạng phòng" htmlFor="e-room"><Input id="e-room" name="manualRoomInfo" defaultValue={init.manualRoomInfo} className="h-11 text-base" /></Field>}
       <Field label="Ghi chú" htmlFor="e-note"><Input id="e-note" name="guestNote" defaultValue={init.guestNote} className="h-11 text-base" /></Field>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Giờ nhận phòng" htmlFor="e-cin"><Input id="e-cin" name="checkInTime" type="time" defaultValue={init.checkInTime} className="h-11 text-base" required /></Field>
+        <Field label="Giờ trả phòng" htmlFor="e-cout"><Input id="e-cout" name="checkOutTime" type="time" defaultValue={init.checkOutTime} className="h-11 text-base" required /></Field>
+      </div>
       {p.csv && <input type="hidden" name="nightlyPrices" value={p.csv} />}
       <Field label={pr.asBroker ? "Giá bán cho khách (đ)" : "Tổng tiền khách (đ)"} htmlFor="e-total" hint={pr.asBroker ? `Không thấp hơn giá Net (${pr.hostNet.toLocaleString("vi-VN")}đ); chênh lệch là hoa hồng của bạn` : undefined}>
         <Input id="e-total" name="guestTotalPrice" type="number" min="0" step="1" inputMode="numeric" value={p.total} onChange={(e) => p.setTotal(e.target.value)} className="h-11 text-base" required />

@@ -8,7 +8,7 @@ import { Field, Textarea } from "@/components/form-fields";
 import { createBookingAction } from "@/app/(app)/bookings/actions";
 
 export function BookingCreateForm({
-  as, propertyId, bookingType, roomIds, checkIn, checkOut, defaultGuestTotal, defaultNightly, external, canHold, canInstant = true,
+  as, propertyId, bookingType, roomIds, checkIn, checkOut, defaultGuestTotal, defaultNightly, defaultTimes, external, canHold, canInstant = true,
 }: {
   as: "HOST" | "BROKER";
   propertyId: string;
@@ -19,6 +19,8 @@ export function BookingCreateForm({
   defaultGuestTotal?: number;
   /** Giá gợi ý từng đêm (theo bảng giá Net), nếu có */
   defaultNightly?: number[];
+  /** Giờ nhận/trả mặc định theo cấu hình căn */
+  defaultTimes: { checkin_time: string; checkout_time: string };
   external: boolean;
   canHold: boolean;
   /** false: CTV thường — chỉ được "Giữ phòng 30 phút" */
@@ -45,6 +47,8 @@ export function BookingCreateForm({
           <Field label="Người lớn" htmlFor="guestCount"><Input id="guestCount" name="guestCount" type="number" min="1" defaultValue={2} inputMode="numeric" className="h-11 text-base" required /></Field>
           <Field label="Trẻ em" htmlFor="childCount"><Input id="childCount" name="childCount" type="number" min="0" defaultValue={0} inputMode="numeric" className="h-11 text-base" /></Field>
         </div>
+        <Field label="Giờ nhận phòng" htmlFor="checkInTime"><Input id="checkInTime" name="checkInTime" type="time" defaultValue={defaultTimes.checkin_time} className="h-11 text-base" required /></Field>
+        <Field label="Giờ trả phòng" htmlFor="checkOutTime"><Input id="checkOutTime" name="checkOutTime" type="time" defaultValue={defaultTimes.checkout_time} className="h-11 text-base" required /></Field>
         <Field label={as === "HOST" ? "Tổng tiền khách (đ)" : "Giá bán cho khách (đ)"} htmlFor="guestTotalPrice" hint={as === "BROKER" ? "Chênh lệch so với giá Net là hoa hồng của bạn" : undefined}>
           <Input id="guestTotalPrice" name="guestTotalPrice" type="number" min="0" step="1" inputMode="numeric" value={p.total} onChange={(e) => p.setTotal(e.target.value)} className="h-11 text-base" required={external || defaultGuestTotal === undefined} />
         </Field>
